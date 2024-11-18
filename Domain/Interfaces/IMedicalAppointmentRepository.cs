@@ -14,6 +14,6 @@ namespace Domain.Interfaces
         Task UpdateAsync(MedicalAppointment appointment);
         Task DeleteAsync(MedicalAppointment appointment);
         Task<MedicalAppointment> GetByIdAsync(int id);
-        Task<IEnumerable<MedicalAppointment>> GetAllAsync(MedicalAppointmentSearchParameters parameters);
+        Task<IEnumerable<MedicalAppointmentDTO>> GetAllAsync(MedicalAppointmentSearchParameters parameters);
     }
 }

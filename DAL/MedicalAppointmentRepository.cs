@@ -43,9 +43,14 @@ namespace DAL
             return await _dbContext.MedicalAppointments.FindAsync(id);
         }
 
-        public async Task<IEnumerable<MedicalAppointment>> GetAllAsync(MedicalAppointmentSearchParameters parameters)
+        public async Task<IEnumerable<MedicalAppointmentDTO>> GetAllAsync(MedicalAppointmentSearchParameters parameters)
         {
-            var query = _dbContext.MedicalAppointments.AsQueryable();
+            var query = _dbContext.MedicalAppointments
+                .Include(a => a.Hospital)
+                .Include(a => a.Patient)
+                .Include(a => a.Doctor)
+                .Include(a => a.ReceptionStatus)
+                .AsQueryable();
 
             if (parameters.HospitalId.HasValue)
                 query = query.Where(a => a.HospitalId == parameters.HospitalId.Value);
@@ -71,7 +76,19 @@ namespace DAL
             if (parameters.TimeTo.HasValue)
                 query = query.Where(a => a.Time <= parameters.TimeTo.Value);
 
-            return await query.ToListAsync();
+            var result = await query.Select(a => new MedicalAppointmentDTO
+            {
+                Id = a.MedicalAppointmentId,
+                HospitalName = a.Hospital.Name,
+                PatientName = a.Patient.Name,
+                DoctorName = a.Doctor.FullName,
+                DoctorSpecialty = a.Doctor.DoctorsSpeciality.Name,
+                ReceptionStatus = a.ReceptionStatus.Status.ToString(),
+                Description = a.Description
+
+            }).ToListAsync();
+
+            return result;
         }
     }
 }

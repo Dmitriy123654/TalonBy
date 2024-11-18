@@ -20,7 +20,7 @@ namespace TalonBy
 
             // Add services to the container.
 
-        
+
             builder.Services.AddControllers()
                 .AddJsonOptions(options =>
                 {
@@ -28,7 +28,19 @@ namespace TalonBy
                 });
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
-
+            /* builder.Services.AddCors(options =>
+             {
+                 options.AddDefaultPolicy(
+                     builder =>
+                     {
+                         builder.WithOrigins("http://localhost:4200")
+                             .AllowAnyHeader()
+                             .AllowAnyMethod();
+                     });
+             });*/
+            builder.Services.AddCors(opt => opt.AddDefaultPolicy(
+  policy => policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod())
+);
             builder.Services.AddSwaggerGen(c =>
             {
                 // Добавьте определение безопасности для использования JWT-токена
@@ -94,7 +106,7 @@ namespace TalonBy
             builder.Services.AddTransient<IMedicalAppointmentService, MedicalAppointmentService>();
             builder.Services.AddTransient<IPatientService, PatientService>();
             builder.Services.AddTransient<IReceptionStatusService, ReceptionStatusService>();
-            
+
 
             //dal
             builder.Services.AddTransient<IUserRepository, UserRepository>();
@@ -104,12 +116,12 @@ namespace TalonBy
             builder.Services.AddTransient<IMedicalAppointmentRepository, MedicalAppointmentRepository>();
             builder.Services.AddTransient<IReceptionStatusRepository, ReceptionStatusRepository>();
             builder.Services.AddTransient<IPatientRepository, PatientRepository>();
-           
-            
-            
+
+          
+
 
             var app = builder.Build();
-
+            app.UseCors();
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
@@ -120,7 +132,7 @@ namespace TalonBy
             app.UseHttpsRedirection();
             app.UseAuthentication();
             app.UseAuthorization();
-
+            
 
 
             app.MapControllers();

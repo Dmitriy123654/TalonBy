@@ -37,7 +37,4 @@ namespace Domain.Models
         public virtual ICollection<Doctor> Doctors { get; set; }
         public virtual ICollection<MedicalAppointment> MedicalAppointments { get; set; }
     }
-
-   
-
 }

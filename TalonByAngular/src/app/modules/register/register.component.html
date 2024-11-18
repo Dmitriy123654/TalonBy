@@ -1,0 +1,42 @@
+<div class="registration-container">
+  <h2 class="registration-title">Регистрация</h2>
+  <form
+    class="registration-form"
+    [formGroup]="registrationForm"
+    (ngSubmit)="onSubmit()"
+  >
+    <div class="form-group">
+      <label for="email">E-mail</label>
+      <input
+        type="email"
+        id="email"
+        name="email"
+        formControlName="email"
+        required
+      />
+    </div>
+    <div class="form-group">
+      <label for="password">Пароль</label>
+      <input
+        type="password"
+        id="password"
+        name="password"
+        formControlName="password"
+        required
+      />
+    </div>
+    <div class="form-group">
+      <label for="telephone">Телефон</label>
+      <input
+        type="telephone"
+        id="telephone"
+        name="telephone"
+        formControlName="telephone"
+        required
+      />
+    </div>
+    <button type="submit" class="registration-button">Продолжить</button>
+    <div *ngIf="errorMessage" class="error-message">{{ errorMessage }}</div>
+  </form>
+  <a href="/login" class="login-link">Уже есть аккаунт</a>
+</div>

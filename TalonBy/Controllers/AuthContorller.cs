@@ -7,7 +7,7 @@ using System.Security.Claims;
 namespace TalonBy.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("auth")]
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
@@ -17,6 +17,7 @@ namespace TalonBy.Controllers
             _authService = authService;
         }
 
+        
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterModel model)
         {

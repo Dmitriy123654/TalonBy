@@ -15,7 +15,7 @@ namespace BLL.Services
         Task UpdateMedicalAppointmentAsync(int id, MedicalAppointmentModel model);
         Task DeleteMedicalAppointmentAsync(int id);
         Task<MedicalAppointment> GetMedicalAppointmentByIdAsync(int id);
-        Task<IEnumerable<MedicalAppointment>> GetMedicalAppointmentsAsync(MedicalAppointmentSearchParameters parameters);
+        Task<IEnumerable<MedicalAppointmentDTO>> GetMedicalAppointmentsAsync(MedicalAppointmentSearchParameters parameters);
     }
 
     public class MedicalAppointmentService : IMedicalAppointmentService
@@ -75,7 +75,7 @@ namespace BLL.Services
             return await _medicalAppointmentRepository.GetByIdAsync(id);
         }
 
-        public async Task<IEnumerable<MedicalAppointment>> GetMedicalAppointmentsAsync(MedicalAppointmentSearchParameters parameters)
+        public async Task<IEnumerable<MedicalAppointmentDTO>> GetMedicalAppointmentsAsync(MedicalAppointmentSearchParameters parameters)
         {
             return await _medicalAppointmentRepository.GetAllAsync(parameters);
         }
