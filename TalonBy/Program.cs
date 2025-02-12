@@ -1,4 +1,3 @@
-
 using BLL.Services;
 using DAL;
 using Domain.Interfaces;
@@ -18,6 +17,9 @@ namespace TalonBy
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            // Р”РѕР±Р°РІСЊС‚Рµ СЌС‚Сѓ РєРѕРЅС„РёРіСѓСЂР°С†РёСЋ РІ РЅР°С‡Р°Р»Рѕ
+            builder.WebHost.UseUrls("http://localhost:5297", "https://localhost:7297");
+
             // Add services to the container.
 
 
@@ -28,22 +30,20 @@ namespace TalonBy
                 });
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
-            /* builder.Services.AddCors(options =>
-             {
-                 options.AddDefaultPolicy(
-                     builder =>
-                     {
-                         builder.WithOrigins("http://localhost:4200")
-                             .AllowAnyHeader()
-                             .AllowAnyMethod();
-                     });
-             });*/
-            builder.Services.AddCors(opt => opt.AddDefaultPolicy(
-  policy => policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod())
-);
+            builder.Services.AddCors(options =>
+            {
+                options.AddDefaultPolicy(
+                    builder =>
+                    {
+                        builder.WithOrigins("http://localhost:4200")
+                            .AllowAnyHeader()
+                            .AllowAnyMethod()
+                            .AllowCredentials();
+                    });
+            });
             builder.Services.AddSwaggerGen(c =>
             {
-                // Добавьте определение безопасности для использования JWT-токена
+                // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ JWT-пїЅпїЅпїЅпїЅпїЅпїЅ
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
                     Description = "JWT Authorization header using the Bearer scheme.",
@@ -51,7 +51,7 @@ namespace TalonBy
                     Scheme = "bearer"
                 });
 
-                // Добавьте требование безопасности для всех методов
+                // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
                 c.AddSecurityRequirement(new OpenApiSecurityRequirement
                 {
                     {
@@ -127,9 +127,14 @@ namespace TalonBy
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
+                // Р’ development РјРѕР¶РЅРѕ РѕС‚РєР»СЋС‡РёС‚СЊ HTTPS СЂРµРґРёСЂРµРєС‚
+                // app.UseHttpsRedirection();
+            }
+            else 
+            {
+                app.UseHttpsRedirection();
             }
 
-            app.UseHttpsRedirection();
             app.UseAuthentication();
             app.UseAuthorization();
             
