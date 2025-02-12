@@ -1,1 +1,78 @@
-<p>main-page works!</p>
+<div class="wrapper">
+  <div class="grid2">
+    <div class="home-section">
+      <h1 class="main-page-title">
+        Запись к врачам в 325 поликлиниках и медцентрах по всей Беларуси
+      </h1>
+
+      <div class="home-search-bar">
+        <form class="formSearch" (submit)="onSearch()">
+          <input type="text" [(ngModel)]="searchQuery" name="search" class="search" placeholder="Поиск по сайту">
+          <button type="submit"></button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Медицинский блог -->
+    <div class="home-section blog-section">
+      <div class="home-section-header">
+        <div class="title-iconized">
+          <div class="title-icon">
+            <div class="home-icon home-icon-white">
+              <span class="site-icon site-icon-home-blog"></span>
+            </div>
+          </div>
+          <div class="title-content">Медицинский блог</div>
+          <div class="title-actions">
+            <a href="https://blog.talon.by/" class="title-action">
+              <span class="title-action-text">Читать</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="blog-entries">
+        <a *ngFor="let post of blogPosts" [href]="'https://blog.talon.by/article/' + post.url" class="blog-entry">
+          <div class="blog-entry-media">
+            <img [src]="post.image" [alt]="post.title">
+          </div>
+          <div class="blog-entry-details">
+            <div class="blog-entry-author">{{ post.author }}</div>
+            <div class="blog-entry-title">{{ post.title }}</div>
+            <div class="blog-entry-metainfo">
+              <div class="blog-entry-metainfo-views">
+                <span class="site-icon site-icon-view-small"></span>&nbsp;{{ post.views }}
+              </div>
+            </div>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <!-- Сервисные плитки -->
+    <div class="home-section">
+      <div class="home-tiles">
+        <div class="home-tiles-items">
+          <ng-container *ngFor="let service of mainServices">
+            <a [href]="service.route" class="home-tile" [class.home-tile-outline]="service.type === 'outline'" [class.home-tile-fill]="service.type === 'fill'">
+              <div class="home-tile-header">
+                <div class="title-iconized">
+                  <div class="title-icon">
+                    <div class="home-icon" [class.home-icon-white]="service.type === 'outline'" [class.home-icon-accented]="service.type === 'fill'">
+                      <span class="site-icon" [class]="service.icon"></span>
+                    </div>
+                  </div>
+                  <div class="title-content">{{ service.title }}</div>
+                </div>
+              </div>
+              <div class="home-tile-body">{{ service.description }}</div>
+              <div *ngIf="service.action" class="home-tile-footer">
+                <span class="home-tile-footer-action">{{ service.action }}</span>
+              </div>
+            </a>
+          </ng-container>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

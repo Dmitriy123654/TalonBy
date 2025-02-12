@@ -9,10 +9,6 @@ import { AppComponent } from './app.component';
 import { LoginComponent } from './modules/login/login.component';
 import { RegisterComponent } from './modules/register/register.component';
 import { HeaderComponent } from './modules/header/header.component';
-import { HistoryOfPacientComponent } from './modules/history-of-pacient/history-of-pacient.component';
-import { HospitalsComponent } from './modules/hospitals/hospitals.component';
-import { TalonsComponent } from './modules/talons/talons.component';
-import { ProfileComponent } from './modules/profile/profile.component';
 
 // Другие импорты ваших компонентов, сервисов и модулей
 
@@ -22,10 +18,6 @@ import { ProfileComponent } from './modules/profile/profile.component';
     LoginComponent,
     RegisterComponent,
     HeaderComponent,
-    HistoryOfPacientComponent,
-    HospitalsComponent,
-    TalonsComponent,
-    ProfileComponent,
   ],
   imports: [
     BrowserModule,

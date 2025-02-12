@@ -5,10 +5,6 @@ import { RegisterComponent } from './modules/register/register.component';
 import { LoginComponent } from './modules/login/login.component';
 import { HeaderComponent } from './modules/header/header.component';
 import { CommonModule } from '@angular/common';
-import { HistoryOfPacientComponent } from './modules/history-of-pacient/history-of-pacient.component';
-import { HospitalsComponent } from './modules/hospitals/hospitals.component';
-import { TalonsComponent } from './modules/talons/talons.component';
-import { ProfileComponent } from './modules/profile/profile.component';
 import { filter } from 'rxjs';
 
 @Component({
@@ -19,11 +15,8 @@ import { filter } from 'rxjs';
     RegisterComponent,
     LoginComponent,
     HeaderComponent,
-    CommonModule,
-    HistoryOfPacientComponent,
-    HospitalsComponent,
-    TalonsComponent,
-    ProfileComponent,
+    CommonModule
+
   ],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
