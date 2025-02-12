@@ -8,6 +8,7 @@ header {
   left: 0;
   right: 0;
   z-index: 1000;
+  height: 80px;
 }
 
 // Добавляем новый контейнер для всей шапки
@@ -34,13 +35,14 @@ header {
 // Позиционируем лого и кнопку относительно viewport
 .logo {
   position: fixed;
-  left: calc((100vw - 1200px) / 2 - 120px); // Выносим за пределы 1200px
+  left: calc((100vw - 1200px) / 2 - 120px);
   font-size: clamp(28px, 5vw, 36px);
   font-weight: 700;
   color: #FF5722;
   text-decoration: none;
   transition: color 0.3s ease;
   white-space: nowrap;
+  z-index: 1001;
   
   &:hover {
     color: #FF7043;
@@ -50,6 +52,7 @@ header {
 .menu-container {
   display: flex;
   align-items: center;
+  padding: 0 120px;
 }
 
 .region-selector {
@@ -99,7 +102,8 @@ header {
 
 .right {
   position: fixed;
-  right: calc((100vw - 1200px) / 2 - 120px); // Выносим за пределы 1200px
+  right: calc((100vw - 1200px) / 2 - 120px);
+  z-index: 1001;
   
   .login-link {
     color: #FF5722;
@@ -128,6 +132,7 @@ header {
   border: none;
   cursor: pointer;
   padding: 0;
+  z-index: 1001;
   
   span {
     display: block;
@@ -146,10 +151,11 @@ header {
   left: 0;
   right: 0;
   background: #fff;
-  padding: 16px;
+  padding: 20px;
   box-shadow: 0 4px 8px rgba(0,0,0,0.1);
   transform: translateY(-100%);
   transition: transform 0.3s ease;
+  z-index: 1000;
   
   &.active {
     transform: translateY(0);
@@ -162,6 +168,7 @@ header {
     
     li {
       margin: 16px 0;
+      text-align: center;
       
       a {
         color: #333;
@@ -182,79 +189,79 @@ header {
 // Адаптивность
 @media (max-width: 1440px) {
   .logo {
-    position: absolute;
     left: 20px;
   }
   
   .right {
-    position: absolute;
     right: 20px;
   }
-}
-
-@media (max-width: 1200px) {
-  .header-menu {
-    gap: 24px;
+  
+  .menu-container {
+    padding: 0 80px;
   }
 }
 
-@media (max-width: 1024px) {
-  .wrapper {
-    gap: 16px;
+@media (max-width: 950px) {
+  .menu-container {
+    display: none !important;
   }
   
   .header-menu {
-    gap: 16px;
+    display: none !important;
+  }
+  
+  .wrapper {
+    justify-content: space-between;
+  }
+  
+  .burger-menu {
+    display: flex;
+    position: fixed;
+    right: 140px;
+  }
+  
+  .mobile-menu {
+    display: none;
+    
+    &.active {
+      display: block;
+      transform: translateY(0);
+      
+      ul {
+        opacity: 1;
+        visibility: visible;
+      }
+    }
   }
 }
 
 @media (max-width: 768px) {
   header {
-    display: block;
-  }
-
-  .wrapper {
     height: 64px;
-    padding: 0 16px;
-    justify-content: space-between;
   }
-
-  .logo, .right {
-    position: static;
-  }
-
-  .menu-container {
-    display: none;
+  
+  .logo {
+    font-size: 24px;
   }
   
   .burger-menu {
-    // display: flex;
-    display: none;  
-    order: 1;
+    right: 100px;
+  }
+  
+  .right {
+    .login-link {
+      padding: 8px 16px;
+      font-size: 14px;
+    }
   }
   
   .mobile-menu {
-    display: none;  
-    // display: block;
     top: 64px;
   }
-  @media (max-width: 768px) {
-    // ...
-  
-    .burger-menu {
-      display: flex; // Показываем бургер-меню на мобильных устройствах
-    }
-  
-    .mobile-menu {
-      display: block; // Показываем мобильное меню на мобильных устройствах (но оно все еще скрыто из-за transform: translateY(-100%))
-    }
-  
-    // ...
-  }
-  .right {
-    .login-link {
-      padding: 6px 12px;
-      font-size: 14px;
-    }
+}
+
+@media (max-width: 480px) {
+  .burger-menu {
+    right: 80px;
   }
 }
