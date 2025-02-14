@@ -1,0 +1,132 @@
+.order-page {
+  padding: 40px 0;
+  
+  .wrapper {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+}
+
+.page-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 40px;
+}
+
+.order-form {
+  background: #fff;
+  padding: 32px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  
+  .form-group {
+    margin-bottom: 24px;
+    
+    label {
+      display: block;
+      font-size: 16px;
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 8px;
+    }
+    
+    select, input {
+      width: 100%;
+      height: 48px;
+      padding: 0 16px;
+      border: 1px solid #E0E0E0;
+      border-radius: 4px;
+      font-size: 16px;
+      color: #333;
+      background: #fff;
+      
+      &:disabled {
+        background: #F5F5F5;
+        cursor: not-allowed;
+      }
+      
+      &:focus {
+        border-color: #FF5722;
+        outline: none;
+      }
+    }
+  }
+  
+  .time-slots {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 12px;
+    
+    button {
+      height: 40px;
+      border: 1px solid #E0E0E0;
+      border-radius: 4px;
+      background: #fff;
+      font-size: 14px;
+      color: #333;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      
+      &:hover:not(:disabled) {
+        border-color: #FF5722;
+        color: #FF5722;
+      }
+      
+      &.selected {
+        background: #FF5722;
+        border-color: #FF5722;
+        color: #fff;
+      }
+      
+      &:disabled {
+        background: #F5F5F5;
+        color: #999;
+        cursor: not-allowed;
+      }
+    }
+  }
+  
+  .submit-button {
+    width: 100%;
+    height: 48px;
+    background: #FF5722;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: 500;
+    color: #fff;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    
+    &:hover:not(:disabled) {
+      background: #F4511E;
+    }
+    
+    &:disabled {
+      background: #FFCCBC;
+      cursor: not-allowed;
+    }
+  }
+}
+
+// Адаптивность
+@media (max-width: 768px) {
+  .order-page {
+    padding: 24px 0;
+  }
+  
+  .page-title {
+    font-size: 24px;
+    margin-bottom: 24px;
+  }
+  
+  .order-form {
+    padding: 20px;
+    
+    .time-slots {
+      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    }
+  }
+} 

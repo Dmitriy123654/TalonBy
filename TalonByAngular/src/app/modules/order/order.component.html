@@ -1,0 +1,71 @@
+<div class="order-page">
+  <div class="wrapper">
+    <h1 class="page-title">Запись на прием</h1>
+    
+    <form [formGroup]="orderForm" (ngSubmit)="onSubmit()" class="order-form">
+      <!-- Выбор медучреждения -->
+      <div class="form-group">
+        <label for="hospital">Медицинское учреждение</label>
+        <select id="hospital" formControlName="hospitalId">
+          <option value="">Выберите медучреждение</option>
+          <option *ngFor="let hospital of hospitals" [value]="hospital.id">
+            {{ hospital.name }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Выбор отделения -->
+      <div class="form-group">
+        <label for="department">Отделение</label>
+        <select id="department" formControlName="departmentId" [disabled]="!orderForm.get('hospitalId')?.value">
+          <option value="">Выберите отделение</option>
+          <option *ngFor="let department of departments" [value]="department.id">
+            {{ department.name }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Выбор врача -->
+      <div class="form-group">
+        <label for="doctor">Врач</label>
+        <select id="doctor" formControlName="doctorId" [disabled]="!orderForm.get('departmentId')?.value">
+          <option value="">Выберите врача</option>
+          <option *ngFor="let doctor of doctors" [value]="doctor.id">
+            {{ doctor.name }} - {{ doctor.specialization }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Выбор даты -->
+      <div class="form-group">
+        <label for="date">Дата приема</label>
+        <input type="date" id="date" formControlName="date" 
+               [min]="today" [disabled]="!orderForm.get('doctorId')?.value">
+      </div>
+
+      <!-- Выбор времени -->
+      <div class="form-group">
+        <label for="timeSlot">Время приема</label>
+        <div class="time-slots" *ngIf="timeSlots.length > 0">
+          <button type="button" 
+                  *ngFor="let slot of timeSlots"
+                  [class.selected]="orderForm.get('timeSlotId')?.value === slot.id"
+                  [disabled]="!slot.isAvailable"
+                  (click)="orderForm.patchValue({timeSlotId: slot.id})">
+            {{ slot.startTime | date:'HH:mm' }}
+          </button>
+        </div>
+        <p *ngIf="timeSlots.length === 0 && orderForm.get('date')?.value">
+          Нет доступного времени на выбранную дату
+        </p>
+      </div>
+
+      <!-- Кнопка отправки -->
+      <button type="submit" 
+              class="submit-button" 
+              [disabled]="!orderForm.valid || isLoading">
+        {{ isLoading ? 'Загрузка...' : 'Записаться на прием' }}
+      </button>
+    </form>
+  </div>
+</div> 
