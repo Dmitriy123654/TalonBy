@@ -87,7 +87,7 @@ header {
     a {
       color: #333;
       text-decoration: none;
-      font-size: clamp(16px, 2vw, 20px);
+      font-size: clamp(12.8px, 1.6vw, 16px);
       font-weight: 500;
       padding: 8px 0;
       transition: color 0.3s ease;
@@ -100,17 +100,18 @@ header {
   }
 }
 
+// Позиционирование кнопки "Войти"
 .right {
   position: fixed;
-  right: calc((100vw - 1200px) / 2 - 120px);
+  right: 20px;
   z-index: 1001;
   
   .login-link {
     color: #FF5722;
     text-decoration: none;
-    font-size: clamp(16px, 2vw, 20px);
+    font-size: 18px;
     font-weight: 500;
-    padding: 12px 24px;
+    padding: 8px 16px;
     border-radius: 4px;
     transition: background-color 0.3s ease;
     white-space: nowrap;
@@ -133,6 +134,8 @@ header {
   cursor: pointer;
   padding: 0;
   z-index: 1001;
+  position: fixed;
+  right: 20px;
   
   span {
     display: block;
@@ -193,7 +196,7 @@ header {
   }
   
   .right {
-    right: 20px;
+    right: 30px;
   }
   
   .menu-container {
@@ -216,8 +219,6 @@ header {
   
   .burger-menu {
     display: flex;
-    position: fixed;
-    right: 140px;
   }
   
   .mobile-menu {
@@ -233,6 +234,12 @@ header {
       }
     }
   }
+  
+  .right {
+    .login-link {
+      margin-right: 40px;
+    }
+  }
 }
 
 @media (max-width: 768px) {
@@ -245,13 +252,12 @@ header {
   }
   
   .burger-menu {
-    right: 100px;
+    right: 20px;
   }
   
   .right {
     .login-link {
-      padding: 8px 16px;
-      font-size: 14px;
+      margin-right: 35px;
     }
   }
   
@@ -262,6 +268,12 @@ header {
 
 @media (max-width: 480px) {
   .burger-menu {
-    right: 80px;
+    right: 20px;
+  }
+  
+  .right {
+    .login-link {
+      margin-right: 30px;
+    }
   }
 }

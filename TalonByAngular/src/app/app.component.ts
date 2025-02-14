@@ -6,6 +6,7 @@ import { LoginComponent } from './modules/login/login.component';
 import { HeaderComponent } from './modules/header/header.component';
 import { CommonModule } from '@angular/common';
 import { filter } from 'rxjs';
+import { FooterComponent } from './modules/footer/footer.component';
 
 @Component({
   selector: 'app-root',
@@ -15,8 +16,8 @@ import { filter } from 'rxjs';
     RegisterComponent,
     LoginComponent,
     HeaderComponent,
+    FooterComponent,
     CommonModule
-
   ],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],

@@ -1,5 +1,13 @@
 // @import "~@angular/material/prebuilt-themes/indigo-pink.css";
 :host {
-  display: block;
-  margin-top: 110px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  margin-top: 80px;
+  
+  router-outlet + * {
+    flex: 1;
+    background-color: var(--background-color);
+    padding: 20px 0;
+  }
 }
