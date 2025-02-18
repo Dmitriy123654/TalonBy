@@ -103,4 +103,38 @@ export class SpecialitySelectionComponent implements OnInit {
     }
     return chunks;
   }
+
+  getWorkingHours(day: string): string {
+    const hours = this.hospital?.workingHours || '';
+    
+    // Разбиваем строку на части и обрабатываем каждую часть
+    const parts = hours.split(/[,\n]/).map(part => part.trim());
+    
+    // Ищем нужный день
+    const schedule = parts.find(part => 
+      part.toLowerCase().startsWith(day.toLowerCase())
+    );
+    
+    if (schedule) {
+      // Извлекаем время после двоеточия
+      const [, time] = schedule.split(/:\s*/);
+      return time || '';
+    }
+    
+    // Проверяем на круглосуточный режим
+    const fullTime = parts.find(part => 
+      part.toLowerCase().includes('круглосуточно')
+    );
+    
+    if (fullTime) {
+      return 'круглосуточно';
+    }
+    
+    return '';
+  }
+
+  getDomain(url: string | undefined): string {
+    if (!url) return '';
+    return url.replace(/^https?:\/\//, '');
+  }
 }

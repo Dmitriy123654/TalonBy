@@ -13,7 +13,7 @@ namespace Domain.ViewModels
         public HospitalType Type { get; set; }
         public string WorkingHours { get; set; }
         public string Phones { get; set; }
-        public string Enail { get; set; }
+        public string Email { get; set; }
         public string Description { get; set; }
     }
 }

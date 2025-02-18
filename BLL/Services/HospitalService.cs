@@ -44,7 +44,7 @@ namespace BLL.Services
                 Type = hospitalModel.Type,
                 WorkingHours = hospitalModel.WorkingHours,
                 Phones = hospitalModel.Phones,
-                Enail = hospitalModel.Enail,
+                Email = hospitalModel.Email,
                 Description = hospitalModel.Description
             };
 
@@ -61,7 +61,7 @@ namespace BLL.Services
                 hospital.Type = hospitalModel.Type;
                 hospital.WorkingHours = hospitalModel.WorkingHours;
                 hospital.Phones = hospitalModel.Phones;
-                hospital.Enail = hospitalModel.Enail;
+                hospital.Email = hospitalModel.Email;
                 hospital.Description = hospitalModel.Description;
 
                 _hospitalRepository.Update(hospital);

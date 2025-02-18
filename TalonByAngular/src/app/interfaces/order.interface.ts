@@ -13,6 +13,7 @@ export interface Hospital {
   workingHours: string;
   phones: string;
   email: string;
+  website?: string;
   description: string;
   doctors?: any[];
   medicalAppointments?: any[];

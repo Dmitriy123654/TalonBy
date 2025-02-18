@@ -1,6 +1,4 @@
-﻿
-
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Domain.Models
 {
@@ -29,7 +27,7 @@ namespace Domain.Models
         public string Phones { get; set; }
 
         [StringLength(100)]
-        public string Enail { get; set; }
+        public string Email { get; set; }
 
         [StringLength(1000)]
         public string Description { get; set; }

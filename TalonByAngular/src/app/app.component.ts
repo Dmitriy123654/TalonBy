@@ -40,13 +40,3 @@ export class AppComponent {
     return this.excludedRoutes.includes(this.router.url);
   }
 }
-// import { Component } from '@angular/core';
-// @Component({
-//   selector: 'app-root',
-//   standalone: true,
-//   templateUrl: './app.component.html',
-//   styleUrls: ['./app.component.scss'],
-// })
-// export class AppComponent {
-//   title = 'TalonByAngular';
-// }

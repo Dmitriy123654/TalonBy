@@ -64,7 +64,7 @@ namespace DAL.Migrations
 
                     b.HasIndex("HospitalId");
 
-                    b.ToTable("Doctors", (string)null);
+                    b.ToTable("Doctors");
                 });
 
             modelBuilder.Entity("Domain.Models.DoctorsSpeciality", b =>
@@ -82,7 +82,7 @@ namespace DAL.Migrations
 
                     b.HasKey("DoctorsSpecialityId");
 
-                    b.ToTable("DoctorsSpecialities", (string)null);
+                    b.ToTable("DoctorsSpecialities");
                 });
 
             modelBuilder.Entity("Domain.Models.Hospital", b =>
@@ -103,7 +103,7 @@ namespace DAL.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
-                    b.Property<string>("Enail")
+                    b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -128,7 +128,7 @@ namespace DAL.Migrations
 
                     b.HasKey("HospitalId");
 
-                    b.ToTable("Hospitals", (string)null);
+                    b.ToTable("Hospitals");
                 });
 
             modelBuilder.Entity("Domain.Models.MedicalAppointment", b =>
@@ -176,7 +176,7 @@ namespace DAL.Migrations
 
                     b.HasIndex("ReceptionStatusId");
 
-                    b.ToTable("MedicalAppointments", (string)null);
+                    b.ToTable("MedicalAppointments");
                 });
 
             modelBuilder.Entity("Domain.Models.Patient", b =>
@@ -210,7 +210,7 @@ namespace DAL.Migrations
                         .IsUnique()
                         .HasFilter("[UserId] IS NOT NULL");
 
-                    b.ToTable("Patients", (string)null);
+                    b.ToTable("Patients");
                 });
 
             modelBuilder.Entity("Domain.Models.ReceptionStatus", b =>
@@ -222,12 +222,11 @@ namespace DAL.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ReceptionStatusId"));
 
                     b.Property<int>("Status")
-                        .HasMaxLength(50)
                         .HasColumnType("int");
 
                     b.HasKey("ReceptionStatusId");
 
-                    b.ToTable("ReceptionStatuses", (string)null);
+                    b.ToTable("ReceptionStatuses");
                 });
 
             modelBuilder.Entity("Domain.Models.User", b =>
@@ -258,7 +257,7 @@ namespace DAL.Migrations
 
                     b.HasKey("UserId");
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("Domain.Models.Doctor", b =>

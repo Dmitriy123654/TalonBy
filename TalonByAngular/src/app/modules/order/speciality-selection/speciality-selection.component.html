@@ -4,21 +4,30 @@
     <div class="wrapper">
       <div class="hospital-info">
         <h1>{{hospital.name}}</h1>
-        <div class="address">
-          <p>{{hospital.address}}</p>
-          <a href="#" class="map-link">показать на карте</a>
-        </div>
-        <div class="contacts">
-          <div class="registry">
-            <strong>Регистратура:</strong>
+        <div class="info-grid">
+          <div class="address-block">
+            <p>{{hospital.address}}</p>
+            <a href="#" class="map-link">показать на карте</a>
+          </div>
+          <div class="registry-block">
+            <div class="label">Регистратура:</div>
             <div class="phones">
-              <a href="tel:+375172431894">+375 17 243-18-94</a>
-              <a href="tel:+375173734318">+375 17 373-43-18</a>
+              <ng-container *ngFor="let phone of hospital.phones.split(',')">
+                <a href="tel:{{phone.trim()}}">{{phone.trim()}}</a><br>
+              </ng-container>
             </div>
           </div>
-          <div class="schedule">
-            <strong>ПН-ПТ:</strong> 7:00-20:00<br>
-            <strong>СБ:</strong> 8:30-16:00
+          <div class="schedule-block">
+            <div class="schedule-row">
+              <span class="label">ПН-ПТ:</span><span class="time">{{getWorkingHours('ПН-ПТ')}}</span>
+            </div>
+            <div class="schedule-row">
+              <span class="label">СБ:</span><span class="time">{{getWorkingHours('СБ')}}</span>
+            </div>
+          </div>
+          <div class="contacts-block">
+            <a *ngIf="hospital.website" href="{{hospital.website}}" class="website">{{getDomain(hospital.website)}}</a>
+            <a *ngIf="hospital.email" href="mailto:{{hospital.email}}" class="email">{{hospital.email}}</a>
           </div>
         </div>
       </div>
@@ -28,16 +37,6 @@
   <!-- Основной контент -->
   <div class="wrapper">
     <div class="content-block">
-      <!-- Заголовок -->
-      <div class="content-header">
-        <h3>Заказ талона</h3>
-        <p class="description">Выбор специальности</p>
-        <p class="payment-link">
-          <a href="/services">Нет нужной специальности? Возможно, она есть в платных услугах</a>
-        </p>
-      </div>
-
-      <!-- Боковое меню -->
       <aside>
         <div class="order-steps">
           <div class="step active">Специальность</div>
@@ -56,27 +55,25 @@
         </nav>
       </aside>
 
-      <!-- Список специальностей -->
-      <div class="specialities-grid">
-        <div *ngIf="loading" class="loading">Загрузка специальностей...</div>
-        <div *ngIf="error" class="error">{{error}}</div>
-        
-        <ng-container *ngIf="!loading && !error && specialities.length > 0">
-          <div class="row" *ngFor="let chunk of getChunks(specialities, 3)">
-            <div class="cell" *ngFor="let speciality of chunk">
-              <div class="speciality-card" (click)="selectSpeciality(speciality)">
-                <h5>{{speciality.name}}</h5>
-              </div>
+      <main>
+        <h2>Заказ талона</h2>
+        <p class="subtitle">Выбор специальности</p>
+
+        <div class="specialities-grid">
+          <div *ngIf="loading" class="loading">Загрузка специальностей...</div>
+          <div *ngIf="error" class="error">{{error}}</div>
+          
+          <div class="row" *ngIf="!loading && !error && specialities.length > 0">
+            <div class="speciality-card" *ngFor="let speciality of specialities" (click)="selectSpeciality(speciality)">
+              <h5>{{speciality.name}}</h5>
             </div>
           </div>
-        </ng-container>
-
-        <div *ngIf="!loading && !error && specialities.length === 0" class="no-data">
-          Специальности не найдены
         </div>
-      </div>
 
-      <a href="#" class="help-link">Почему в списке нет нужной мне специальности?</a>
+        <div class="payment-services">
+          <a href="/services">Нет нужной специальности? Возможно, она есть в платных услугах</a>
+        </div>
+      </main>
     </div>
   </div>
 </div>
