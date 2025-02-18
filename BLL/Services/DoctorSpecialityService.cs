@@ -18,6 +18,7 @@ namespace BLL.Services
         Task<int> CreateDoctorsSpecialityAsync(DoctorsSpecialityModel specialityModel);
         Task UpdateDoctorsSpecialityAsync(int id, DoctorsSpecialityModel specialityModel);
         Task DeleteDoctorsSpecialityAsync(int id);
+        IEnumerable<DoctorsSpeciality> GetSpecialitiesByHospital(int hospitalId);
     }
     public class DoctorsSpecialityService : IDoctorsSpecialityService
     {
@@ -63,6 +64,10 @@ namespace BLL.Services
         public async Task DeleteDoctorsSpecialityAsync(int id)
         {
             await _doctorsSpecialityRepository.DeleteAsync(id);
+        }
+        public IEnumerable<DoctorsSpeciality> GetSpecialitiesByHospital(int hospitalId)
+        {
+            return _doctorsSpecialityRepository.GetByHospitalId(hospitalId);
         }
     }
 }

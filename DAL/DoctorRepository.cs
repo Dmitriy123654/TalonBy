@@ -69,5 +69,12 @@ namespace DAL
                 .Where(d => d.HospitalId == hospitalId && d.DoctorsSpecialityId == specialtyId)
                 .ToList();
         }
+
+        public async Task<IEnumerable<Doctor>> GetBySpecialityAsync(int specialityId)
+        {
+            return await _context.Doctors
+                .Where(d => d.DoctorsSpecialityId == specialityId)
+                .ToListAsync();
+        }
     }
 }

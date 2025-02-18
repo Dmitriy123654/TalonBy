@@ -1,37 +1,63 @@
+export enum HospitalType {
+  Adult = 0,
+  Children = 1,
+  Specialized = 2
+}
+
 export interface Hospital {
-  id: number;
+  $id?: string;
+  hospitalId: number;
   name: string;
   address: string;
-  type: 'state' | 'private';
+  type: HospitalType;
+  workingHours: string;
+  phones: string;
+  email: string;
+  description: string;
+  doctors?: any[];
+  medicalAppointments?: any[];
 }
 
 export interface Department {
   id: number;
   name: string;
-  hospitalId: number;
+}
+
+export interface DoctorSpeciality {
+  id: number;
+  name: string;
+  description?: string;
 }
 
 export interface Doctor {
   id: number;
   name: string;
-  specialization: string;
-  departmentId: number;
-  photo?: string;
+  specialityId: number;
+  schedule?: {
+    start: string;
+    end: string;
+  };
 }
 
 export interface TimeSlot {
   id: number;
-  doctorId: number;
-  startTime: Date;
-  endTime: Date;
+  startTime: string;
   isAvailable: boolean;
 }
 
 export interface Appointment {
-  id?: number;
+  id: number;
+  createdAt: string;
   patientId: number;
+  hospitalId: number;
+  departmentId: number;
   doctorId: number;
   timeSlotId: number;
-  status: 'pending' | 'confirmed' | 'cancelled';
-  createdAt: Date;
+  status: string;
+}
+
+export interface Speciality {
+  id: number;
+  name: string;
+  link: string;
 } 

@@ -16,5 +16,6 @@ namespace Domain.Interfaces
         Task DeleteAsync(int id);
         IEnumerable<Doctor> GetByHospitalId(int hospitalId);
         IEnumerable<Doctor> GetBySpecialtyAndHospitalId(int hospitalId, int specialtyId);
+        Task<IEnumerable<Doctor>> GetBySpecialityAsync(int specialityId);
     }
 }

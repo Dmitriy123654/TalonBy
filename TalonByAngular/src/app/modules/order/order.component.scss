@@ -1,18 +1,27 @@
 .order-page {
-  padding: 40px 0;
+  background: #f5f5f5;
+  min-height: 100vh;
   
   .wrapper {
-    max-width: 800px;
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 0 20px;
+    display: flex;
+    padding: 20px;
+    gap: 30px;
   }
-}
 
-.page-title {
-  font-size: 32px;
-  font-weight: 700;
-  color: #333;
-  margin-bottom: 40px;
+  .page-title {
+    font-size: 31px;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 10px;
+  }
+
+  h2 {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 20px;
+  }
 }
 
 .order-form {
@@ -111,22 +120,153 @@
   }
 }
 
+.hospital-types-sidebar {
+  width: 250px;
+  flex-shrink: 0;
+  padding: 20px;
+  height: fit-content;
+
+  h3 {
+    color: #333;
+    font-size: 18.2px;
+    margin-bottom: 15px;
+  }
+
+  .type-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+.main-content {
+  flex-grow: 1;
+}
+
+.hospital-selection {
+  border-radius: 4px;
+  // padding: 10px;
+
+  .search-box {
+    margin-bottom: 20px;
+
+    .search-input {
+      width: 99%;
+      height: 40px;
+      
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      background: #fff;
+      
+      &:focus {
+        outline: none;
+        border-color: #FF5722;
+      }
+    }
+  }
+
+  .hospitals-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+
+    .hospital-card {
+      padding: 7px 10px;
+      background: #fff;
+      border: 1px solid #eee;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+
+      &:hover {
+        border-color: #FF5722;
+      }
+
+      &.selected {
+        border-color: #FF5722;
+        background-color: #FFF5F2;
+      }
+
+      h3 {
+        font-size: 16px;
+        color: #333;
+        margin-bottom: 8px;
+        margin-right: 8px;
+        font-weight: 400;
+      }
+
+      .address {
+        font-size: 14px;
+        color: #999;
+      }
+
+      &::after {
+        content: '';
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%) rotate(-45deg);
+        width: 8px;
+        height: 8px;
+        margin-left: 10px;
+        border-right: 2px solid #FF5722;
+        border-bottom: 2px solid #FF5722;
+      }
+    }
+  }
+}
+
 // Адаптивность
+@media (max-width: 1200px) {
+  .order-page .wrapper {
+    padding: 15px;
+  }
+
+  .hospitals-list {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+  }
+}
+
 @media (max-width: 768px) {
-  .order-page {
-    padding: 24px 0;
+  .order-page .wrapper {
+    flex-direction: column;
+    padding: 10px;
   }
-  
+
+  .hospital-types-sidebar {
+    width: 100%;
+    order: 1;
+    padding: 10px;
+    margin-bottom: 15px;
+  }
+
+  .main-content {
+    order: 2;
+  }
+
+  .hospital-selection {
+    .search-box {
+      margin-top: 10px;
+    }
+
+    .hospitals-list {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+@media (max-width: 480px) {
   .page-title {
-    font-size: 24px;
-    margin-bottom: 24px;
+    font-size: 24px !important;
   }
-  
-  .order-form {
-    padding: 20px;
+
+  .hospital-card {
+    padding: 10px !important;
     
-    .time-slots {
-      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    h3 {
+      font-size: 14px !important;
     }
   }
 } 

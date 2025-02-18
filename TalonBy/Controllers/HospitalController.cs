@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace TalonBy.Controllers
 {
-    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class HospitalController : Controller
@@ -20,7 +19,6 @@ namespace TalonBy.Controllers
             this.doctorService = doctorService;
         }
 
-        [Authorize]
         [HttpGet("GetAllHospitals")]
         public List<Hospital> GetAllHospitals()
         {

@@ -7,7 +7,7 @@ using System.ComponentModel;
 
 namespace TalonBy.Controllers
 {
-    [Authorize]
+    // [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class DoctorController : ControllerBase
@@ -34,6 +34,33 @@ namespace TalonBy.Controllers
                 return NotFound();
 
             return Ok(doctor);
+        }
+        [HttpGet("GetBySpeciality/{specialityId}")]
+        public async Task<IActionResult> GetDoctorsBySpeciality(int specialityId)
+        {
+            try
+            {
+                var doctors = await _doctorService.GetDoctorsBySpecialityAsync(specialityId);
+                return Ok(doctors);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("GetByHospital/{hospitalId}")]
+        public IActionResult GetDoctorsByHospital(int hospitalId)
+        {
+            try
+            {
+                var doctors = _doctorService.GetDoctorsByHospital(hospitalId);
+                return Ok(doctors);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpPost("Create")]

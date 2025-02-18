@@ -18,14 +18,18 @@ namespace BLL.Services
         Task DeleteDoctorAsync(int id);
         IEnumerable<Doctor> GetDoctorsByHospital(int hospitalId);
         IEnumerable<Doctor> GetDoctorsBySpecialtyAndHospital(int hospitalId, int specialtyId);
+        Task<IEnumerable<Doctor>> GetDoctorsBySpecialityAsync(int specialityId);
+        
     }
     public class DoctorService : IDoctorService
     {
         private readonly IDoctorRepository _doctorRepository;
+        private readonly IDoctorsSpecialityRepository _specialityRepository;
 
-        public DoctorService(IDoctorRepository doctorRepository)
+        public DoctorService(IDoctorRepository doctorRepository, IDoctorsSpecialityRepository specialityRepository)
         {
             _doctorRepository = doctorRepository;
+            _specialityRepository = specialityRepository;
         }
 
         public async Task<List<Doctor>> GetAllDoctorsAsync()
@@ -86,5 +90,11 @@ namespace BLL.Services
             return _doctorRepository.GetBySpecialtyAndHospitalId(hospitalId, specialtyId);
         }
 
+        public async Task<IEnumerable<Doctor>> GetDoctorsBySpecialityAsync(int specialityId)
+        {
+            return await _doctorRepository.GetBySpecialityAsync(specialityId);
+        }
+
+       
     }
 }

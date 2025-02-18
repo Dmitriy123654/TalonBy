@@ -18,8 +18,15 @@ namespace TalonBy
             var builder = WebApplication.CreateBuilder(args);
 
             // Добавьте эту конфигурацию в начало
-            builder.WebHost.UseUrls("http://localhost:5297", "https://localhost:7297");
+            builder.WebHost.UseUrls(
 
+                "http://localhost:5297",    // Основной URL для API
+
+                "https://localhost:7297",   // HTTPS URL для API
+
+                "http://localhost:5298"     // Отдельный URL для Swagger
+
+            );
             // Add services to the container.
 
 
@@ -37,8 +44,7 @@ namespace TalonBy
                     {
                         builder.WithOrigins("http://localhost:4200")
                             .AllowAnyHeader()
-                            .AllowAnyMethod()
-                            .AllowCredentials();
+                            .AllowAnyMethod();
                     });
             });
             builder.Services.AddSwaggerGen(c =>
@@ -100,7 +106,7 @@ namespace TalonBy
 
             //bll
             builder.Services.AddTransient<IAuthService, AuthService>();
-            builder.Services.AddTransient<IDoctorService, DoctorService>();
+            builder.Services.AddScoped<IDoctorService, DoctorService>();
             builder.Services.AddTransient<IDoctorsSpecialityService, DoctorsSpecialityService>();
             builder.Services.AddTransient<IHospitalService, HospitalService>();
             builder.Services.AddTransient<IMedicalAppointmentService, MedicalAppointmentService>();
@@ -110,7 +116,7 @@ namespace TalonBy
 
             //dal
             builder.Services.AddTransient<IUserRepository, UserRepository>();
-            builder.Services.AddTransient<IDoctorRepository, DoctorRepository>();
+            builder.Services.AddScoped<IDoctorRepository, DoctorRepository>();
             builder.Services.AddTransient<IDoctorsSpecialityRepository, DoctorsSpecialityRepository>();
             builder.Services.AddTransient<IHospitalRepository, HospitalRepository>();
             builder.Services.AddTransient<IMedicalAppointmentRepository, MedicalAppointmentRepository>();
@@ -126,9 +132,10 @@ namespace TalonBy
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
-                app.UseSwaggerUI();
-                // В development можно отключить HTTPS редирект
-                // app.UseHttpsRedirection();
+                app.UseSwaggerUI(c =>
+                {
+                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "TalonBy API V1");
+                });
             }
             else 
             {

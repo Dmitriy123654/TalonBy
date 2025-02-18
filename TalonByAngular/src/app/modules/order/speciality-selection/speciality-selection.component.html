@@ -1,0 +1,82 @@
+<div class="speciality-page">
+  <!-- Шапка с информацией о больнице -->
+  <div class="hospital-header" *ngIf="hospital">
+    <div class="wrapper">
+      <div class="hospital-info">
+        <h1>{{hospital.name}}</h1>
+        <div class="address">
+          <p>{{hospital.address}}</p>
+          <a href="#" class="map-link">показать на карте</a>
+        </div>
+        <div class="contacts">
+          <div class="registry">
+            <strong>Регистратура:</strong>
+            <div class="phones">
+              <a href="tel:+375172431894">+375 17 243-18-94</a>
+              <a href="tel:+375173734318">+375 17 373-43-18</a>
+            </div>
+          </div>
+          <div class="schedule">
+            <strong>ПН-ПТ:</strong> 7:00-20:00<br>
+            <strong>СБ:</strong> 8:30-16:00
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Основной контент -->
+  <div class="wrapper">
+    <div class="content-block">
+      <!-- Заголовок -->
+      <div class="content-header">
+        <h3>Заказ талона</h3>
+        <p class="description">Выбор специальности</p>
+        <p class="payment-link">
+          <a href="/services">Нет нужной специальности? Возможно, она есть в платных услугах</a>
+        </p>
+      </div>
+
+      <!-- Боковое меню -->
+      <aside>
+        <div class="order-steps">
+          <div class="step active">Специальность</div>
+          <div class="step">Врач</div>
+          <div class="step">Дата и время</div>
+          <div class="step">Личные данные</div>
+          <div class="step">Запись</div>
+        </div>
+
+        <nav class="hospital-nav">
+          <ul>
+            <li><a href="#">Информация</a></li>
+            <li><a href="#">Врачи</a></li>
+            <li><a href="#">Расписание врачей</a></li>
+          </ul>
+        </nav>
+      </aside>
+
+      <!-- Список специальностей -->
+      <div class="specialities-grid">
+        <div *ngIf="loading" class="loading">Загрузка специальностей...</div>
+        <div *ngIf="error" class="error">{{error}}</div>
+        
+        <ng-container *ngIf="!loading && !error && specialities.length > 0">
+          <div class="row" *ngFor="let chunk of getChunks(specialities, 3)">
+            <div class="cell" *ngFor="let speciality of chunk">
+              <div class="speciality-card" (click)="selectSpeciality(speciality)">
+                <h5>{{speciality.name}}</h5>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+
+        <div *ngIf="!loading && !error && specialities.length === 0" class="no-data">
+          Специальности не найдены
+        </div>
+      </div>
+
+      <a href="#" class="help-link">Почему в списке нет нужной мне специальности?</a>
+    </div>
+  </div>
+</div>

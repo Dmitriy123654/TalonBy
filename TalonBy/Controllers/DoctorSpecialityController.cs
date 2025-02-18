@@ -6,16 +6,18 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace TalonBy.Controllers
 {
-    [Authorize]
+    // [Authorize]  // Убираем этот атрибут для тестирования
     [ApiController]
     [Route("api/[controller]")]
     public class DoctorsSpecialityController : ControllerBase
     {
         private readonly IDoctorsSpecialityService _doctorsSpecialityService;
+        private readonly IDoctorService _doctorService;
 
-        public DoctorsSpecialityController(IDoctorsSpecialityService doctorsSpecialityService)
+        public DoctorsSpecialityController(IDoctorsSpecialityService doctorsSpecialityService, IDoctorService doctorService)
         {
             _doctorsSpecialityService = doctorsSpecialityService;
+
         }
 
         [HttpGet("GetAll")]
@@ -54,6 +56,13 @@ namespace TalonBy.Controllers
         {
             await _doctorsSpecialityService.DeleteDoctorsSpecialityAsync(id);
             return NoContent();
+        }
+
+        [HttpGet("GetByHospital/{hospitalId}")]
+        public IActionResult GetByHospital(int hospitalId)
+        {
+            var specialities = _doctorsSpecialityService.GetSpecialitiesByHospital(hospitalId);
+            return Ok(specialities);
         }
     }
 }

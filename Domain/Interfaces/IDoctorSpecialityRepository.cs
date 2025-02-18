@@ -15,5 +15,6 @@ namespace Domain.Interfaces
         Task AddAsync(DoctorsSpeciality speciality);
         Task UpdateAsync(DoctorsSpeciality speciality);
         Task DeleteAsync(int id);
+        IEnumerable<DoctorsSpeciality> GetByHospitalId(int hospitalId);
     }
 }

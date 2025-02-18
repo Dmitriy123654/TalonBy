@@ -50,5 +50,15 @@ namespace DAL
                 await _context.SaveChangesAsync();
             }
         }
+
+        public IEnumerable<DoctorsSpeciality> GetByHospitalId(int hospitalId)
+        {
+            return _context.DoctorsSpecialities
+                .Where(ds => _context.Doctors
+                    .Any(d => d.HospitalId == hospitalId
+                               && d.DoctorsSpecialityId == ds.DoctorsSpecialityId))
+                .Where(ds => ds.DoctorsSpecialityId != 1 && ds.DoctorsSpecialityId != 2)
+                .ToList();
+        }
     }
 }
