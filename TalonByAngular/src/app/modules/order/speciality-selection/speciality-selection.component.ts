@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { Hospital } from '../../../interfaces/order.interface';
+import { Hospital, DoctorDetails } from '../../../interfaces/order.interface';
 import { OrderService } from '../../../services/order.service';
 
 interface Speciality {
@@ -93,17 +93,18 @@ export class SpecialitySelectionComponent implements OnInit, OnDestroy {
     if (!this.hospital) return;
     
     this.loading = true;
-    this.orderService.getDoctorsBySpecialty(this.hospital.hospitalId, specialityId).subscribe({
-      next: (doctors) => {
-        console.log('Loaded doctors:', doctors);
-        this.loading = false;
-      },
-      error: (error) => {
-        console.error('Error loading doctors:', error);
-        this.error = 'Ошибка при загрузке списка врачей';
-        this.loading = false;
-      }
-    });
+    this.orderService.getDoctorsBySpecialityAndHospital(this.hospital.hospitalId, specialityId)
+      .subscribe({
+        next: (doctors: DoctorDetails[]) => {
+          console.log('Loaded doctors:', doctors);
+          this.loading = false;
+        },
+        error: (error: any) => {
+          console.error('Error loading doctors:', error);
+          this.error = 'Ошибка при загрузке списка врачей';
+          this.loading = false;
+        }
+      });
   }
 
   selectSpeciality(speciality: Speciality): void {

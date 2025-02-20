@@ -63,6 +63,20 @@ namespace TalonBy.Controllers
             }
         }
 
+        [HttpGet("GetBySpecialtyAndHospital/{hospitalId}/{specialtyId}")]
+        public IActionResult GetDoctorsBySpecialtyAndHospital(int hospitalId, int specialtyId)
+        {
+            try
+            {
+                var doctors = _doctorService.GetDoctorsBySpecialtyAndHospital(hospitalId, specialtyId);
+                return Ok(doctors);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
         [HttpPost("Create")]
         public async Task<IActionResult> CreateDoctor(DoctorModel doctorModel)
         {

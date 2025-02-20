@@ -106,15 +106,23 @@
         <h2>Заказ талона</h2>
         <p class="subtitle">Выбор врача</p>
 
-        <div class="doctors-grid">
+        <div *ngIf="loading" class="loading">
+          Загрузка списка врачей...
+        </div>
+
+        <div *ngIf="error" class="error">
+          {{error}}
+        </div>
+
+        <div class="doctors-grid" *ngIf="!loading && !error">
           <div class="row">
             <div class="doctor-card" *ngFor="let doctor of doctors" (click)="selectDoctor(doctor)">
               <div class="doctor-info">
-                <img *ngIf="doctor.photo" [src]="doctor.photo" [alt]="doctor.name" class="doctor-photo">
+                <img *ngIf="doctor.photo" [src]="doctor.photo" [alt]="doctor.fullName" class="doctor-photo">
                 <div class="doctor-details">
-                  <h5>{{doctor.name}}</h5>
-                  <p class="speciality">{{doctor.speciality}}</p>
-                  <p class="cabinet">Кабинет {{doctor.cabinet}}</p>
+                  <h5>{{doctor.fullName}}</h5>
+                  <p class="speciality">{{doctor.doctorsSpeciality?.name}}</p>
+                  <p class="cabinet">Кабинет {{doctor.office}}</p>
                 </div>
               </div>
             </div>

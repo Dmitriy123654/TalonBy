@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
-import { Hospital, Doctor, TimeSlot, Appointment, DoctorSpeciality, Speciality } from '../interfaces/order.interface';
+import { Hospital, Doctor, TimeSlot, Appointment, DoctorSpeciality, Speciality, DoctorDetails } from '../interfaces/order.interface';
 import { environment } from '../../environments/environment';
 
 @Injectable({
@@ -42,17 +42,24 @@ export class OrderService {
   }
 
   // Получение докторов по больнице
-  getDoctorsByHospital(hospitalId: number): Observable<Doctor[]> {
-    return this.http.get<any>(`${this.apiUrl}/Hospital/GetDoctorsByHospital/${hospitalId}`).pipe(
-      map(response => response.$values || [])
-    );
+  getDoctorsByHospital(hospitalId: number): Observable<DoctorDetails[]> {
+    return this.http.get<any>(`${this.apiUrl}/Doctor/GetByHospital/${hospitalId}`)
+      .pipe(
+        map(response => response.$values || [])
+      );
   }
 
-  // Получение докторов по больнице и специальности
-  getDoctorsBySpecialty(hospitalId: number, specialtyId: number): Observable<Doctor[]> {
-    return this.http.get<any>(`${this.apiUrl}/Hospital/GetDoctorsBySpecialty/${hospitalId}/${specialtyId}`).pipe(
-      map(response => response.$values || [])
-    );
+  // Получение докторов по специальности
+  getDoctorsBySpeciality(specialityId: number): Observable<DoctorDetails[]> {
+    return this.http.get<DoctorDetails[]>(`${this.apiUrl}/Doctor/GetBySpeciality/${specialityId}`);
+  }
+
+  // Получение докторов по специальности и больнице
+  getDoctorsBySpecialityAndHospital(hospitalId: number, specialityId: number): Observable<DoctorDetails[]> {
+    return this.http.get<any>(`${this.apiUrl}/Doctor/GetBySpecialtyAndHospital/${hospitalId}/${specialityId}`)
+      .pipe(
+        map(response => response.$values || [])
+      );
   }
 
   getTimeSlots(doctorId: number, date: string): Observable<TimeSlot[]> {

@@ -64,9 +64,15 @@ export interface Speciality {
 }
 
 export interface DoctorDetails {
-  id: number;
-  name: string;
-  speciality: string;
-  cabinet: string;
+  doctorId: number;
+  hospitalId: number;
+  doctorsSpecialityId: number;
+  fullName: string;
   photo?: string;
+  workingHours: string;
+  office: string;
+  additionalInfo?: string;
+  doctorsSpeciality?: {
+    name: string;
+  };
 } 

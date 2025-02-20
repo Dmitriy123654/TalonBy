@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { Hospital, DoctorDetails } from '../../../interfaces/order.interface';
+import { OrderService } from '../../../services/order.service';
 
 interface PhoneItem {
   isLabel: boolean;
@@ -15,37 +16,21 @@ interface PhoneItem {
 })
 export class DoctorSelectionComponent implements OnInit, OnDestroy {
   hospital: Hospital | null = null;
+  specialityId: number | null = null;
   isMobile = false;
   isDetailsOpen = false;
+  loading = false;
+  error: string | null = null;
+  doctors: DoctorDetails[] = [];
   
-  // Тестовые данные
-  doctors: DoctorDetails[] = [
-    {
-      id: 1,
-      name: 'Иванов Иван Иванович',
-      speciality: 'Терапевт',
-      cabinet: '404',
-      photo: 'assets/doctor1.jpg'
-    },
-    {
-      id: 2,
-      name: 'Петрова Анна Михайловна',
-      speciality: 'Терапевт',
-      cabinet: '405'
-    },
-    {
-      id: 3,
-      name: 'Сидоров Петр Алексеевич',
-      speciality: 'Терапевт',
-      cabinet: '406',
-      photo: 'assets/doctor2.jpg'
-    }
-  ];
-
-  constructor(private router: Router) {
+  constructor(
+    private router: Router,
+    private orderService: OrderService
+  ) {
     const state = this.router.getCurrentNavigation()?.extras.state;
-    if (state && 'hospital' in state) {
+    if (state) {
       this.hospital = state['hospital'];
+      this.specialityId = state['speciality']?.id;
     }
     this.checkScreenSize();
   }
@@ -55,7 +40,9 @@ export class DoctorSelectionComponent implements OnInit, OnDestroy {
       this.router.navigate(['/order']);
       return;
     }
+    
     window.addEventListener('resize', this.checkScreenSize.bind(this));
+    this.loadDoctors();
   }
 
   ngOnDestroy(): void {
@@ -130,5 +117,42 @@ export class DoctorSelectionComponent implements OnInit, OnDestroy {
     this.router.navigate(['/order/speciality'], {
       state: { hospital: this.hospital }
     });
+  }
+
+  private loadDoctors(): void {
+    if (!this.hospital?.hospitalId) return;
+    
+    this.loading = true;
+    this.error = null;
+
+    if (this.specialityId) {
+      // Если есть ID специальности, загружаем врачей по специальности и больнице
+      this.orderService.getDoctorsBySpecialityAndHospital(this.hospital.hospitalId, this.specialityId)
+        .subscribe({
+          next: (doctors) => {
+            this.doctors = doctors;
+            this.loading = false;
+          },
+          error: (error) => {
+            console.error('Error loading doctors:', error);
+            this.error = 'Ошибка при загрузке списка врачей';
+            this.loading = false;
+          }
+        });
+    } else {
+      // Иначе загружаем всех врачей больницы
+      this.orderService.getDoctorsByHospital(this.hospital.hospitalId)
+        .subscribe({
+          next: (doctors) => {
+            this.doctors = doctors;
+            this.loading = false;
+          },
+          error: (error) => {
+            console.error('Error loading doctors:', error);
+            this.error = 'Ошибка при загрузке списка врачей';
+            this.loading = false;
+          }
+        });
+    }
   }
 }

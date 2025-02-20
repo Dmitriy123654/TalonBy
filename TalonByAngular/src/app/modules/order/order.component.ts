@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, FormControl } from '@angular/forms';
 import { OrderService } from '../../services/order.service';
-import { Hospital, Department, Doctor, TimeSlot, DoctorSpeciality, HospitalType } from '../../interfaces/order.interface';
+import { Hospital, Department, Doctor, TimeSlot, DoctorSpeciality, HospitalType, DoctorDetails } from '../../interfaces/order.interface';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { Router } from '@angular/router';
 
@@ -151,23 +151,33 @@ export class OrderComponent implements OnInit {
     }
 
     this.isLoading = true;
-    this.orderService.getDoctorsBySpecialty(this.selectedHospitalId, specialityId).subscribe({
-      next: (doctors: Doctor[]) => {
-        console.log('Received doctors:', doctors);
-        if (Array.isArray(doctors)) {
-          this.doctors = doctors;
-        } else {
-          console.warn('Received non-array response:', doctors);
+    this.orderService.getDoctorsBySpecialityAndHospital(this.selectedHospitalId, specialityId)
+      .subscribe({
+        next: (doctors: DoctorDetails[]) => {
+          console.log('Received doctors:', doctors);
+          if (Array.isArray(doctors)) {
+            // Преобразуем DoctorDetails в Doctor
+            this.doctors = doctors.map(doctor => ({
+              id: doctor.doctorId,
+              name: doctor.fullName,
+              specialityId: doctor.doctorsSpecialityId,
+              schedule: {
+                start: doctor.workingHours,
+                end: doctor.workingHours
+              }
+            }));
+          } else {
+            console.warn('Received non-array response:', doctors);
+            this.doctors = [];
+          }
+          this.isLoading = false;
+        },
+        error: (error: any) => {
+          console.error('Error loading doctors:', error);
           this.doctors = [];
+          this.isLoading = false;
         }
-        this.isLoading = false;
-      },
-      error: (error: any) => {
-        console.error('Error loading doctors:', error);
-        this.doctors = [];
-        this.isLoading = false;
-      }
-    });
+      });
   }
 
   onSubmit(): void {
