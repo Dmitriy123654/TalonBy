@@ -1,0 +1,81 @@
+@import '../speciality-selection/speciality-selection.component.scss';
+
+// Переопределяем и добавляем новые стили
+.order-steps {
+  .step {
+    &.completed {
+      color: #333 !important;
+      font-weight: 500;
+      cursor: pointer;
+      
+      &:hover {
+        color: #FF5722 !important;
+      }
+    }
+  }
+}
+
+.doctors-grid {
+  .row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+  }
+
+  .doctor-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid #eee;
+
+    &:hover {
+      border-color: #FF5722;
+    }
+
+    .doctor-info {
+      display: flex;
+      flex-direction: row-reverse;
+      gap: 15px;
+      justify-content: flex-end;
+    }
+
+    .doctor-photo {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .doctor-details {
+      flex-grow: 1;
+
+      h5 {
+        font-size: 16px;
+        color: #333;
+        margin: 0;
+        font-weight: 500;
+      }
+
+      .speciality {
+        color: #666;
+        font-size: 14px;
+        margin: 0;
+        line-height: 1.2;
+      }
+
+      .cabinet {
+        color: #999;
+        font-size: 13px;
+        margin: 4px 0 0;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .doctors-grid .row {
+    grid-template-columns: 1fr;
+  }
+}

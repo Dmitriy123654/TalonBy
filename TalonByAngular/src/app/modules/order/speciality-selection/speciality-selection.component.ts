@@ -107,7 +107,6 @@ export class SpecialitySelectionComponent implements OnInit, OnDestroy {
   }
 
   selectSpeciality(speciality: Speciality): void {
-    this.loadDoctors(speciality.id);
     this.router.navigate(['/order/doctor'], {
       state: { 
         hospital: this.hospital,

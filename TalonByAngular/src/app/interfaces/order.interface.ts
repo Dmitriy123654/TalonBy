@@ -61,4 +61,12 @@ export interface Speciality {
   id: number;
   name: string;
   link: string;
+}
+
+export interface DoctorDetails {
+  id: number;
+  name: string;
+  speciality: string;
+  cabinet: string;
+  photo?: string;
 } 

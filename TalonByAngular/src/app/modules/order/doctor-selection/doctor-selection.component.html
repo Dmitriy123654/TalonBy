@@ -1,0 +1,126 @@
+<div class="speciality-page">
+  <!-- Мобильное меню -->
+  <div class="mobile-details" *ngIf="isMobile">
+    <div class="mobile-header" (click)="toggleDetails()">
+      <h1>{{hospital?.name}}</h1>
+      <span class="toggle-btn">
+        {{isDetailsOpen ? '‹ Скрыть' : 'Показать подробнее ›'}}
+      </span>
+    </div>
+
+    <div class="mobile-content" [class.open]="isDetailsOpen">
+      <div class="info-grid">
+        <div class="address-block">
+          <p>{{hospital?.address}}</p>
+          <a href="#" class="map-link">показать на карте</a>
+        </div>
+        <div class="registry-block">
+          <div class="phones">
+            <ng-container *ngFor="let item of getPhones()">
+              <span *ngIf="item.isLabel" class="label">{{item.text}}</span>
+              <a *ngIf="!item.isLabel" href="tel:{{item.text}}">{{item.text}}</a>
+            </ng-container>
+          </div>
+        </div>
+        <div class="schedule-block">
+          <div class="schedule-row">
+            <span class="label">ПН-ПТ:</span>{{getWorkingHours('ПН-ПТ')}}
+          </div>
+          <div class="schedule-row">
+            <span class="label">СБ:</span>{{getWorkingHours('СБ')}}
+          </div>
+        </div>
+        <div class="contacts-block">
+          <a *ngIf="hospital?.website" href="{{hospital?.website}}" class="website">{{getDomain(hospital?.website)}}</a>
+          <a *ngIf="hospital?.email" href="mailto:{{hospital?.email}}" class="email">{{hospital?.email}}</a>
+        </div>
+      </div>
+
+      <nav class="hospital-nav">
+        <ul>
+          <li><a href="#">Информация</a></li>
+          <li><a href="#">Врачи</a></li>
+          <li><a href="#">Расписание врачей</a></li>
+        </ul>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Десктопная версия -->
+  <div class="hospital-header" *ngIf="!isMobile && hospital">
+    <div class="wrapper">
+      <div class="hospital-info">
+        <h1>{{hospital.name}}</h1>
+        <div class="info-grid">
+          <div class="address-block">
+            <p>{{hospital.address}}</p>
+            <a href="#" class="map-link">показать на карте</a>
+          </div>
+          <div class="registry-block">
+            <div class="phones">
+              <ng-container *ngFor="let item of getPhones()">
+                <span *ngIf="item.isLabel" class="label">{{item.text}}</span>
+                <a *ngIf="!item.isLabel" href="tel:{{item.text}}">{{item.text}}</a>
+              </ng-container>
+            </div>
+          </div>
+          <div class="schedule-block">
+            <div class="schedule-row">
+              <span class="label">ПН-ПТ:</span>{{getWorkingHours('ПН-ПТ')}}
+            </div>
+            <div class="schedule-row">
+              <span class="label">СБ:</span>{{getWorkingHours('СБ')}}
+            </div>
+          </div>
+          <div class="contacts-block">
+            <a *ngIf="hospital.website" href="{{hospital.website}}" class="website">{{getDomain(hospital.website)}}</a>
+            <a *ngIf="hospital.email" href="mailto:{{hospital.email}}" class="email">{{hospital.email}}</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Основной контент -->
+  <div class="wrapper">
+    <div class="content-block">
+      <aside *ngIf="!isMobile">
+        <div class="order-steps">
+          <div class="step completed" (click)="goBack()">Специальность</div>
+          <div class="step active">Врач</div>
+          <div class="step">Дата и время</div>
+          <div class="step">Личные данные</div>
+          <div class="step">Запись</div>
+        </div>
+
+        <nav class="hospital-nav">
+          <ul>
+            <li><a href="#">Информация</a></li>
+            <li><a href="#">Врачи</a></li>
+            <li><a href="#">Расписание врачей</a></li>
+          </ul>
+        </nav>
+      </aside>
+
+      <main>
+        <h2>Заказ талона</h2>
+        <p class="subtitle">Выбор врача</p>
+
+        <div class="doctors-grid">
+          <div class="row">
+            <div class="doctor-card" *ngFor="let doctor of doctors" (click)="selectDoctor(doctor)">
+              <div class="doctor-info">
+                <img *ngIf="doctor.photo" [src]="doctor.photo" [alt]="doctor.name" class="doctor-photo">
+                <div class="doctor-details">
+                  <h5>{{doctor.name}}</h5>
+                  <p class="speciality">{{doctor.speciality}}</p>
+                  <p class="cabinet">Кабинет {{doctor.cabinet}}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+</div>
