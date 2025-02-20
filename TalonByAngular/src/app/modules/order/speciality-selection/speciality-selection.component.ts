@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { Hospital } from '../../../interfaces/order.interface';
@@ -10,6 +10,11 @@ interface Speciality {
   link: string;
 }
 
+interface PhoneItem {
+  isLabel: boolean;
+  text: string;
+}
+
 @Component({
   selector: 'app-speciality-selection',
   standalone: true,
@@ -17,11 +22,13 @@ interface Speciality {
   templateUrl: './speciality-selection.component.html',
   styleUrl: './speciality-selection.component.scss'
 })
-export class SpecialitySelectionComponent implements OnInit {
+export class SpecialitySelectionComponent implements OnInit, OnDestroy {
   hospital: Hospital | null = null;
   specialities: Speciality[] = [];
   loading = false;
   error: string | null = null;
+  isMobile = false;
+  isDetailsOpen = false;
 
   constructor(
     private router: Router,
@@ -32,6 +39,7 @@ export class SpecialitySelectionComponent implements OnInit {
       this.hospital = state['hospital'];
       console.log('Received hospital in constructor:', this.hospital);
     }
+    this.checkScreenSize();
   }
 
   ngOnInit(): void {
@@ -41,6 +49,19 @@ export class SpecialitySelectionComponent implements OnInit {
       return;
     }
     this.loadSpecialities();
+    window.addEventListener('resize', this.checkScreenSize.bind(this));
+  }
+
+  ngOnDestroy(): void {
+    window.removeEventListener('resize', this.checkScreenSize.bind(this));
+  }
+
+  private checkScreenSize(): void {
+    this.isMobile = window.innerWidth <= 768;
+  }
+
+  toggleDetails(): void {
+    this.isDetailsOpen = !this.isDetailsOpen;
   }
 
   private loadSpecialities(): void {
@@ -105,32 +126,54 @@ export class SpecialitySelectionComponent implements OnInit {
   }
 
   getWorkingHours(day: string): string {
-    const hours = this.hospital?.workingHours || '';
+    if (!this.hospital?.workingHours) return '';
     
-    // Разбиваем строку на части и обрабатываем каждую часть
-    const parts = hours.split(/[,\n]/).map(part => part.trim());
-    
-    // Ищем нужный день
-    const schedule = parts.find(part => 
-      part.toLowerCase().startsWith(day.toLowerCase())
-    );
-    
-    if (schedule) {
-      // Извлекаем время после двоеточия
-      const [, time] = schedule.split(/:\s*/);
-      return time || '';
-    }
-    
-    // Проверяем на круглосуточный режим
-    const fullTime = parts.find(part => 
-      part.toLowerCase().includes('круглосуточно')
-    );
-    
-    if (fullTime) {
+    // Если круглосуточно
+    if (this.hospital.workingHours.toLowerCase().includes('круглосуточно')) {
       return 'круглосуточно';
     }
+
+    // Разбиваем строку по запятым и ищем нужный день
+    const schedules = this.hospital.workingHours.split(',');
+    const daySchedule = schedules.find(schedule => 
+      schedule.trim().startsWith(day)
+    );
     
+    if (daySchedule) {
+      // Используем регулярное выражение для извлечения времени
+      const timeMatch = daySchedule.match(/(?:ПН-ПТ|СБ):\s*([\d:-]+)/);
+      return timeMatch ? timeMatch[1].trim() : '';
+    }
+
     return '';
+  }
+
+  getPhones(): PhoneItem[] {
+    if (!this.hospital?.phones) return [];
+    
+    const result: PhoneItem[] = [];
+    const sections = this.hospital.phones.split(/(?=(?:Регистратура:|Женская консультация:|Стоматология:|Студенческая деревня:))/);
+    
+    sections.forEach(section => {
+      if (!section.trim()) return;
+      
+      // Разбиваем секцию на метку и номера
+      const [label, ...numbers] = section.split(/(?=\+)/);
+      
+      if (label.trim()) {
+        // Добавляем метку как некликабельный элемент
+        result.push({ isLabel: true, text: label.trim() });
+      }
+      
+      // Добавляем каждый номер как кликабельный элемент
+      numbers.forEach(number => {
+        if (number.trim()) {
+          result.push({ isLabel: false, text: number.trim() });
+        }
+      });
+    });
+    
+    return result;
   }
 
   getDomain(url: string | undefined): string {

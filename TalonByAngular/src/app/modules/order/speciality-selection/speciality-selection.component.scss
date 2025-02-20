@@ -3,30 +3,31 @@
 
   .hospital-header {
     background: #fafafa;
-    padding: 10px 0;
+    padding: 20px 0;
     border-bottom: 1px solid #eee;
-    margin-bottom: 5px;
 
     .wrapper {
       max-width: 1200px;
       margin: 0 auto;
-      padding: 0 20px;
+      padding: 0px 20px 10px 20px;
 
       .hospital-info {
-        max-width: 900px;
-        margin: 0;
-
         h1 {
-          font-size: 20px;
-          font-weight: 600;
+          font-size: 31px;
+          font-weight: 700;
           color: #333;
-          margin-bottom: 8px;
+          margin-bottom: 10px;
+          margin-top: 0px;
         }
 
         .info-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-          gap: 10px;
+          grid-template-columns: 
+            minmax(150px, 250px)  // address-block
+            minmax(100px, 140px)  // registry-block
+            minmax(100px, 140px)  // schedule-block
+            minmax(120px, 180px); // contacts-block
+          gap: 20px;
           align-items: start;
 
           .address-block {
@@ -50,8 +51,8 @@
           }
 
           .registry-block {
-            min-width: 120px;
-            max-width: 180px;
+            min-width: 100px;
+            max-width: 140px;
             .label {
               color: #333;
               margin-bottom: 2px;
@@ -60,13 +61,18 @@
             }
 
             .phones {
+              display: flex;
+              flex-direction: column;
+              gap: 4px; // Отступ между телефонами
+              
               a {
+                display: block;
                 color: #FF5722;
                 text-decoration: none;
                 font-size: 13px;
-                display: block;
-                margin-bottom: 1px;
-
+                line-height: 1.2;
+                word-wrap: break-word;
+                
                 &:hover {
                   text-decoration: underline;
                 }
@@ -75,8 +81,8 @@
           }
 
           .schedule-block {
-            min-width: 120px;
-            max-width: 180px;
+            min-width: 100px;
+            max-width: 140px;
             .schedule-row {
               display: flex;
               align-items: center;
@@ -250,8 +256,21 @@
 }
 
 @media (max-width: 768px) {
-  .hospital-header .wrapper .hospital-info {
-    padding-left: 20px;
+  .speciality-page {
+    .hospital-header {
+      .wrapper {
+        .hospital-info {
+          h1 {
+            font-size: 24px;
+          }
+          
+          .info-grid {
+            grid-template-columns: 1fr;
+            gap: 15px;
+          }
+        }
+      }
+    }
   }
   .content-block {
     grid-template-columns: 1fr !important;
@@ -278,4 +297,141 @@
 
 .error {
   color: #dc3545;
+}
+
+// Добавляем стили для мобильной версии
+.mobile-details {
+  display: block;
+  background: #fafafa;
+  margin-top: 0;
+  
+
+  .mobile-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid #eee;
+    background: #fafafa;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    h1 {
+      font-size: 18px;
+      margin: 0;
+      padding: 0;
+      font-weight: 600;
+      color: #333;
+      line-height: 1.3;
+    }
+
+    .toggle-btn {
+      color: #FF5722;
+      font-size: 14px;
+      white-space: nowrap;
+      margin-left: 15px;
+    }
+  }
+
+  .mobile-content {
+    display: none;
+    padding: 20px;
+    border-bottom: 1px solid #eee;
+    background: #fafafa;
+
+    &.open {
+      display: block;
+    }
+
+    .info-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      margin-bottom: 20px;
+
+      .address-block,
+      .registry-block,
+      .schedule-block,
+      .contacts-block {
+        background: #fff;
+        padding: 15px;
+        border-radius: 4px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+
+      .phones {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+
+        .label {
+          color: #333;
+          font-weight: 600;
+          font-size: 14px;
+        }
+
+        a {
+          color: #FF5722;
+          text-decoration: none;
+          font-size: 14px;
+          line-height: 1.4;
+        }
+      }
+    }
+
+    .hospital-nav {
+      background: #fff;
+      border-radius: 4px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+
+      ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+
+        li {
+          border-bottom: 1px solid #eee;
+          
+          &:last-child {
+            border-bottom: none;
+          }
+
+          a {
+            display: block;
+            padding: 15px;
+            color: #333;
+            text-decoration: none;
+            font-size: 14px;
+            
+            &:active {
+              background: #f5f5f5;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .hospital-header {
+    display: none;
+  }
+
+  .mobile-details {
+    margin-top: 0;
+  }
+
+  .content-block {
+    grid-template-columns: 1fr !important;
+    padding-top: 0px;
+    
+    aside {
+      display: none; // Скрываем боковую панель на мобильных
+    }
+    
+    main {
+      padding: 0;
+    }
+  }
 }
