@@ -1,0 +1,68 @@
+.hospital-header {
+  background: #fafafa;
+  padding: 20px 0;
+  border-bottom: 1px solid #eee;
+  width: 100%;
+
+  .wrapper {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+
+    .hospital-info {
+      h1 {
+        font-size: 31px;
+        font-weight: 700;
+        color: #333;
+        margin-bottom: 10px;
+      }
+
+      .info-grid {
+        display: grid;
+        grid-template-columns: 
+          minmax(150px, 250px)
+          minmax(100px, 140px)
+          minmax(100px, 140px)
+          minmax(120px, 180px);
+        gap: 20px;
+        align-items: start;
+      }
+    }
+  }
+}
+
+aside {
+  width: 250px;
+  flex-shrink: 0;
+
+  .order-steps {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+
+    .step {
+      padding: 12px 15px;
+      color: #999;
+      font-size: 15px;
+      position: relative;
+
+      &.completed {
+        color: #333;
+        cursor: pointer;
+        font-weight: 500;
+        
+        &:hover {
+          color: #FF5722;
+        }
+      }
+      
+      &.active {
+        color: #FF5722;
+        font-weight: 500;
+        background: rgba(255,87,34,0.05);
+        border-radius: 4px;
+      }
+    }
+  }
+} 

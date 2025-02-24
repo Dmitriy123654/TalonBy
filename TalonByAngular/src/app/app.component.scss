@@ -4,8 +4,15 @@
   min-height: 100vh;
 }
 
-router-outlet + * {
+// Добавляем общий контейнер для всего контента
+.content-container {
   padding-top: 80px; // Высота header
   min-height: calc(100vh - 80px);
-  display: block;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .content-container {
+    padding-top: 64px; // Меньшая высота header на мобильных
+  }
 }
