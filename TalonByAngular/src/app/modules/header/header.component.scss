@@ -1,38 +1,26 @@
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap");
 
 header {
-  background: #fff;
-  border-bottom: 1px solid #E0E0E0;
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 1000;
+  background: #fff;
+  border-bottom: 1px solid #E0E0E0;
   height: 80px;
 }
 
-// Добавляем новый контейнер для всей шапки
-.header-container {
+.wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
   padding: 0 20px;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 80px;
 }
 
-// Контейнер для центрального меню
-.wrapper {
-  position: relative;
-  max-width: 1200px;
-  width: 100%;
-  height: 80px;
-  margin: 0 auto;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-// Позиционируем лого и кнопку относительно viewport
 .logo {
   position: fixed;
   left: calc((100vw - 1200px) / 2 - 120px);
@@ -100,7 +88,6 @@ header {
   }
 }
 
-// Позиционирование кнопки "Войти"
 .right {
   position: fixed;
   right: 20px;
@@ -122,7 +109,6 @@ header {
   }
 }
 
-// Бургер-меню
 .burger-menu {
   display: none;
   flex-direction: column;
@@ -146,7 +132,6 @@ header {
   }
 }
 
-// Мобильное меню
 .mobile-menu {
   display: none;
   position: fixed;
@@ -189,7 +174,6 @@ header {
   }
 }
 
-// Адаптивность
 @media (max-width: 1440px) {
   .logo {
     left: 20px;
@@ -218,7 +202,9 @@ header {
   }
   
   .burger-menu {
-    display: flex;
+    display: block;
+    position: relative;
+    z-index: 1001;
   }
   
   .mobile-menu {

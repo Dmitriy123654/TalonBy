@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { Hospital, DoctorDetails } from '../../../interfaces/order.interface';
-import { OrderService } from '../../../services/order.service';
+import { Hospital, DoctorDetails } from '../../../shared/interfaces/order.interface';
+import { OrderService } from '../../../core/services/order.service';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
@@ -78,13 +78,13 @@ export class DoctorSelectionComponent implements OnInit, OnDestroy {
     const result: PhoneItem[] = [];
     const sections = this.hospital.phones.split(/(?=(?:Регистратура:|Женская консультация:|Стоматология:|Студенческая деревня:))/);
     
-    sections.forEach(section => {
+    sections.forEach((section: string) => {
       if (!section.trim()) return;
       const [label, ...numbers] = section.split(/(?=\+)/);
       if (label.trim()) {
         result.push({ isLabel: true, text: label.trim() });
       }
-      numbers.forEach(number => {
+      numbers.forEach((number: string) => {
         if (number.trim()) {
           result.push({ isLabel: false, text: number.trim() });
         }
@@ -102,7 +102,7 @@ export class DoctorSelectionComponent implements OnInit, OnDestroy {
     }
 
     const schedules = this.hospital.workingHours.split(',');
-    const daySchedule = schedules.find(schedule => 
+    const daySchedule = schedules.find((schedule: string) => 
       schedule.trim().startsWith(day)
     );
     

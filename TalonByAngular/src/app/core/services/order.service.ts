@@ -1,8 +1,15 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
-import { Hospital, Doctor, TimeSlot, Appointment, Speciality, DoctorDetails } from '../interfaces/order.interface';
-import { environment } from '../../environments/environment';
+import { 
+  Hospital, 
+  Doctor, 
+  TimeSlot, 
+  Appointment, 
+  Speciality, 
+  DoctorDetails 
+} from '../../shared/interfaces/order.interface';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'

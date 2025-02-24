@@ -3,17 +3,17 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
 import { OrderRoutingModule } from './order-routing.module';
 import { OrderComponent } from './order.component';
-import { Nl2brPipe } from '../../pipes/nl2br.pipe';
+import { SharedModule } from '../../shared/shared.module';
 
 @NgModule({
   declarations: [
     OrderComponent,
-    Nl2brPipe
   ],
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    OrderRoutingModule
+    OrderRoutingModule,
+    SharedModule
   ]
 })
 export class OrderModule { } 

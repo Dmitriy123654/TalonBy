@@ -5,7 +5,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { RegisterService } from './register.service';
+import { RegisterService } from '../../core/services/register.service';
 import { ReactiveFormsModule } from '@angular/forms';
 
 @Component({

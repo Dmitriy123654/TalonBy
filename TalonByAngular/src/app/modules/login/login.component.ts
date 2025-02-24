@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { AuthService } from './auth.service';
+import { AuthService } from '../../core/services/auth.service';
 
 import { Router, RouterModule } from '@angular/router';
 import { catchError } from 'rxjs/operators';

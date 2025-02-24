@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { Hospital, DoctorDetails, Speciality } from '../../../interfaces/order.interface';
-import { OrderService } from '../../../services/order.service';
+import { Hospital, DoctorDetails, Speciality } from '../../../shared/interfaces/order.interface';
+import { OrderService } from '../../../core/services/order.service';
 
 interface PhoneItem {
   isLabel: boolean;
@@ -70,12 +70,12 @@ export class SpecialitySelectionComponent implements OnInit, OnDestroy {
     this.error = null;
 
     this.orderService.getSpecialities(this.hospital.hospitalId).subscribe({
-      next: (specialities) => {
+      next: (specialities: Speciality[]) => {
         console.log('Loaded specialities:', specialities);
         this.specialities = specialities;
         this.loading = false;
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error loading specialities:', error);
         this.error = 'Ошибка при загрузке специальностей';
         this.loading = false;
@@ -135,7 +135,7 @@ export class SpecialitySelectionComponent implements OnInit, OnDestroy {
 
     // Разбиваем строку по запятым и ищем нужный день
     const schedules = this.hospital.workingHours.split(',');
-    const daySchedule = schedules.find(schedule => 
+    const daySchedule = schedules.find((schedule: string) => 
       schedule.trim().startsWith(day)
     );
     
@@ -154,7 +154,7 @@ export class SpecialitySelectionComponent implements OnInit, OnDestroy {
     const result: PhoneItem[] = [];
     const sections = this.hospital.phones.split(/(?=(?:Регистратура:|Женская консультация:|Стоматология:|Студенческая деревня:))/);
     
-    sections.forEach(section => {
+    sections.forEach((section: string) => {
       if (!section.trim()) return;
       
       // Разбиваем секцию на метку и номера
@@ -166,7 +166,7 @@ export class SpecialitySelectionComponent implements OnInit, OnDestroy {
       }
       
       // Добавляем каждый номер как кликабельный элемент
-      numbers.forEach(number => {
+      numbers.forEach((number: string) => {
         if (number.trim()) {
           result.push({ isLabel: false, text: number.trim() });
         }

@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { AuthService } from '../login/auth.service';
+import { AuthService } from '../../core/services/auth.service';
 
 interface BlogPost {
   author: string;

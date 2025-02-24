@@ -1,7 +1,15 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, FormControl } from '@angular/forms';
-import { OrderService } from '../../services/order.service';
-import { Hospital, Department, Doctor, TimeSlot, HospitalType, DoctorDetails, Speciality } from '../../interfaces/order.interface';
+import { OrderService } from '../../core/services/order.service';
+import { 
+  Hospital, 
+  Department, 
+  Doctor, 
+  TimeSlot, 
+  HospitalType, 
+  DoctorDetails, 
+  Speciality 
+} from '../../shared/interfaces/order.interface';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { Router } from '@angular/router';
 
