@@ -1,14 +1,14 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
-import { Hospital, Doctor, TimeSlot, Appointment, DoctorSpeciality, Speciality, DoctorDetails } from '../interfaces/order.interface';
+import { Hospital, Doctor, TimeSlot, Appointment, Speciality, DoctorDetails } from '../interfaces/order.interface';
 import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class OrderService {
-  private apiUrl = `${environment.apiUrl}/api`;
+  private readonly apiUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
 
@@ -32,13 +32,19 @@ export class OrderService {
 
   // Получение специальностей для больницы
   getSpecialities(hospitalId: number): Observable<Speciality[]> {
-    return this.http.get<any>(`${this.apiUrl}/DoctorsSpeciality/GetByHospital/${hospitalId}`).pipe(
-      map(response => (response.$values || []).map((spec: any) => ({
-        id: spec.id,
-        name: spec.name,
-        link: ''
-      })))
-    );
+    return this.http.get<any>(`${this.apiUrl}/DoctorsSpeciality/GetByHospital/${hospitalId}`)
+      .pipe(
+        map(response => {
+          console.log('Raw specialities response:', response); // Для отладки
+          const specialities = response.$values || response;
+          return specialities.map((spec: any) => ({
+            doctorsSpecialityId: spec.doctorsSpecialityId,
+            name: spec.name,
+            link: '',
+            description: spec.description
+          }));
+        })
+      );
   }
 
   // Получение докторов по больнице
@@ -58,7 +64,10 @@ export class OrderService {
   getDoctorsBySpecialityAndHospital(hospitalId: number, specialityId: number): Observable<DoctorDetails[]> {
     return this.http.get<any>(`${this.apiUrl}/Doctor/GetBySpecialtyAndHospital/${hospitalId}/${specialityId}`)
       .pipe(
-        map(response => response.$values || [])
+        map(response => {
+          console.log('Raw doctors response:', response); // Для отладки
+          return response.$values || response;
+        })
       );
   }
 

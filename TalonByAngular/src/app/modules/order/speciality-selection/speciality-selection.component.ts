@@ -1,14 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { Hospital, DoctorDetails } from '../../../interfaces/order.interface';
+import { Hospital, DoctorDetails, Speciality } from '../../../interfaces/order.interface';
 import { OrderService } from '../../../services/order.service';
-
-interface Speciality {
-  id: number;
-  name: string;
-  link: string;
-}
 
 interface PhoneItem {
   isLabel: boolean;
@@ -108,10 +102,16 @@ export class SpecialitySelectionComponent implements OnInit, OnDestroy {
   }
 
   selectSpeciality(speciality: Speciality): void {
+    console.log('Selecting speciality:', speciality);
     this.router.navigate(['/order/doctor'], {
       state: { 
         hospital: this.hospital,
-        speciality: speciality
+        speciality: {
+          id: speciality.doctorsSpecialityId,
+          name: speciality.name,
+          link: speciality.link,
+          description: speciality.description
+        }
       }
     });
   }

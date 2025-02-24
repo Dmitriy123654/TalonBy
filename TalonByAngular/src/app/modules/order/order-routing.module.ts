@@ -16,6 +16,11 @@ const routes: Routes = [
     path: 'doctor', 
     loadChildren: () => import('./doctor-selection/doctor-selection.module')
       .then(m => m.DoctorSelectionModule)
+  },
+  { 
+    path: 'datetime', 
+    loadChildren: () => import('./datetime-selection/datetime-selection.module')
+      .then(m => m.DatetimeSelectionModule)
   }
 ];
 

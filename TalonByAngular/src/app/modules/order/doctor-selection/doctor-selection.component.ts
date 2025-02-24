@@ -3,6 +3,8 @@ import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { Hospital, DoctorDetails } from '../../../interfaces/order.interface';
 import { OrderService } from '../../../services/order.service';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 interface PhoneItem {
   isLabel: boolean;
@@ -28,9 +30,12 @@ export class DoctorSelectionComponent implements OnInit, OnDestroy {
     private orderService: OrderService
   ) {
     const state = this.router.getCurrentNavigation()?.extras.state;
+    console.log('Received state:', state);
     if (state) {
       this.hospital = state['hospital'];
-      this.specialityId = state['speciality']?.id;
+      const speciality = state['speciality'];
+      this.specialityId = speciality?.id;
+      console.log('Set specialityId:', this.specialityId);
     }
     this.checkScreenSize();
   }
@@ -58,6 +63,7 @@ export class DoctorSelectionComponent implements OnInit, OnDestroy {
   }
 
   selectDoctor(doctor: DoctorDetails): void {
+    console.log('Selecting doctor:', doctor);
     this.router.navigate(['/order/datetime'], {
       state: { 
         hospital: this.hospital,

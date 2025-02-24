@@ -24,12 +24,6 @@ export interface Department {
   name: string;
 }
 
-export interface DoctorSpeciality {
-  id: number;
-  name: string;
-  description?: string;
-}
-
 export interface Doctor {
   id: number;
   name: string;
@@ -58,9 +52,10 @@ export interface Appointment {
 }
 
 export interface Speciality {
-  id: number;
+  doctorsSpecialityId: number;
   name: string;
   link: string;
+  description?: string;
 }
 
 export interface DoctorDetails {

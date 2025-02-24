@@ -1,0 +1,147 @@
+@import '../speciality-selection/speciality-selection.component.scss';
+
+.calendar-wrapper {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+
+  h3 {
+    font-size: 18px;
+    margin: 0;
+    color: #333;
+  }
+
+  .month-nav {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #666;
+    cursor: pointer;
+    padding: 5px 10px;
+
+    &:hover {
+      color: #FF5722;
+    }
+  }
+}
+
+.calendar {
+  .weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    margin-bottom: 10px;
+
+    .weekday {
+      text-align: center;
+      font-size: 14px;
+      color: #666;
+      text-transform: uppercase;
+      padding: 5px;
+
+      &:last-child,
+      &:nth-last-child(2) {
+        color: #FF5722;
+      }
+    }
+  }
+
+  .calendar-grid {
+    .week {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+      margin-bottom: 5px;
+    }
+
+    .day {
+      aspect-ratio: 1;
+      padding: 5px;
+      border: 1px solid #eee;
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:not(.disabled):hover {
+        border-color: #FF5722;
+      }
+
+      &.weekend {
+        background: #f9f9f9;
+      }
+
+      &.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background: #f5f5f5;
+      }
+
+      &.today {
+        background: #e8f5e9;
+        border-color: #4caf50;
+      }
+
+      &.selected {
+        background: #FF5722;
+        border-color: #FF5722;
+        color: white;
+
+        .slots {
+          color: rgba(255,255,255,0.8);
+        }
+      }
+
+      .date {
+        font-size: 16px;
+        font-weight: 500;
+        margin-bottom: 2px;
+      }
+
+      .slots {
+        font-size: 12px;
+        color: #666;
+      }
+    }
+  }
+}
+
+.order-steps {
+  .step {
+    &.completed {
+      color: #333;
+      cursor: pointer;
+      
+      &:hover {
+        color: #FF5722;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .calendar-wrapper {
+    padding: 10px;
+  }
+
+  .calendar {
+    .day {
+      .date {
+        font-size: 14px;
+      }
+
+      .slots {
+        font-size: 10px;
+      }
+    }
+  }
+}

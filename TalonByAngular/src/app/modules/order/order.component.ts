@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, FormControl } from '@angular/forms';
 import { OrderService } from '../../services/order.service';
-import { Hospital, Department, Doctor, TimeSlot, DoctorSpeciality, HospitalType, DoctorDetails } from '../../interfaces/order.interface';
+import { Hospital, Department, Doctor, TimeSlot, HospitalType, DoctorDetails, Speciality } from '../../interfaces/order.interface';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { Router } from '@angular/router';
 
@@ -15,7 +15,6 @@ export class OrderComponent implements OnInit {
   hospitals: Hospital[] = [];
   departments: Department[] = [];
   doctors: Doctor[] = [];
-  specialities: DoctorSpeciality[] = [];
   timeSlots: TimeSlot[] = [];
   isLoading = false;
   today = new Date().toISOString().split('T')[0];
@@ -32,6 +31,8 @@ export class OrderComponent implements OnInit {
 
   searchControl = new FormControl('');
   selectedHospitalId: number | null = null;
+
+  specialities: Speciality[] = [];
 
   constructor(
     private fb: FormBuilder,
