@@ -9,16 +9,84 @@ header {
   background: #fff;
   border-bottom: 1px solid #E0E0E0;
   height: 80px;
-}
 
-.wrapper {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  .wrapper {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo {
+    font-size: 24px;
+    font-weight: bold;
+    text-decoration: none;
+    color: #333;
+  }
+
+  .menu {
+    display: flex;
+    gap: 30px;
+    margin: 0 auto;
+    padding: 0 20px;
+
+    a {
+      color: #333;
+      text-decoration: none;
+      font-size: 16px;
+      
+      &:hover {
+        color: #FF5722;
+      }
+    }
+  }
+
+  .right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .burger-menu {
+    display: none;
+    cursor: pointer;
+    margin-left: 20px;
+
+    .burger-line {
+      width: 24px;
+      height: 2px;
+      background-color: #333;
+      margin: 6px 0;
+      transition: 0.3s;
+    }
+  }
+
+  @media (max-width: 950px) {
+    .menu {
+      display: none;
+    }
+
+    .burger-menu {
+      display: block;
+    }
+
+    &.menu-open {
+      .burger-line {
+        &:first-child {
+          transform: rotate(45deg) translate(5px, 5px);
+        }
+        &:nth-child(2) {
+          opacity: 0;
+        }
+        &:last-child {
+          transform: rotate(-45deg) translate(5px, -5px);
+        }
+      }
+    }
+  }
 }
 
 .logo {
@@ -109,29 +177,6 @@ header {
   }
 }
 
-.burger-menu {
-  display: none;
-  flex-direction: column;
-  justify-content: space-between;
-  width: 30px;
-  height: 20px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  z-index: 1001;
-  position: fixed;
-  right: 20px;
-  
-  span {
-    display: block;
-    width: 100%;
-    height: 2px;
-    background-color: #333;
-    transition: all 0.3s ease;
-  }
-}
-
 .mobile-menu {
   display: none;
   position: fixed;
@@ -185,46 +230,6 @@ header {
   
   .menu-container {
     padding: 0 80px;
-  }
-}
-
-@media (max-width: 950px) {
-  .menu-container {
-    display: none !important;
-  }
-  
-  .header-menu {
-    display: none !important;
-  }
-  
-  .wrapper {
-    justify-content: space-between;
-  }
-  
-  .burger-menu {
-    display: block;
-    position: relative;
-    z-index: 1001;
-  }
-  
-  .mobile-menu {
-    display: none;
-    
-    &.active {
-      display: block;
-      transform: translateY(0);
-      
-      ul {
-        opacity: 1;
-        visibility: visible;
-      }
-    }
-  }
-  
-  .right {
-    .login-link {
-      margin-right: 40px;
-    }
   }
 }
 

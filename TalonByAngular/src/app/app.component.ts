@@ -35,8 +35,4 @@ export class AppComponent {
         // Дополнительная логика, если необходимо
       });
   }
-
-  isLoginOrRegisterPage(): boolean {
-    return this.excludedRoutes.includes(this.router.url);
-  }
 }
