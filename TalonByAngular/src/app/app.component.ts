@@ -1,8 +1,7 @@
 import { Component } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
-
-import { RegisterComponent } from './modules/register/register.component';
-import { LoginComponent } from './modules/login/login.component';
+import { RegisterComponent } from './features/auth/register/register.component';
+import { LoginComponent } from './features/auth/login/login.component';
 import { HeaderComponent } from './modules/header/header.component';
 import { CommonModule } from '@angular/common';
 import { filter } from 'rxjs';

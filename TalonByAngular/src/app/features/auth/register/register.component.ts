@@ -3,10 +3,14 @@ import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { RegisterService } from './register.service';
-import { ReactiveFormsModule } from '@angular/forms';
+import { RegisterService } from '@core/services/register.service';
+
+interface RegisterResponse {
+  token: string;
+  message?: string;
+}
 
 @Component({
   selector: 'app-register',
@@ -36,13 +40,8 @@ export class RegisterComponent {
       telephone: ['', [Validators.required, Validators.minLength(6)]],
     });
   }
-  ngOnInit() {
-    const url = window.location.href.toLowerCase();
-    if (url.includes('register')) {
-      this.router.navigate(['/register']);
-    }
-  }
-  onSubmit() {
+
+  onSubmit(): void {
     if (this.registrationForm.valid) {
       this.registerService
         .register(
@@ -50,21 +49,17 @@ export class RegisterComponent {
           this.registrationForm.get('password')?.value,
           this.registrationForm.get('telephone')?.value
         )
-        .subscribe(
-          (response) => {
-            // Сохранение токена аутентификации
-            if (response != null && response.token) {
+        .subscribe({
+          next: (response: RegisterResponse) => {
+            if (response?.token) {
               localStorage.setItem('authToken', response.token);
             }
-            console.log('Пользователь зарегистрирован');
             this.router.navigate(['/login']);
           },
-          (error) => {
-            // Обработка ошибок
-            this.errorMessage =
-              error.message || 'Произошла ошибка при регистрации.';
+          error: (error: Error) => {
+            this.errorMessage = error.message || 'Произошла ошибка при регистрации.';
           }
-        );
+        });
     }
   }
-}
+} 

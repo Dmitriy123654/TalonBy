@@ -1,0 +1,279 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap");
+
+header {
+  background: #fff;
+  border-bottom: 1px solid #E0E0E0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  height: 80px;
+}
+
+// Добавляем новый контейнер для всей шапки
+.header-container {
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 80px;
+}
+
+// Контейнер для центрального меню
+.wrapper {
+  position: relative;
+  max-width: 1200px;
+  width: 100%;
+  height: 80px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+// Позиционируем лого и кнопку относительно viewport
+.logo {
+  position: fixed;
+  left: calc((100vw - 1200px) / 2 - 120px);
+  font-size: clamp(28px, 5vw, 36px);
+  font-weight: 700;
+  color: #FF5722;
+  text-decoration: none;
+  transition: color 0.3s ease;
+  white-space: nowrap;
+  z-index: 1001;
+  
+  &:hover {
+    color: #FF7043;
+  }
+}
+
+.menu-container {
+  display: flex;
+  align-items: center;
+  padding: 0 120px;
+}
+
+.region-selector {
+  margin-right: 32px;
+  
+  .region-value {
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+    
+    &:hover {
+      background-color: #F5F5F5;
+    }
+    
+    .region-text {
+      color: #333;
+      font-size: 14px;
+      font-weight: 500;
+    }
+  }
+}
+
+.header-menu {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 32px;
+  
+  li {
+    a {
+      color: #333;
+      text-decoration: none;
+      font-size: clamp(12.8px, 1.6vw, 16px);
+      font-weight: 500;
+      padding: 8px 0;
+      transition: color 0.3s ease;
+      white-space: nowrap;
+      
+      &:hover {
+        color: #FF5722;
+      }
+    }
+  }
+}
+
+// Позиционирование кнопки "Войти"
+.right {
+  position: fixed;
+  right: 20px;
+  z-index: 1001;
+  
+  .login-link {
+    color: #FF5722;
+    text-decoration: none;
+    font-size: 18px;
+    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+    white-space: nowrap;
+    
+    &:hover {
+      background-color: rgba(255, 87, 34, 0.1);
+    }
+  }
+}
+
+// Бургер-меню
+.burger-menu {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 30px;
+  height: 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  z-index: 1001;
+  position: fixed;
+  right: 20px;
+  
+  span {
+    display: block;
+    width: 100%;
+    height: 2px;
+    background-color: #333;
+    transition: all 0.3s ease;
+  }
+}
+
+// Мобильное меню
+.mobile-menu {
+  display: none;
+  position: fixed;
+  top: 80px;
+  left: 0;
+  right: 0;
+  background: #fff;
+  padding: 20px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  transform: translateY(-100%);
+  transition: transform 0.3s ease;
+  z-index: 1000;
+  
+  &.active {
+    transform: translateY(0);
+  }
+  
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    
+    li {
+      margin: 16px 0;
+      text-align: center;
+      
+      a {
+        color: #333;
+        text-decoration: none;
+        font-size: 18px;
+        font-weight: 500;
+        display: block;
+        padding: 8px 0;
+        
+        &:hover {
+          color: #FF5722;
+        }
+      }
+    }
+  }
+}
+
+// Адаптивность
+@media (max-width: 1440px) {
+  .logo {
+    left: 20px;
+  }
+  
+  .right {
+    right: 30px;
+  }
+  
+  .menu-container {
+    padding: 0 80px;
+  }
+}
+
+@media (max-width: 950px) {
+  .menu-container {
+    display: none !important;
+  }
+  
+  .header-menu {
+    display: none !important;
+  }
+  
+  .wrapper {
+    justify-content: space-between;
+  }
+  
+  .burger-menu {
+    display: flex;
+  }
+  
+  .mobile-menu {
+    display: none;
+    
+    &.active {
+      display: block;
+      transform: translateY(0);
+      
+      ul {
+        opacity: 1;
+        visibility: visible;
+      }
+    }
+  }
+  
+  .right {
+    .login-link {
+      margin-right: 40px;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  header {
+    height: 64px;
+  }
+  
+  .logo {
+    font-size: 24px;
+  }
+  
+  .burger-menu {
+    right: 20px;
+  }
+  
+  .right {
+    .login-link {
+      margin-right: 35px;
+    }
+  }
+  
+  .mobile-menu {
+    top: 64px;
+  }
+}
+
+@media (max-width: 480px) {
+  .burger-menu {
+    right: 20px;
+  }
+  
+  .right {
+    .login-link {
+      margin-right: 30px;
+    }
+  }
+}
