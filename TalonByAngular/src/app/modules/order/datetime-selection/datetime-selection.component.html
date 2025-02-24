@@ -1,4 +1,44 @@
-<div class="datetime-page">
+<div class="speciality-page">
+  <!-- Мобильное меню -->
+  <div class="mobile-details" *ngIf="isMobile">
+    <div class="mobile-header" (click)="toggleDetails()">
+      <h1>{{hospital?.name}}</h1>
+      <span class="toggle-btn">
+        {{isDetailsOpen ? '‹ Скрыть' : 'Показать подробнее ›'}}
+      </span>
+    </div>
+
+    <div class="mobile-content" [class.open]="isDetailsOpen">
+      <div class="info-grid">
+        <div class="address-block">
+          <p>{{hospital?.address}}</p>
+          <a href="#" class="map-link">показать на карте</a>
+        </div>
+        <div class="registry-block">
+          <div class="phones">
+            <ng-container *ngFor="let item of getPhones()">
+              <span *ngIf="item.isLabel" class="label">{{item.text}}</span>
+              <a *ngIf="!item.isLabel" href="tel:{{item.text}}">{{item.text}}</a>
+            </ng-container>
+          </div>
+        </div>
+        <div class="schedule-block">
+          <div class="schedule-row">
+            <span class="label">ПН-ПТ:</span>{{getWorkingHours('ПН-ПТ')}}
+          </div>
+          <div class="schedule-row">
+            <span class="label">СБ:</span>{{getWorkingHours('СБ')}}
+          </div>
+        </div>
+        <div class="contacts-block">
+          <a *ngIf="hospital?.website" href="{{hospital?.website}}" class="website">{{getDomain(hospital?.website)}}</a>
+          <a *ngIf="hospital?.email" href="mailto:{{hospital?.email}}" class="email">{{hospital?.email}}</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Десктопная версия -->
   <div class="hospital-header">
     <div class="wrapper">
       <div class="hospital-info">
@@ -59,9 +99,15 @@
 
         <div class="calendar-wrapper">
           <div class="calendar-header">
-            <button class="month-nav" (click)="prevMonth()">&lt;</button>
+            <button class="month-nav" 
+                    (click)="prevMonth()" 
+                    [disabled]="!canGoToPrevMonth()"
+                    [class.disabled]="!canGoToPrevMonth()">&lt;</button>
             <h3>{{ months[currentMonth.getMonth()] }} {{ currentMonth.getFullYear() }}</h3>
-            <button class="month-nav" (click)="nextMonth()">&gt;</button>
+            <button class="month-nav" 
+                    (click)="nextMonth()" 
+                    [disabled]="!canGoToNextMonth()"
+                    [class.disabled]="!canGoToNextMonth()">&gt;</button>
           </div>
 
           <div class="calendar">
@@ -81,8 +127,17 @@
                      (click)="selectDate(day)">
                   <span class="date">{{day.date || ''}}</span>
                   <span class="slots" *ngIf="day.date && !day.isDisabled">
-                    {{day.availableSlots}} талонов
+                    {{day.availableSlots}}
                   </span>
+                </div>
+              </div>
+
+              <div class="time-slots-row" *ngIf="selectedDate" [@slideInOut]>
+                <div class="selected-date">
+                  {{ selectedDate | date:'d MMMM' }}, {{ getDayOfWeek(selectedDate) }}
+                </div>
+                <div class="time-slots">
+                  <button class="time-slot" *ngFor="let time of firstShiftSlots">{{ time }}</button>
                 </div>
               </div>
             </div>

@@ -1,8 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { Hospital, DoctorDetails } from '../../../interfaces/order.interface';
 import { OrderService } from '../../../services/order.service';
+import { trigger, transition, style, animate } from '@angular/animations';
 
 interface CalendarDay {
   date: number;
@@ -16,12 +17,34 @@ interface CalendarDay {
 
 @Component({
   selector: 'app-datetime-selection',
-  standalone: true,
-  imports: [CommonModule],
   templateUrl: './datetime-selection.component.html',
-  styleUrl: './datetime-selection.component.scss'
+  styleUrls: ['./datetime-selection.component.scss'],
+  animations: [
+    trigger('slideInOut', [
+      transition(':enter', [
+        style({ 
+          opacity: 0,
+          height: 0
+        }),
+        animate('400ms ease-in-out', style({ 
+          opacity: 1,
+          height: '*'
+        }))
+      ]),
+      transition(':leave', [
+        style({ 
+          opacity: 1,
+          height: '*'
+        }),
+        animate('400ms ease-in-out', style({ 
+          opacity: 0,
+          height: 0
+        }))
+      ])
+    ])
+  ]
 })
-export class DatetimeSelectionComponent implements OnInit {
+export class DatetimeSelectionComponent implements OnInit, OnDestroy {
   hospital: Hospital | null = null;
   doctor: DoctorDetails | null = null;
   currentMonth: Date = new Date();
@@ -35,6 +58,14 @@ export class DatetimeSelectionComponent implements OnInit {
   availableTimeSlots: string[] = [];
   loading = false;
   error: string | null = null;
+  isMobile = false;
+  isDetailsOpen = false;
+
+  firstShiftSlots: string[] = [
+    '09:00', '09:20', '09:40', '10:00', '10:20', 
+    '12:40', '13:00', '13:20', '13:40', '14:00',
+    '14:20', '14:40', '18:20', '19:00', '19:20'
+  ];
 
   constructor(
     private router: Router,
@@ -45,6 +76,7 @@ export class DatetimeSelectionComponent implements OnInit {
       this.hospital = state['hospital'];
       this.doctor = state['doctor'];
     }
+    this.checkScreenSize();
   }
 
   ngOnInit() {
@@ -53,6 +85,11 @@ export class DatetimeSelectionComponent implements OnInit {
       return;
     }
     this.generateCalendar();
+    window.addEventListener('resize', this.checkScreenSize.bind(this));
+  }
+
+  ngOnDestroy() {
+    window.removeEventListener('resize', this.checkScreenSize.bind(this));
   }
 
   generateCalendar() {
@@ -124,20 +161,40 @@ export class DatetimeSelectionComponent implements OnInit {
   }
 
   prevMonth() {
-    this.currentMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() - 1);
-    this.generateCalendar();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Сбрасываем время
+    
+    const prevMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() - 1, 1);
+    if (prevMonth >= today || this.currentMonth.getMonth() > today.getMonth()) {
+      this.currentMonth = prevMonth;
+      this.generateCalendar();
+    }
   }
 
   nextMonth() {
-    this.currentMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() + 1);
-    this.generateCalendar();
+    const maxDate = new Date();
+    maxDate.setMonth(maxDate.getMonth() + 3);
+    
+    const nextMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() + 1);
+    
+    if (nextMonth <= maxDate) {
+      this.currentMonth = nextMonth;
+      this.generateCalendar();
+    }
   }
 
   selectDate(day: CalendarDay) {
     if (day.isDisabled || day.date === 0) return;
     
-    this.selectedDate = new Date(day.year, day.month, day.date);
-    // TODO: Загрузка доступных временных слотов
+    // Если нажали на уже выбранную дату - скрываем слоты
+    if (this.selectedDate && 
+        this.selectedDate.getDate() === day.date && 
+        this.selectedDate.getMonth() === day.month && 
+        this.selectedDate.getFullYear() === day.year) {
+      this.selectedDate = null;
+    } else {
+      this.selectedDate = new Date(day.year, day.month, day.date);
+    }
   }
 
   goToSpeciality() {
@@ -195,5 +252,40 @@ export class DatetimeSelectionComponent implements OnInit {
   getDomain(url: string | undefined): string {
     if (!url) return '';
     return url.replace(/^https?:\/\//, '');
+  }
+
+  // Добавим метод для проверки, можно ли переключиться на следующий месяц
+  canGoToNextMonth(): boolean {
+    const maxDate = new Date();
+    maxDate.setMonth(maxDate.getMonth() + 3);
+    
+    const nextMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() + 1);
+    return nextMonth <= maxDate;
+  }
+
+  // Добавим метод для проверки, можно ли переключиться на предыдущий месяц
+  canGoToPrevMonth(): boolean {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Сбрасываем время
+    
+    const firstDayOfCurrentMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth(), 1);
+    return firstDayOfCurrentMonth > today;
+  }
+
+  checkScreenSize() {
+    this.isMobile = window.innerWidth <= 768;
+  }
+
+  toggleDetails() {
+    this.isDetailsOpen = !this.isDetailsOpen;
+  }
+
+  getDayOfWeek(date: Date): string {
+    const days = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
+    return days[date.getDay()];
+  }
+
+  getAvailableSlotsCount(): number {
+    return this.firstShiftSlots.length;
   }
 }

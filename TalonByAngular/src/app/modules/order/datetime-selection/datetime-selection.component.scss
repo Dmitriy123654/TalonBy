@@ -1,147 +1,756 @@
-@import '../speciality-selection/speciality-selection.component.scss';
+.speciality-page {
+  background: #f5f5f5;
 
-.calendar-wrapper {
-  background: #fff;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
+  .hospital-header {
+    background: #fafafa;
+    padding: 20px 0;
+    border-bottom: 1px solid #eee;
 
-.calendar-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
+    .wrapper {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
 
-  h3 {
-    font-size: 18px;
-    margin: 0;
-    color: #333;
-  }
+      .hospital-info {
+        h1 {
+          font-size: 31px;
+          font-weight: 700;
+          color: #333;
+          margin-bottom: 10px;
+          margin-top: 0;
+        }
 
-  .month-nav {
-    background: none;
-    border: none;
-    font-size: 20px;
-    color: #666;
-    cursor: pointer;
-    padding: 5px 10px;
+        .info-grid {
+          display: grid;
+          grid-template-columns: 
+            minmax(150px, 250px)
+            minmax(100px, 140px)
+            minmax(100px, 140px)
+            minmax(120px, 180px);
+          gap: 20px;
+          align-items: start;
 
-    &:hover {
-      color: #FF5722;
-    }
-  }
-}
+          .address-block {
+            p {
+              color: #333;
+              margin-bottom: 2px;
+              font-size: 13px;
+            }
 
-.calendar {
-  .weekdays {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    margin-bottom: 10px;
+            .map-link {
+              color: #FF5722;
+              text-decoration: none;
+              font-size: 12px;
+              
+              &:hover {
+                text-decoration: underline;
+              }
+            }
+          }
 
-    .weekday {
-      text-align: center;
-      font-size: 14px;
-      color: #666;
-      text-transform: uppercase;
-      padding: 5px;
+          .registry-block {
+            .phones {
+              display: flex;
+              flex-direction: column;
+              gap: 4px;
+              
+              .label {
+                color: #333;
+                font-weight: 600;
+                font-size: 13px;
+              }
 
-      &:last-child,
-      &:nth-last-child(2) {
-        color: #FF5722;
+              a {
+                color: #FF5722;
+                text-decoration: none;
+                font-size: 13px;
+                
+                &:hover {
+                  text-decoration: underline;
+                }
+              }
+            }
+          }
+
+          .schedule-block {
+            .schedule-row {
+              font-size: 13px;
+              margin-bottom: 1px;
+
+              .label {
+                color: #333;
+                font-weight: 600;
+                margin-right: 4px;
+              }
+            }
+          }
+
+          .contacts-block {
+            a {
+              display: block;
+              color: #FF5722;
+              text-decoration: none;
+              font-size: 13px;
+              margin-bottom: 1px;
+              
+              &:hover {
+                text-decoration: underline;
+              }
+            }
+          }
+        }
       }
     }
   }
 
-  .calendar-grid {
-    .week {
+  .content-block {
+    .wrapper {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
       display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 5px;
-      margin-bottom: 5px;
-    }
+      grid-template-columns: 250px 1fr;
+      gap: 30px;
 
-    .day {
-      aspect-ratio: 1;
-      padding: 5px;
-      border: 1px solid #eee;
-      border-radius: 4px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      cursor: pointer;
-      transition: all 0.2s;
-
-      &:not(.disabled):hover {
-        border-color: #FF5722;
+      @media (max-width: 1200px) {
+        padding: 15px;
       }
 
-      &.weekend {
-        background: #f9f9f9;
-      }
+      aside {
+        .order-steps {
+          background: #fff;
+          padding: 20px;
+          border-radius: 8px;
+          margin-bottom: 30px;
 
-      &.disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-        background: #f5f5f5;
-      }
+          .step {
+            padding: 12px 15px;
+            color: #999;
+            font-size: 15px;
+            position: relative;
 
-      &.today {
-        background: #e8f5e9;
-        border-color: #4caf50;
-      }
+            &.completed {
+              color: #333;
+              cursor: pointer;
+              font-weight: 500;
+              
+              &:hover {
+                color: #FF5722;
+              }
+            }
+            
+            &.active {
+              color: #FF5722;
+              font-weight: 500;
+              background: rgba(255,87,34,0.05);
+              border-radius: 4px;
 
-      &.selected {
-        background: #FF5722;
-        border-color: #FF5722;
-        color: white;
+              &::before {
+                content: '';
+                position: absolute;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                width: 3px;
+                background: #FF5722;
+                border-radius: 0 2px 2px 0;
+              }
+            }
+          }
+        }
 
-        .slots {
-          color: rgba(255,255,255,0.8);
+        .hospital-nav {
+          ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+
+            li {
+              margin-bottom: 4px;
+
+              a {
+                display: block;
+                padding: 12px 15px;
+                color: #333;
+                text-decoration: none;
+                font-size: 15px;
+
+                &:hover {
+                  color: #FF5722;
+                }
+              }
+            }
+          }
         }
       }
 
-      .date {
-        font-size: 16px;
-        font-weight: 500;
-        margin-bottom: 2px;
+      main {
+        h2 {
+          font-size: 24px;
+          font-weight: 500;
+          color: #333;
+          margin: 0;
+          margin-bottom: 8px;
+        }
+
+        .subtitle {
+          color: #666;
+          margin-bottom: 25px;
+          font-size: 15px;
+        }
+      }
+    }
+  }
+
+  // Стили для календаря
+  .calendar-wrapper {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    width: calc(100% - 10px);
+    margin-right: 10px;
+
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+
+      h3 {
+        font-size: 18px;
+        margin: 0;
+        color: #333;
       }
 
-      .slots {
-        font-size: 12px;
+      .month-nav {
+        background: none;
+        border: none;
+        font-size: 20px;
         color: #666;
+        cursor: pointer;
+        padding: 5px 10px;
+
+        &:hover {
+          color: #FF5722;
+        }
+
+        &.disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+      }
+    }
+
+    .calendar {
+      .weekdays {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        margin-bottom: 10px;
+
+        .weekday {
+          text-align: center;
+          font-size: 14px;
+          color: #666;
+          text-transform: uppercase;
+          padding: 5px;
+
+          &:last-child,
+          &:nth-last-child(2) {
+            color: #FF5722;
+          }
+        }
+      }
+
+      .calendar-grid {
+        .week {
+          display: grid;
+          grid-template-columns: repeat(7, 1fr);
+          border-bottom: 2px solid rgba(200, 200, 200, 0.5);
+
+          &:last-child {
+            border-bottom: none;
+          }
+        }
+
+        .day {
+          aspect-ratio: 1;
+          padding: 8px;
+          border-right: 2px solid rgba(200, 200, 200, 0.5);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: background-color 0.2s;
+
+          &:last-child {
+            border-right: none;
+          }
+
+          &:not(.disabled):hover {
+            background-color: rgba(255,87,34,0.05);
+          }
+
+          &.weekend {
+            .date {
+              color: #FF5722;
+            }
+          }
+
+          &.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #fafafa;
+          }
+
+          &.selected {
+            background-color: rgba(255,87,34,0.05);
+            position: relative;
+
+            &::after {
+              content: '';
+              position: absolute;
+              left: 0;
+              top: 0;
+              bottom: 0;
+              width: 3px;
+              background: #FF5722;
+            }
+          }
+
+          .date {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 4px;
+          }
+
+          .slots {
+            font-size: 12px;
+            color: #FF5722;
+          }
+        }
+
+        .time-slots {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+          gap: 1px;
+          background: rgba(238, 238, 238, 0.3);
+          padding: 1px;
+          border-radius: 4px;
+          overflow: hidden;
+        }
+
+        .time-slots-row {
+          grid-column: 1 / -1;
+          border-top: 1px solid #eee;
+          padding: 15px;
+
+          .selected-date {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+          }
+
+          .time-slots {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            gap: 1.5px;
+            background: rgba(200, 200, 200, 0.3);
+            padding: 1.5px;
+
+            .time-slot {
+              background: #fff;
+              border: none;
+              padding: 8px;
+              color: #333;
+              font-size: 13px;
+              cursor: pointer;
+              transition: all 0.2s;
+              aspect-ratio: 1;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+
+              &:hover {
+                color: #FF5722;
+              }
+
+              &.selected {
+                background: #FF5722;
+                color: white;
+              }
+            }
+          }
+        }
       }
     }
   }
 }
 
-.order-steps {
-  .step {
-    &.completed {
-      color: #333;
-      cursor: pointer;
-      
-      &:hover {
-        color: #FF5722;
-      }
-    }
-  }
+// Мобильные стили
+.mobile-details {
+  display: none;
 }
 
 @media (max-width: 768px) {
-  .calendar-wrapper {
-    padding: 10px;
+  .hospital-header {
+    display: none;
   }
 
-  .calendar {
-    .day {
-      .date {
-        font-size: 14px;
+  .mobile-details {
+    display: block;
+    background: #fff;
+    margin-bottom: 15px;
+
+    .mobile-header {
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+
+      h1 {
+        font-size: 18px;
+        margin: 0;
+        color: #333;
       }
 
-      .slots {
-        font-size: 10px;
+      .toggle-btn {
+        color: #FF5722;
+        font-size: 14px;
       }
     }
+
+    .mobile-content {
+      height: 0;
+      overflow: hidden;
+      transition: height 0.3s ease;
+
+      &.open {
+        height: auto;
+        padding: 0 15px 15px;
+      }
+
+      .info-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+      }
+    }
+  }
+
+  .content-block {
+    width: 100%;
+    
+    .wrapper {
+      display: block;
+      padding: 15px;
+      width: 100%;
+      max-width: 100%;
+
+      aside {
+        display: none;
+      }
+
+      main {
+        width: 100%;
+        padding: 0;
+
+        .calendar-wrapper {
+          width: 100vw;
+          margin-left: calc(-15px);
+          margin-right: 0;
+          padding: 15px;
+          border-radius: 0;
+          box-sizing: border-box;
+          
+          .calendar {
+            width: 100%;
+            
+            .weekdays {
+              display: grid;
+              grid-template-columns: repeat(7, 1fr);
+              gap: 4px;
+            }
+            
+            .calendar-grid {
+              .week {
+                display: grid;
+                grid-template-columns: repeat(7, 1fr);
+                gap: 4px;
+              }
+              
+              .day {
+                min-height: 45px;
+                padding: 4px;
+                width: 100%;
+                
+                .date {
+                  font-size: 14px;
+                }
+                
+                .slots {
+                  font-size: 12px;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .calendar-wrapper {
+    .calendar {
+      .calendar-grid {
+        .day {
+          min-height: 35px;
+          
+          .date {
+            font-size: 13px;
+          }
+          
+          .slots {
+            font-size: 11px;
+          }
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 360px) {
+  .content-block {
+    .wrapper {
+      main {
+        .calendar-wrapper {
+          padding: 10px;
+          
+          .calendar {
+            .calendar-grid {
+              .week {
+                gap: 2px;
+              }
+              
+              .day {
+                min-height: 40px;
+                padding: 3px;
+                
+                .date {
+                  font-size: 12px;
+                }
+                
+                .slots {
+                  font-size: 10px;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 830px) {
+  .content-block {
+    .wrapper {
+      gap: 15px;
+      
+      aside {
+        min-width: 200px;
+      }
+
+      main {
+        min-width: 0;
+        
+        .calendar-wrapper {
+          .calendar {
+            .calendar-grid {
+              .time-slots-row {
+                margin: 0;
+                padding: 10px;
+                border-top: 1px solid #eee;
+                background: #fff;
+                
+                .selected-date {
+                  margin-bottom: 10px;
+                }
+
+                .time-slots {
+                  margin: 0;
+                }
+              }
+
+              .day {
+                &.selected {
+                  &::after {
+                    z-index: 1;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 1100px) {
+  .calendar-wrapper {
+    .calendar {
+      .calendar-grid {
+        .day {
+          min-height: 50px;
+          
+          .date {
+            font-size: 14px;
+          }
+          
+          .slots {
+            font-size: 11px;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Добавляем стили для временных слотов
+.time-slots {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  
+  .time-slots-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    
+    h3 {
+      font-size: 18px;
+      color: #333;
+      margin: 0;
+    }
+    
+    .available-slots {
+      color: #666;
+      font-size: 14px;
+    }
+  }
+  
+  .shifts {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    
+    .shift {
+      .shift-header {
+        color: #666;
+        font-size: 14px;
+        margin-bottom: 15px;
+      }
+      
+      .slots-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+        gap: 10px;
+        
+        .time-slot {
+          background: none;
+          border: 1px solid #eee;
+          border-radius: 4px;
+          padding: 8px;
+          color: #333;
+          font-size: 14px;
+          cursor: pointer;
+          transition: all 0.2s;
+          
+          &:hover {
+            border-color: #FF5722;
+            color: #FF5722;
+          }
+          
+          &.selected {
+            background: #FF5722;
+            border-color: #FF5722;
+            color: white;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Добавляем медиа-запрос для мобильных устройств
+@media (max-width: 768px) {
+  .time-slots {
+    margin: 20px -15px 0;
+    border-radius: 0;
+    
+    .shifts {
+      .shift {
+        .slots-grid {
+          grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+          gap: 8px;
+          
+          .time-slot {
+            padding: 6px;
+            font-size: 13px;
+          }
+        }
+      }
+    }
+  }
+}
+
+@keyframes slideDown {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px);
+    max-height: 0;
+  }
+  50% {
+    opacity: 0.5;
+    transform: translateY(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 500px;
+  }
+}
+
+@keyframes slideUp {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 500px;
+  }
+  50% {
+    opacity: 0.5;
+    transform: translateY(-10px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-20px);
+    max-height: 0;
+  }
+}
+
+.time-slots-row {
+  &.ng-enter {
+    animation: slideDown 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  
+  &.ng-leave {
+    animation: slideUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   }
 }

@@ -4,11 +4,10 @@ import { DatetimeSelectionRoutingModule } from './datetime-selection-routing.mod
 import { DatetimeSelectionComponent } from './datetime-selection.component';
 
 @NgModule({
-  declarations: [],
+  declarations: [DatetimeSelectionComponent],
   imports: [
     CommonModule,
-    DatetimeSelectionRoutingModule,
-    DatetimeSelectionComponent
+    DatetimeSelectionRoutingModule
   ]
 })
 export class DatetimeSelectionModule { }
