@@ -1,4 +1,4 @@
-<div class="speciality-page">
+<div class="datetime-selection-page">
   <!-- Мобильное меню -->
   <div class="mobile-details" *ngIf="isMobile">
     <div class="mobile-header" (click)="toggleDetails()">
@@ -73,75 +73,77 @@
     </div>
   </div>
 
-  <div class="content-wrapper">
-    <aside>
-      <div class="order-steps">
-        <div class="step completed" (click)="goToSpeciality()">Специальность</div>
-        <div class="step completed" (click)="goToDoctor()">Врач</div>
-        <div class="step active">Дата и время</div>
-        <div class="step">Личные данные</div>
-        <div class="step">Запись</div>
-      </div>
-
-      <nav class="hospital-nav">
-        <ul>
-          <li><a href="#">Информация</a></li>
-          <li><a href="#">Врачи</a></li>
-          <li><a href="#">Расписание врачей</a></li>
-        </ul>
-      </nav>
-    </aside>
-
-    <main>
-      <h2>Заказ талона</h2>
-      <p class="subtitle">Выбор даты и времени</p>
-
-      <div class="calendar-wrapper">
-        <div class="calendar-header">
-          <button class="month-nav" 
-                  (click)="prevMonth()" 
-                  [disabled]="!canGoToPrevMonth()"
-                  [class.disabled]="!canGoToPrevMonth()">&lt;</button>
-          <h3>{{ months[currentMonth.getMonth()] }} {{ currentMonth.getFullYear() }}</h3>
-          <button class="month-nav" 
-                  (click)="nextMonth()" 
-                  [disabled]="!canGoToNextMonth()"
-                  [class.disabled]="!canGoToNextMonth()">&gt;</button>
+  <div class="wrapper">
+    <div class="content-block">
+      <aside>
+        <div class="order-steps">
+          <div class="step completed" (click)="goToSpeciality()">Специальность</div>
+          <div class="step completed" (click)="goToDoctor()">Врач</div>
+          <div class="step active">Дата и время</div>
+          <div class="step">Личные данные</div>
+          <div class="step">Запись</div>
         </div>
 
-        <div class="calendar">
-          <div class="weekdays">
-            <div class="weekday" *ngFor="let day of weekDays">{{day}}</div>
-          </div>
-          
-          <div class="calendar-grid">
-            <div class="week" *ngFor="let week of calendar">
-              <div class="day" *ngFor="let day of week" 
-                   [class.weekend]="day.isWeekend"
-                   [class.disabled]="day.isDisabled"
-                   [class.today]="day.isToday"
-                   [class.selected]="selectedDate && day.date === selectedDate.getDate() && 
-                                  day.month === selectedDate.getMonth() && 
-                                  day.year === selectedDate.getFullYear()"
-                   (click)="selectDate(day)">
-                <span class="date">{{day.date || ''}}</span>
-                <span class="slots" *ngIf="day.date && !day.isDisabled">
-                  {{day.availableSlots}}
-                </span>
-              </div>
-            </div>
+        <nav class="hospital-nav">
+          <ul>
+            <li><a href="#">Информация</a></li>
+            <li><a href="#">Врачи</a></li>
+            <li><a href="#">Расписание врачей</a></li>
+          </ul>
+        </nav>
+      </aside>
 
-            <div class="time-slots-row" *ngIf="selectedDate" [@slideInOut]>
-              <div class="selected-date">
-                {{ selectedDate | date:'d MMMM' }}, {{ getDayOfWeek(selectedDate) }}
+      <main>
+        <h2>Заказ талона</h2>
+        <p class="subtitle">Выбор даты и времени</p>
+
+        <div class="calendar-wrapper">
+          <div class="calendar-header">
+            <button class="month-nav" 
+                    (click)="prevMonth()" 
+                    [disabled]="!canGoToPrevMonth()"
+                    [class.disabled]="!canGoToPrevMonth()">&lt;</button>
+            <h3>{{ months[currentMonth.getMonth()] }} {{ currentMonth.getFullYear() }}</h3>
+            <button class="month-nav" 
+                    (click)="nextMonth()" 
+                    [disabled]="!canGoToNextMonth()"
+                    [class.disabled]="!canGoToNextMonth()">&gt;</button>
+          </div>
+
+          <div class="calendar">
+            <div class="weekdays">
+              <div class="weekday" *ngFor="let day of weekDays">{{day}}</div>
+            </div>
+            
+            <div class="calendar-grid">
+              <div class="week" *ngFor="let week of calendar">
+                <div class="day" *ngFor="let day of week" 
+                     [class.weekend]="day.isWeekend"
+                     [class.disabled]="day.isDisabled"
+                     [class.today]="day.isToday"
+                     [class.selected]="selectedDate && day.date === selectedDate.getDate() && 
+                                    day.month === selectedDate.getMonth() && 
+                                    day.year === selectedDate.getFullYear()"
+                     (click)="selectDate(day)">
+                  <span class="date">{{day.date || ''}}</span>
+                  <span class="slots" *ngIf="day.date && !day.isDisabled">
+                    {{day.availableSlots}}
+                  </span>
+                </div>
               </div>
-              <div class="time-slots">
-                <button class="time-slot" *ngFor="let time of firstShiftSlots">{{ time }}</button>
+
+              <div class="time-slots-row" *ngIf="selectedDate" [@slideInOut]>
+                <div class="selected-date">
+                  {{ selectedDate | date:'d MMMM' }}, {{ getDayOfWeek(selectedDate) }}
+                </div>
+                <div class="time-slots">
+                  <button class="time-slot" *ngFor="let time of firstShiftSlots">{{ time }}</button>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   </div>
 </div>

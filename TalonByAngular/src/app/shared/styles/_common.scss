@@ -1,14 +1,33 @@
-// Общие стили для всех страниц
-body {
-  overflow-x: hidden;
+// Переменные
+$primary-color: #FF5722;
+$text-color: #333;
+$light-gray: #f5f5f5;
+$border-color: #eee;
+
+// Миксины
+@mixin card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  border: 1px solid $border-color;
+  transition: all 0.2s;
 }
 
-// Общий контейнер для всех страниц
-.order-page,
+@mixin link {
+  color: $primary-color;
+  text-decoration: none;
+  
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+// Общие стили страниц
 .speciality-page,
 .doctor-selection-page,
-.datetime-selection-page {
-  background: #f5f5f5;
+.datetime-selection-page,
+.order-page {
+  background: $light-gray;
   min-height: 100vh;
   position: relative;
   z-index: 1;
@@ -18,88 +37,13 @@ body {
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 20px;
-    display: flex;
-    gap: 30px;
-    position: relative;
   }
 
-  // Боковая панель
-  aside {
-    width: 250px;
-    flex-shrink: 0;
-    margin-right: 30px;
-
-    .order-steps {
-      background: #fff;
-      border-radius: 8px;
-      padding: 15px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-
-      .step {
-        padding: 12px 15px;
-        color: #999;
-        font-size: 15px;
-        position: relative;
-
-        &.completed {
-          color: #333;
-          cursor: pointer;
-          font-weight: 500;
-          
-          &:hover {
-            color: #FF5722;
-          }
-        }
-        
-        &.active {
-          color: #FF5722;
-          font-weight: 500;
-          background: rgba(255,87,34,0.05);
-          border-radius: 4px;
-        }
-      }
-    }
-
-    .hospital-nav {
-      background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      
-      ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-        
-        li {
-          border-bottom: 1px solid #eee;
-          
-          &:last-child {
-            border-bottom: none;
-          }
-          
-          a {
-            display: block;
-            padding: 15px 20px;
-            color: #333;
-            text-decoration: none;
-            transition: color 0.3s ease;
-            
-            &:hover {
-              color: #FF5722;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  // Шапка с информацией о больнице
+  // Шапка
   .hospital-header {
     background: #fafafa;
     padding: 20px 0;
-    border-bottom: 1px solid #eee;
-    width: 100%;
+    border-bottom: 1px solid $border-color;
 
     .wrapper {
       max-width: 1200px;
@@ -110,7 +54,7 @@ body {
         h1 {
           font-size: 31px;
           font-weight: 700;
-          color: #333;
+          color: $text-color;
           margin: 0 0 10px;
         }
 
@@ -126,19 +70,14 @@ body {
 
           .address-block {
             p {
-              color: #333;
+              color: $text-color;
               margin-bottom: 2px;
               font-size: 13px;
             }
 
             .map-link {
-              color: #FF5722;
-              text-decoration: none;
+              @include link;
               font-size: 12px;
-              
-              &:hover {
-                text-decoration: underline;
-              }
             }
           }
 
@@ -149,19 +88,15 @@ body {
               gap: 4px;
 
               .label {
-                color: #333;
+                color: $text-color;
                 font-weight: 600;
                 font-size: 13px;
               }
 
               a {
-                color: #FF5722;
-                text-decoration: none;
+                @include link;
                 font-size: 13px;
-                
-                &:hover {
-                  text-decoration: underline;
-                }
+                line-height: 1.2;
               }
             }
           }
@@ -169,130 +104,278 @@ body {
           .schedule-block {
             .schedule-row {
               font-size: 13px;
-              color: #333;
-              margin-bottom: 4px;
+              margin-bottom: 1px;
 
               .label {
+                color: $text-color;
                 font-weight: 600;
-                margin-right: 5px;
+                margin-right: 4px;
               }
             }
           }
 
           .contacts-block {
-            .website,
-            .email {
-              display: block;
-              color: #FF5722;
-              text-decoration: none;
+            a {
+              @include link;
               font-size: 13px;
-              overflow: hidden;
-              text-overflow: ellipsis;
-              white-space: nowrap;
+              display: block;
+              margin-bottom: 1px;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Общая структура
+  .content-block {
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    gap: 30px;
+    margin-top: 30px;
+    padding: 0 20px;
+    max-width: 1200px;
+    margin: 30px auto 0;
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+      padding: 0;
+      margin-top: 0;
+
+      aside {
+        display: none;
+      }
+    }
+
+    aside {
+      width: 250px;
+      flex-shrink: 0;
+
+      .order-steps {
+        @include card;
+        margin-bottom: 20px;
+
+        .step {
+          padding: 12px 15px;
+          color: #999;
+          font-size: 15px;
+          
+          &.active {
+            color: $primary-color;
+            font-weight: 500;
+            background: rgba($primary-color, 0.05);
+            border-radius: 4px;
+          }
+
+          &.completed {
+            color: $text-color;
+            cursor: pointer;
+            font-weight: 500;
+            
+            &:hover {
+              color: $primary-color;
+            }
+          }
+        }
+      }
+
+      .hospital-nav {
+        @include card;
+
+        ul {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+
+          li {
+            border-bottom: 1px solid $border-color;
+            
+            &:last-child {
+              border-bottom: none;
+            }
+
+            a {
+              display: block;
+              padding: 15px;
+              color: $text-color;
+              text-decoration: none;
+              font-size: 14px;
               
               &:hover {
-                text-decoration: underline;
+                color: $primary-color;
               }
             }
           }
         }
+      }
+    }
+
+    main {
+      flex: 1;
+
+      h2 {
+        font-size: 24px;
+        font-weight: 500;
+        color: $text-color;
+        margin-bottom: 8px;
+      }
+
+      .subtitle {
+        color: #666;
+        margin-bottom: 25px;
+        font-size: 15px;
       }
     }
   }
 
   // Мобильные стили
-  @media (max-width: 768px) {
-    .wrapper {
-      flex-direction: column;
-      padding: 15px;
-      margin: 0;
-      overflow-x: hidden;
+  .mobile-details {
+    display: none;
+    margin-top: 10px;
+
+    @media (max-width: 768px) {
+      display: block;
     }
 
-    .mobile-details {
-      margin-top: 10px;
+    .mobile-header {
+      padding: 15px 20px;
+      border-bottom: 1px solid $border-color;
+      background: #fafafa;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
 
-      .mobile-header {
-        padding: 15px;
-        background: #fff;
-        border-radius: 8px 8px 0 0;
+      h1 {
+        font-size: 18px;
+        margin: 0;
+        padding: 0;
+        font-weight: 600;
+        color: $text-color;
+        line-height: 1.3;
+      }
+
+      .toggle-btn {
+        color: $primary-color;
+        font-size: 14px;
+        white-space: nowrap;
+        margin-left: 15px;
+      }
+    }
+
+    .mobile-content {
+      display: none;
+      padding: 20px;
+      border-bottom: 1px solid $border-color;
+      background: #fafafa;
+
+      &.open {
+        display: block;
+      }
+
+      .info-grid {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
-        cursor: pointer;
-        
-        h1 {
-          font-size: 20px;
-          margin: 0;
-          color: #333;
+        flex-direction: column;
+        gap: 1px;
+        margin-bottom: 20px;
+
+        .address-block,
+        .registry-block,
+        .schedule-block,
+        .contacts-block {
+          background: #fff;
+          padding: 15px;
+          border-radius: 4px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
-        .toggle-btn {
-          color: #FF5722;
-          font-size: 14px;
+        .phones {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+
+          .label {
+            color: $text-color;
+            font-weight: 600;
+            font-size: 14px;
+          }
+
+          a {
+            color: $primary-color;
+            text-decoration: none;
+            font-size: 14px;
+            line-height: 1.4;
+          }
         }
       }
 
-      .mobile-content {
+      .hospital-nav {
         background: #fff;
-        padding: 15px;
-        border-radius: 0 0 8px 8px;
+        border-radius: 4px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 
-        &.open {
-          .info-grid {
-            display: grid;
-            gap: 15px;
-          }
+        ul {
+          list-style: none;
+          padding: 0;
+          margin: 0;
 
-          .registry-block,
-          .schedule-block,
-          .contacts-block {
-            padding: 10px 0;
-            border-bottom: 1px solid #eee;
-
+          li {
+            border-bottom: 1px solid $border-color;
+            
             &:last-child {
               border-bottom: none;
+            }
+
+            a {
+              display: block;
+              padding: 15px;
+              color: $text-color;
+              text-decoration: none;
+              font-size: 14px;
+              
+              &:active {
+                background: #f5f5f5;
+              }
             }
           }
         }
       }
     }
+  }
 
-    aside {
-      width: 100%;
-      margin-right: 0;
-      margin-bottom: 20px;
+  @media (max-width: 768px) {
+    .hospital-header {
+      display: none !important;
     }
 
-    .hospital-header {
-      padding: 15px 0;
-      
-      .wrapper {
+    .content-block {
+      grid-template-columns: 1fr;
+      padding: 0;
+      margin-top: 0;
+
+      aside {
+        display: none;
+      }
+
+      main {
         padding: 0 15px;
-        
-        .hospital-info {
-          h1 {
-            font-size: 24px;
-          }
-          
-          .info-grid {
-            grid-template-columns: 1fr;
-            gap: 15px;
-          }
-        }
       }
     }
   }
 }
 
-// Медиа-запросы для больших экранов
-@media (min-width: 1200px) {
-  .order-page,
-  .speciality-page,
-  .doctor-selection-page,
-  .datetime-selection-page {
-    .wrapper {
-      padding: 0 calc((100% - 960px) / 2);
-    }
-  }
+// Утилиты
+.loading, .error {
+  text-align: center;
+  padding: 20px;
+  grid-column: 1 / -1;
+}
+
+.loading {
+  color: #666;
+}
+
+.error {
+  color: #dc3545;
 } 

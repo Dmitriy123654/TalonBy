@@ -23,22 +23,22 @@ interface CalendarDay {
     trigger('slideInOut', [
       transition(':enter', [
         style({ 
-          opacity: 0,
-          height: 0
+          transform: 'translateY(-20px)',
+          opacity: 0
         }),
-        animate('400ms ease-in-out', style({ 
-          opacity: 1,
-          height: '*'
+        animate('500ms cubic-bezier(0.4, 0.0, 0.2, 1)', style({ 
+          transform: 'translateY(0)',
+          opacity: 1
         }))
       ]),
       transition(':leave', [
         style({ 
-          opacity: 1,
-          height: '*'
+          transform: 'translateY(0)',
+          opacity: 1
         }),
-        animate('400ms ease-in-out', style({ 
-          opacity: 0,
-          height: 0
+        animate('500ms cubic-bezier(0.4, 0.0, 0.2, 1)', style({ 
+          transform: 'translateY(20px)',
+          opacity: 0
         }))
       ])
     ])

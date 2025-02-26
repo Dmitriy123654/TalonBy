@@ -106,14 +106,6 @@
         <h2>Заказ талона</h2>
         <p class="subtitle">Выбор врача</p>
 
-        <div *ngIf="loading" class="loading">
-          Загрузка списка врачей...
-        </div>
-
-        <div *ngIf="error" class="error">
-          {{error}}
-        </div>
-
         <div class="doctors-grid" *ngIf="!loading && !error">
           <div class="row">
             <div class="doctor-card" *ngFor="let doctor of doctors" (click)="selectDoctor(doctor)">
@@ -127,6 +119,14 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <div *ngIf="loading" class="loading">
+          Загрузка списка врачей...
+        </div>
+
+        <div *ngIf="error" class="error">
+          {{error}}
         </div>
       </main>
     </div>
