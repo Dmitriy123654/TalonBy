@@ -3,6 +3,7 @@
   min-height: 100vh;
   position: relative;
   z-index: 1;
+  overflow-x: hidden;
   
   .wrapper {
     max-width: 1200px;
@@ -57,13 +58,94 @@
   }
 
   .main-content {
-    flex-grow: 1;
+    flex: 1;
     margin-top: 50px;
+
+    .hospital-selection {
+      .search-box {
+        margin-bottom: 20px;
+
+        .search-input {
+          width: 100%;
+          padding: 12px 15px;
+          border: 1px solid #ddd;
+          border-radius: 8px;
+          font-size: 14px;
+          
+          &:focus {
+            outline: none;
+            border-color: #FF5722;
+          }
+        }
+      }
+
+      .hospitals-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+
+        .hospital-card {
+          background: #fff;
+          padding: 20px;
+          border-radius: 8px;
+          cursor: pointer;
+          position: relative;
+          transition: all 0.2s;
+          border: 1px solid #eee;
+
+          &:hover {
+            border-color: #FF5722;
+          }
+
+          h3 {
+            font-size: 16px;
+            margin: 0 0 8px;
+            color: #333;
+            font-weight: 400;
+          }
+
+          .address {
+            font-size: 14px;
+            color: #999;
+          }
+        }
+      }
+    }
   }
 
   @media (max-width: 950px) {
     .wrapper {
       margin-top: 60px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .wrapper {
+      flex-direction: column;
+      padding: 15px;
+      margin: 0;
+      overflow-x: hidden;
+    }
+
+    .hospital-types-sidebar {
+      width: 100%;
+      margin-top: 0;
+      padding: 15px;
+    }
+
+    .main-content {
+      margin-top: 15px;
+      overflow-x: hidden;
+    }
+
+    .hospital-selection {
+      .search-box {
+        margin-top: 10px;
+      }
+
+      .hospitals-list {
+        grid-template-columns: 1fr;
+      }
     }
   }
 }
@@ -255,35 +337,6 @@
 
   .hospitals-list {
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
-  }
-}
-
-@media (max-width: 768px) {
-  .order-page {
-    .wrapper {
-      flex-direction: column;
-      padding: 15px;
-      margin-left: 0;
-    }
-
-    .hospital-types-sidebar {
-      width: 100%;
-      margin-top: 0;
-    }
-
-    .main-content {
-      margin-top: 15px;
-    }
-
-    .hospital-selection {
-      .search-box {
-        margin-top: 10px;
-      }
-
-      .hospitals-list {
-        grid-template-columns: 1fr;
-      }
-    }
   }
 }
 
