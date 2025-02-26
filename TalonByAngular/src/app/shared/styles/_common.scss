@@ -152,57 +152,139 @@ $border-color: #eee;
       flex-shrink: 0;
 
       .order-steps {
-        @include card;
-        margin-bottom: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        position: relative;
+        padding-left: 15px;
+        margin-top: 30px;
+
+        // Заголовок
+        &::after {
+          content: 'Заказ талона';
+          position: absolute;
+          top: -30px;
+          left: -15px;
+          font-size: 18px;
+          font-weight: 700;
+          color: #333;
+        }
+
+        // Вертикальная линия
+        &::before {
+          content: '';
+          position: absolute;
+          left: 10px;
+          top: 19px;
+          height: calc(100% - 38px);
+          width: 1px;
+          background: #ddd;
+          z-index: 1;
+        }
 
         .step {
-          padding: 12px 15px;
+          position: relative;
+          padding: 8px 0 8px 20px;
           color: #999;
-          font-size: 15px;
-          
+          font-size: 14px;
+          cursor: default;
+
+          // Точка слева (по умолчанию серая)
+          &::before {
+            content: '';
+            position: absolute;
+            left: -9px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #fff;
+            border: 1px solid #ddd;
+            z-index: 2;
+          }
+
+          // Подзаголовок (специальность/врач)
+          .substep {
+            display: block;
+            font-size: 12px;
+            color: #999;
+            margin-top: 4px;
+          }
+
+          // Завершенный шаг (черная точка)
+          &.completed {
+            color: #333;
+            cursor: pointer;
+            font-weight: 700;
+
+            &::before {
+              background: #333; // Черная точка
+              border-color: #333;
+            }
+
+            .substep {
+              font-weight: 500;
+              color: #666;
+            }
+
+            &:hover {
+              color: $primary-color;
+
+              &::before {
+                background: $primary-color;
+                border-color: $primary-color;
+              }
+
+              .substep {
+                color: $primary-color;
+              }
+            }
+          }
+
+          // Активный шаг (оранжевая точка)
           &.active {
             color: $primary-color;
             font-weight: 500;
-            background: rgba($primary-color, 0.05);
-            border-radius: 4px;
+
+            &::before {
+              background: $primary-color;
+              border-color: $primary-color;
+            }
+
+            .substep {
+              color: #666;
+            }
           }
 
-          &.completed {
-            color: $text-color;
-            cursor: pointer;
-            font-weight: 500;
-            
-            &:hover {
-              color: $primary-color;
-            }
+          &:last-child {
+            margin-bottom: 0;
           }
         }
       }
 
       .hospital-nav {
-        @include card;
+        margin-left: -5px;
 
         ul {
           list-style: none;
           padding: 0;
+          padding-top: 14px;
           margin: 0;
 
           li {
-            border-bottom: 1px solid $border-color;
+            border-bottom: none;
             
-            &:last-child {
-              border-bottom: none;
-            }
-
+            
             a {
               display: block;
-              padding: 15px;
-              color: $text-color;
+              padding: 10px;
+              color: $primary-color;
               text-decoration: none;
               font-size: 14px;
               
               &:hover {
-                color: $primary-color;
+                color: $text-color;
               }
             }
           }
@@ -330,12 +412,12 @@ $border-color: #eee;
             a {
               display: block;
               padding: 15px;
-              color: $text-color;
+              color: $primary-color;
               text-decoration: none;
               font-size: 14px;
               
-              &:active {
-                background: #f5f5f5;
+              &:hover, &:active {
+                color: $text-color;
               }
             }
           }
@@ -355,11 +437,94 @@ $border-color: #eee;
       margin-top: 0;
 
       aside {
-        display: none;
+        display: none !important;
       }
 
       main {
-        padding: 0 15px;
+        padding: 15px;
+      }
+    }
+
+    // Мобильная версия order-steps
+    .order-steps-mobile {
+      display: block;
+      width: 100%;
+      margin: 0;
+      padding: 10px 10px 0px 0px;
+      margin-top: 10px;
+
+      .order-steps {
+        flex-direction: row;
+        padding: 0;
+        margin: 0;
+        gap: 0;
+        display: flex;
+        position: relative;
+        
+        &::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 10px;
+          width: 100%;
+          height: 1px;
+          background: #ddd;
+          z-index: 1;
+        }
+
+        .step {
+          flex: 1;
+          text-align: center;
+          padding: 25px 5px 0;
+          font-size: 12px;
+          position: relative;
+
+          &::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 6px;
+            transform: translateX(-50%);
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #fff;
+            border: 1px solid #ddd;
+            z-index: 2;
+          }
+
+          .substep {
+            font-size: 11px;
+            margin-top: 2px;
+            display: block;
+            color: #999;
+          }
+
+          &.completed {
+            color: #333;
+            font-weight: 700;
+
+            &::before {
+              background: #333;
+              border-color: #333;
+            }
+
+            .substep {
+              font-weight: 500;
+              color: #666;
+            }
+          }
+
+          &.active {
+            color: $primary-color;
+            font-weight: 500;
+
+            &::before {
+              background: $primary-color;
+              border-color: $primary-color;
+            }
+          }
+        }
       }
     }
   }

@@ -36,6 +36,22 @@
         </div>
       </div>
     </div>
+
+    <div class="order-steps-mobile" *ngIf="isMobile">
+      <div class="order-steps">
+        <div class="step completed" (click)="goToSpeciality()">
+          Специальность
+          <span class="substep">{{speciality?.name}}</span>
+        </div>
+        <div class="step completed" (click)="goToDoctor()">
+          Врач
+          <span class="substep">{{doctor?.fullName}}</span>
+        </div>
+        <div class="step active">Дата и время</div>
+        <div class="step">Личные данные</div>
+        <div class="step">Запись</div>
+      </div>
+    </div>
   </div>
 
   <!-- Десктопная версия -->
@@ -73,12 +89,20 @@
     </div>
   </div>
 
+  
+
   <div class="wrapper">
     <div class="content-block">
       <aside>
         <div class="order-steps">
-          <div class="step completed" (click)="goToSpeciality()">Специальность</div>
-          <div class="step completed" (click)="goToDoctor()">Врач</div>
+          <div class="step completed" (click)="goToSpeciality()">
+            Специальность
+            <span class="substep">{{speciality?.name}}</span>
+          </div>
+          <div class="step completed" (click)="goToDoctor()">
+            Врач
+            <span class="substep">{{doctor?.fullName}}</span>
+          </div>
           <div class="step active">Дата и время</div>
           <div class="step">Личные данные</div>
           <div class="step">Запись</div>

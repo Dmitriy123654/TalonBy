@@ -47,6 +47,7 @@ interface CalendarDay {
 export class DatetimeSelectionComponent implements OnInit, OnDestroy {
   hospital: Hospital | null = null;
   doctor: DoctorDetails | null = null;
+  speciality: any = null;
   currentMonth: Date = new Date();
   calendar: CalendarDay[][] = [];
   weekDays = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
@@ -75,6 +76,7 @@ export class DatetimeSelectionComponent implements OnInit, OnDestroy {
     if (state) {
       this.hospital = state['hospital'];
       this.doctor = state['doctor'];
+      this.speciality = state['speciality'] || this.doctor?.doctorsSpeciality;
     }
     this.checkScreenSize();
   }
@@ -207,7 +209,7 @@ export class DatetimeSelectionComponent implements OnInit, OnDestroy {
     this.router.navigate(['/order/doctor'], {
       state: { 
         hospital: this.hospital,
-        speciality: this.doctor?.doctorsSpeciality
+        speciality: this.speciality
       }
     });
   }

@@ -24,6 +24,7 @@ export class DoctorSelectionComponent implements OnInit, OnDestroy {
   loading = false;
   error: string | null = null;
   doctors: DoctorDetails[] = [];
+  speciality: any = null;
   
   constructor(
     private router: Router,
@@ -33,8 +34,8 @@ export class DoctorSelectionComponent implements OnInit, OnDestroy {
     console.log('Received state:', state);
     if (state) {
       this.hospital = state['hospital'];
-      const speciality = state['speciality'];
-      this.specialityId = speciality?.id;
+      this.speciality = state['speciality'];
+      this.specialityId = this.speciality?.id;
       console.log('Set specialityId:', this.specialityId);
     }
     this.checkScreenSize();
@@ -67,7 +68,8 @@ export class DoctorSelectionComponent implements OnInit, OnDestroy {
     this.router.navigate(['/order/datetime'], {
       state: { 
         hospital: this.hospital,
-        doctor: doctor
+        doctor: doctor,
+        speciality: this.speciality
       }
     });
   }
@@ -119,7 +121,7 @@ export class DoctorSelectionComponent implements OnInit, OnDestroy {
     return url.replace(/^https?:\/\//, '');
   }
 
-  goBack(): void {
+  goToSpeciality() {
     this.router.navigate(['/order/speciality'], {
       state: { hospital: this.hospital }
     });

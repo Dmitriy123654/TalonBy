@@ -46,6 +46,17 @@
         </ul>
       </nav>
     </div>
+
+    <!-- После mobile-content и перед wrapper -->
+    <div class="order-steps-mobile" *ngIf="isMobile">
+      <div class="order-steps">
+        <div class="step active">Специальность</div>
+        <div class="step">Врач</div>
+        <div class="step">Дата и время</div>
+        <div class="step">Личные данные</div>
+        <div class="step">Запись</div>
+      </div>
+    </div>
   </div>
 
   <!-- Десктопная версия -->
