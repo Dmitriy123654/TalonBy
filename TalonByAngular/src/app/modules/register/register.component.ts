@@ -5,7 +5,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
-import { RegisterService } from '../../core/services/register.service';
+import { AuthService } from '../../core/services/auth.service';
 import { ReactiveFormsModule } from '@angular/forms';
 
 @Component({
@@ -27,44 +27,58 @@ export class RegisterComponent {
 
   constructor(
     private formBuilder: FormBuilder,
-    private registerService: RegisterService,
+    private authService: AuthService,
     private router: Router
   ) {
     this.registrationForm = this.formBuilder.group({
-      email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(6)]],
-      telephone: ['', [Validators.required, Validators.minLength(6)]],
+      email: ['', [
+        Validators.required,
+        Validators.email,
+        Validators.pattern('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$')
+      ]],
+      password: ['', [
+        Validators.required,
+        Validators.minLength(6),
+        Validators.pattern('^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{6,}$') // Минимум 6 символов, хотя бы 1 буква и 1 цифра
+      ]],
+      phone: ['', [
+        Validators.required,
+        Validators.pattern('^\\+375(17|25|29|33|44)[0-9]{7}$') // Формат: +375(xx)xxxxxxx
+      ]]
     });
   }
-  ngOnInit() {
-    const url = window.location.href.toLowerCase();
-    if (url.includes('register')) {
-      this.router.navigate(['/register']);
-    }
-  }
+
+  // Геттеры для удобного доступа к полям формы
+  get email() { return this.registrationForm.get('email'); }
+  get password() { return this.registrationForm.get('password'); }
+  get phone() { return this.registrationForm.get('phone'); }
+
   onSubmit() {
     if (this.registrationForm.valid) {
-      this.registerService
-        .register(
-          this.registrationForm.get('email')?.value,
-          this.registrationForm.get('password')?.value,
-          this.registrationForm.get('telephone')?.value
-        )
-        .subscribe(
-          (response) => {
-            // Сохранение токена аутентификации
-            if (response != null && response.token) {
-              localStorage.setItem('authToken', response.token);
-            }
-            console.log('Пользователь зарегистрирован');
-            this.router.navigate(['/login']);
-          },
-          (error) => {
-            // Обработка ошибок
-            this.errorMessage =
-              error.message || 'Произошла ошибка при регистрации.';
-          }
-        );
+      const { email, password, phone } = this.registrationForm.value;
+      
+      this.authService.register(email, password, phone).subscribe({
+        next: () => {
+          console.log('Регистрация успешна');
+          this.router.navigate(['/login']);
+        },
+        error: (error) => {
+          console.error('Ошибка регистрации:', error);
+          this.errorMessage = error.error?.message || 'Произошла ошибка при регистрации';
+        }
+      });
+    } else {
+      this.markFormGroupTouched(this.registrationForm);
     }
+  }
+
+  // Помечаем все поля формы как "тронутые" для отображения ошибок
+  private markFormGroupTouched(formGroup: FormGroup) {
+    Object.values(formGroup.controls).forEach(control => {
+      control.markAsTouched();
+      if (control instanceof FormGroup) {
+        this.markFormGroupTouched(control);
+      }
+    });
   }
 }

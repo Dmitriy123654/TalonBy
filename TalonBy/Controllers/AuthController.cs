@@ -7,7 +7,7 @@ using System.Security.Claims;
 namespace TalonBy.Controllers
 {
     [ApiController]
-    [Route("auth")]
+    [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
@@ -17,42 +17,32 @@ namespace TalonBy.Controllers
             _authService = authService;
         }
 
-        
         [HttpPost("register")]
-        public async Task<IActionResult> Register(RegisterModel model)
+        public async Task<IActionResult> Register([FromBody] RegisterModel model)
         {
             if (!ModelState.IsValid)
-            {
                 return BadRequest(ModelState);
-            }
 
             var result = await _authService.Register(model);
+            if (!result.Succeeded)
+                return BadRequest(result.Errors);
 
-            if (result.Succeeded)
-            {
-                return Ok();
-            }
-
-            return BadRequest(result.Errors);
+            return Ok(new { message = "Registration successful" });
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login(LoginModel model)
+        public async Task<IActionResult> Login([FromBody] LoginModel model)
         {
             if (!ModelState.IsValid)
-            {
                 return BadRequest(ModelState);
-            }
 
             var result = await _authService.Login(model);
+            if (!result.Succeeded)
+                return BadRequest(new { message = "Invalid email or password" });
 
-            if (result.Succeeded)
-            {
-                return Ok(new { Token = result.Token });
-            }
-
-            return Unauthorized();
+            return Ok(new { token = result.Token });
         }
+
         [Authorize]
         [HttpGet("GetThisUser")]
         public async Task<IActionResult> GetUser()
@@ -61,6 +51,7 @@ namespace TalonBy.Controllers
             var user = await _authService.GetUserByIdAsync(userId);
             return Ok(user);
         }
+
         [Authorize]
         [HttpPut("update")]
         public async Task<IActionResult> UpdateUser(UpdateUserModel model)
@@ -85,6 +76,7 @@ namespace TalonBy.Controllers
             await _authService.LogoutAsync(userId);
             return NoContent();*//*
         }*/
+
         [Authorize]
         [HttpPost("CreatePatient")]
         public async Task<IActionResult> CreatePatient(PatientModel patientDto)
@@ -100,6 +92,7 @@ namespace TalonBy.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
         [Authorize]
         private int GetCurrentUserId()
         {

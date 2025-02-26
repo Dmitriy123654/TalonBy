@@ -10,33 +10,72 @@
       <input
         type="email"
         id="email"
-        name="email"
         formControlName="email"
         required
       />
+      <div *ngIf="registrationForm.get('email')?.invalid && 
+                  (registrationForm.get('email')?.dirty || 
+                   registrationForm.get('email')?.touched)"
+           class="error-message">
+        <div *ngIf="registrationForm.get('email')?.errors?.['required']">
+          Email обязателен
+        </div>
+        <div *ngIf="registrationForm.get('email')?.errors?.['email']">
+          Введите корректный email
+        </div>
+      </div>
     </div>
+
     <div class="form-group">
       <label for="password">Пароль</label>
       <input
         type="password"
         id="password"
-        name="password"
         formControlName="password"
         required
       />
+      <div *ngIf="registrationForm.get('password')?.invalid && 
+                  (registrationForm.get('password')?.dirty || 
+                   registrationForm.get('password')?.touched)"
+           class="error-message">
+        <div *ngIf="registrationForm.get('password')?.errors?.['required']">
+          Пароль обязателен
+        </div>
+        <div *ngIf="registrationForm.get('password')?.errors?.['minlength']">
+          Пароль должен быть не менее 6 символов
+        </div>
+      </div>
     </div>
+
     <div class="form-group">
-      <label for="telephone">Телефон</label>
+      <label for="phone">Телефон</label>
       <input
-        type="telephone"
-        id="telephone"
-        name="telephone"
-        formControlName="telephone"
+        type="tel"
+        id="phone"
+        formControlName="phone"
         required
       />
+      <div *ngIf="registrationForm.get('phone')?.invalid && 
+                  (registrationForm.get('phone')?.dirty || 
+                   registrationForm.get('phone')?.touched)"
+           class="error-message">
+        <div *ngIf="registrationForm.get('phone')?.errors?.['required']">
+          Телефон обязателен
+        </div>
+        <div *ngIf="registrationForm.get('phone')?.errors?.['pattern']">
+          Введите корректный номер телефона
+        </div>
+      </div>
     </div>
-    <button type="submit" class="registration-button">Продолжить</button>
-    <div *ngIf="errorMessage" class="error-message">{{ errorMessage }}</div>
+
+    <button type="submit" [disabled]="registrationForm.invalid">
+      Зарегистрироваться
+    </button>
+    
+    <div *ngIf="errorMessage" class="error-message">
+      {{ errorMessage }}
+    </div>
   </form>
+  
   <a href="/login" class="login-link">Уже есть аккаунт</a>
 </div>

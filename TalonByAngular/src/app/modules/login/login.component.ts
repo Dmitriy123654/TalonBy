@@ -1,6 +1,5 @@
 import { Component } from '@angular/core';
 import { AuthService } from '../../core/services/auth.service';
-
 import { Router, RouterModule } from '@angular/router';
 import { catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
@@ -49,15 +48,18 @@ export class LoginComponent {
         .pipe(
           catchError((error) => {
             this.errorMessage = 'Ошибка при логине: ' + error.message;
-            return throwError(error);
+            return throwError(() => error);
           })
         )
-        .subscribe((response) => {
-          if (response && response.token) {
-            this.authService.saveToken(response.token);
-            this.authService.saveRoles(response.roles);
-            // Перенаправляем пользователя на главную страницу
-            this.router.navigate(['/main']);
+        .subscribe({
+          next: (response) => {
+            if (response && response.token) {
+              // Токен уже сохраняется в AuthService
+              this.router.navigate(['/main']);
+            }
+          },
+          error: (error) => {
+            this.errorMessage = error.error?.message || 'Ошибка при входе';
           }
         });
     }
