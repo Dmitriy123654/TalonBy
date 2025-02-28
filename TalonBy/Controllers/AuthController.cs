@@ -3,6 +3,10 @@ using Domain.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using Microsoft.Extensions.Configuration;
+using System.Text;
 
 namespace TalonBy.Controllers
 {
@@ -11,10 +15,12 @@ namespace TalonBy.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly IConfiguration _configuration;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService, IConfiguration configuration)
         {
             _authService = authService;
+            _configuration = configuration;
         }
 
         [HttpPost("register")]
@@ -40,7 +46,33 @@ namespace TalonBy.Controllers
             if (!result.Succeeded)
                 return BadRequest(new { message = "Invalid email or password" });
 
-            return Ok(new { token = result.Token });
+            if (result.UserId == null || result.Email == null || result.Role == null)
+            {
+                return BadRequest(new { message = "Invalid login result." });
+            }
+
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, result.UserId.ToString()),
+                new Claim(ClaimTypes.Email, result.Email),
+                new Claim(ClaimTypes.Role, result.Role.ToString())
+            };
+
+            var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]);
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(claims),
+                Expires = DateTime.UtcNow.AddDays(7),
+                Issuer = _configuration["Jwt:Issuer"],
+                Audience = _configuration["Jwt:Audience"],
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+            };
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            var tokenString = tokenHandler.WriteToken(token);
+
+            return Ok(new { token = tokenString });
         }
 
         [Authorize]

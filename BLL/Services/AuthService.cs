@@ -7,8 +7,7 @@ using System.Security.Claims;
 using System.Text;
 using Domain.Interfaces;
 using Domain;
-
-
+using Microsoft.Extensions.Logging;
 
 namespace BLL.Services
 {
@@ -21,16 +20,17 @@ namespace BLL.Services
         Task<Patient> CreatePatientAsync(PatientModel patientDto, int PatientId);
     }
 
-
     public class AuthService : IAuthService
     {
         private readonly IUserRepository _userRepository;
         private readonly IConfiguration _configuration;
+        private readonly ILogger<AuthService> _logger;
 
-        public AuthService(IUserRepository userRepository, IConfiguration configuration)
+        public AuthService(IUserRepository userRepository, IConfiguration configuration, ILogger<AuthService> logger)
         {
             _userRepository = userRepository;
             _configuration = configuration;
+            _logger = logger;
         }
 
         public async Task<Result> Register(RegisterModel model)
@@ -57,19 +57,27 @@ namespace BLL.Services
 
         public async Task<LoginResult> Login(LoginModel model)
         {
-            // Поиск пользователя по email
             var user = await _userRepository.GetByEmail(model.Email);
-
             if (user == null || !BCrypt.Net.BCrypt.Verify(model.Password, user.Password))
             {
                 return new LoginResult { Succeeded = false };
             }
 
-            // Генерация JWT-токена
             var token = GenerateJwtToken(user);
 
-            return new LoginResult { Succeeded = true, Token = token };
+            // Логирование значений
+            _logger.LogInformation($"UserId: {user.UserId}, Email: {user.Email}, Role: {user.Role}");
+
+            return new LoginResult
+            {
+                Succeeded = true,
+                Token = token,
+                UserId = user.UserId,
+                Email = user.Email,
+                Role = user.Role
+            };
         }
+
         public async Task<User> GetUserByIdAsync(int userId)
         {
             return await _userRepository.GetUserByIdAsync(userId);

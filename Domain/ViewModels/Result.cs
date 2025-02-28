@@ -15,6 +15,9 @@ namespace Domain.ViewModels
     public class LoginResult : Result
     {
         public string Token { get; set; }
+        public int UserId { get; set; }
+        public string Email { get; set; }
+        public RoleOfUser Role { get; set; }
 
     }
 }

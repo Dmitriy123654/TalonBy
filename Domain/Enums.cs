@@ -15,7 +15,10 @@
     {
         Patient,
         Doctor,
-        Admin
+        ChiefDoctor,
+        Administrator,
+        SystemAnalyst,
+        MedicalStaff
     }
     public enum Status
     {

@@ -31,20 +31,9 @@ export class RegisterComponent {
     private router: Router
   ) {
     this.registrationForm = this.formBuilder.group({
-      email: ['', [
-        Validators.required,
-        Validators.email,
-        Validators.pattern('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$')
-      ]],
-      password: ['', [
-        Validators.required,
-        Validators.minLength(6),
-        Validators.pattern('^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{6,}$') // Минимум 6 символов, хотя бы 1 буква и 1 цифра
-      ]],
-      phone: ['', [
-        Validators.required,
-        Validators.pattern('^\\+375(17|25|29|33|44)[0-9]{7}$') // Формат: +375(xx)xxxxxxx
-      ]]
+      email: ['', [Validators.required, Validators.email]],
+      password: ['', [Validators.required, Validators.minLength(6)]],
+      phone: ['', [Validators.required, Validators.pattern('^\\+375(17|25|29|33|44)[0-9]{7}$')]]
     });
   }
 

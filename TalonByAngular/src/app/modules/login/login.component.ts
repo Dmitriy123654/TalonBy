@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { AuthService } from '../../core/services/auth.service';
-import { Router, RouterModule } from '@angular/router';
+import { Router } from '@angular/router';
 import { catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
 import {
@@ -11,11 +11,13 @@ import {
   Validators,
 } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { HeaderComponent } from '../header/header.component';
+import { FooterComponent } from '../footer/footer.component';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule, ReactiveFormsModule, RouterModule, CommonModule],
+  imports: [FormsModule, ReactiveFormsModule, CommonModule, HeaderComponent, FooterComponent],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss'],
 })
@@ -25,11 +27,8 @@ export class LoginComponent {
 
   constructor(private authService: AuthService, private router: Router) {
     this.loginForm = new FormGroup({
-      email: new FormControl('', [Validators.required, Validators.email]),
-      password: new FormControl('', [
-        Validators.required,
-        Validators.minLength(6),
-      ]),
+      email: new FormControl(''),
+      password: new FormControl(''),
     });
   }
 
@@ -54,7 +53,7 @@ export class LoginComponent {
         .subscribe({
           next: (response) => {
             if (response && response.token) {
-              // Токен уже сохраняется в AuthService
+              localStorage.setItem('token', response.token);
               this.router.navigate(['/main']);
             }
           },
@@ -62,6 +61,8 @@ export class LoginComponent {
             this.errorMessage = error.error?.message || 'Ошибка при входе';
           }
         });
+    } else {
+      this.errorMessage = 'Пожалуйста, заполните все поля.';
     }
   }
 }

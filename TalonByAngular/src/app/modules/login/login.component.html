@@ -1,46 +1,46 @@
-<!-- login.component.html -->
-<div class="background">
-  <div class="shape"></div>
-  <div class="shape"></div>
-</div>
-<form [formGroup]="loginForm" (ngSubmit)="login()">
-  <h3>Вход</h3>
+<!-- <app-header></app-header> -->
 
-  <label for="email">Email</label>
-  <input
-    type="email"
-    placeholder="Email"
-    id="email"
-    formControlName="email"
-    required
-  />
-  <div
-    *ngIf="email.invalid && (email.dirty || email.touched)"
-    class="error-message"
-  >
-    <div *ngIf="email.errors?.['required']">Email обязателен.</div>
-    <div *ngIf="email.errors?.['email']">Введите корректный email.</div>
-  </div>
+<div class="wrapper">
+    <h1>Вход в систему</h1>
 
-  <label for="password">Пароль</label>
-  <input
-    type="password"
-    placeholder="Пароль"
-    id="password"
-    formControlName="password"
-    required
-  />
-  <div
-    *ngIf="password.invalid && (password.dirty || password.touched)"
-    class="error-message"
-  >
-    <div *ngIf="password.errors?.['required']">Пароль обязателен.</div>
-    <div *ngIf="password.errors?.['minlength']">
-      Пароль должен содержать не менее 6 символов.
+    <div class="grid3">
+        <div class="login social">
+            <div class="label">Вход через аккаунт</div>
+            <div class="social_buttons">
+                <a class="vkontakte" href="https://talon.by/connect/vkontakte" title="Войти через ВКонтакте"></a>
+                <a class="google" href="https://talon.by/connect/google" title="Войти через Google"></a>
+            </div>
+        </div>
+        <div class="questions"><p>или</p></div>
+
+        <form (ngSubmit)="login()" #loginForm="ngForm" class="login" novalidate>
+            <div class="form-group">
+                <label for="username">E-mail или телефон</label>
+                <input type="text" id="username" name="username" required class="input_size_1" [(ngModel)]="email.value">
+            </div>
+            <div class="form-group">
+                <label for="password">Пароль</label>
+                <input type="password" id="password" name="password" required class="input_size_1" [(ngModel)]="password.value">
+            </div>
+            <div class="questions">
+                <input type="checkbox" id="remember_me" name="remember_me" value="on">
+                <label for="remember_me">Запомнить меня</label>
+            </div>
+            <div class="questions policy">
+                Нажимая "Вход", вы соглашаетесь с
+                <a href="/legal-docs/policy" class="color" target="_blank">Политикой обработки персональных данных</a>
+                и принимаете условия
+                <a href="/legal-docs/user-public-contract" class="color" target="_blank">Публичной оферты</a>
+            </div>
+            <button type="submit" class="submit-button">Войти</button>
+            <div *ngIf="errorMessage" class="error-message">{{ errorMessage }}</div>
+        </form>
+
+        <div class="questions">
+            <a href="/register" class="color">Зарегистрироваться</a>
+            <a href="/forgot-password" class="color">Забыли пароль?</a>
+        </div>
     </div>
-  </div>
+</div>
 
-  <div *ngIf="errorMessage" class="error-message">{{ errorMessage }}</div>
-
-  <button type="submit" [disabled]="loginForm.invalid">Войти</button>
-</form>
+<!-- <app-footer></app-footer> -->
