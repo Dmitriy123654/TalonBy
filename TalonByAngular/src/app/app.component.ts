@@ -1,7 +1,6 @@
 import { Component } from '@angular/core';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 
-import { RegisterComponent } from './modules/register/register.component';
 import { LoginComponent } from './modules/login/login.component';
 import { HeaderComponent } from './modules/header/header.component';
 import { CommonModule } from '@angular/common';
@@ -13,7 +12,6 @@ import { FooterComponent } from './modules/footer/footer.component';
   standalone: true,
   imports: [
     RouterOutlet,
-    RegisterComponent,
     LoginComponent,
     HeaderComponent,
     FooterComponent,

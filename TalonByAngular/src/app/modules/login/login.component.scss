@@ -1,12 +1,103 @@
 /* login.component.scss */
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;600&display=swap");
+@import url('https://fonts.googleapis.com/css?family=Montserrat:400,800');
 
 :host {
   display: flex;
   justify-content: center;
-  align-items: flex-start; /* Выравнивание по верхней части */
-  padding-top: 50px; /* Отступ сверху для больших экранов */
-  background-color: #f9f9f9; /* Светлый фон */
+  align-items: center;
+  min-height: calc(100vh - 160px); // Учитываем header и footer
+  padding: 20px;
+  background: #f6f5f7;
+  font-family: 'Montserrat', sans-serif;
+}
+
+h1 {
+  font-weight: bold;
+  margin: 0;
+  font-size: 24px;
+}
+
+p {
+  font-size: 14px;
+  font-weight: 100;
+  line-height: 20px;
+  letter-spacing: 0.5px;
+  margin: 20px 0 30px;
+}
+
+span {
+  font-size: 12px;
+}
+
+a {
+  color: #333;
+  font-size: 14px;
+  text-decoration: none;
+  margin: 15px 0;
+}
+
+button {
+  border-radius: 20px;
+  border: 1px solid #FF5722;
+  background-color: #FF5722;
+  color: #FFFFFF;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 12px 45px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: transform 80ms ease-in;
+  cursor: pointer;
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  &:focus {
+    outline: none;
+  }
+
+  &.ghost {
+    background-color: transparent;
+    border-color: #FFFFFF;
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+}
+
+form {
+  background-color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 0 50px;
+  height: 100%;
+  text-align: center;
+}
+
+input {
+  background-color: #eee;
+  border: none;
+  padding: 12px 15px;
+  margin: 8px 0;
+  width: 100%;
+}
+
+.container {
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22);
+  position: relative;
+  overflow: hidden;
+  width: 768px;
+  max-width: 100%;
+  min-height: 480px;
+  margin: 80px 0; // Отступ для header и footer
 }
 
 .wrapper {
@@ -18,119 +109,222 @@
 }
 
 .form-container {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  transition: all 0.6s ease-in-out;
+}
+
+.sign-in-container {
+  left: 0;
+  width: 50%;
+  z-index: 2;
+}
+
+.sign-up-container {
+  left: 0;
+  width: 50%;
+  opacity: 0;
+  z-index: 1;
+}
+
+.container.right-panel-active {
+  .sign-in-container {
+    transform: translateX(100%);
+  }
+
+  .sign-up-container {
+    transform: translateX(100%);
+    opacity: 1;
+    z-index: 5;
+    animation: show 0.6s;
+  }
+
+  .overlay-container {
+    transform: translateX(-100%);
+  }
+
+  .overlay {
+    transform: translateX(50%);
+  }
+
+  .overlay-left {
+    transform: translateX(0);
+  }
+
+  .overlay-right {
+    transform: translateX(20%);
+  }
+}
+
+.overlay-container {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 50%;
+  height: 100%;
+  overflow: hidden;
+  transition: transform 0.6s ease-in-out;
+  z-index: 100;
+}
+
+.overlay {
+  background: #FF5722;
+  background: linear-gradient(to right, #FF5722, #F4511E);
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: 0 0;
+  color: #FFFFFF;
+  position: relative;
+  left: -100%;
+  height: 100%;
+  width: 200%;
+  transform: translateX(0);
+  transition: transform 0.6s ease-in-out;
+}
+
+.overlay-panel {
+  position: absolute;
   display: flex;
+  align-items: center;
+  justify-content: center;
   flex-direction: column;
-  align-items: flex-start; /* Выравнивание по левому краю */
-  width: 100%; /* Ширина 100% */
-}
-
-h1 {
-  font-weight: bold;
-  font-size: 24px; /* Размер заголовка */
-  color: #333; /* Цвет заголовка */
-  margin-bottom: 10px; /* Уменьшенный отступ под заголовком */
-  text-align: left; /* Выравнивание заголовка по левому краю */
-}
-
-.label {
-  font-weight: bold;
-  margin-bottom: 5px;
-  color: #333; /* Цвет меток */
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 15px; /* Отступ под полями */
-  width: 100%; /* Ширина 100% */
-}
-
-.input_size_1 {
-  width: 60%;
-  padding: 10px; /* Отступ внутри полей */
-  border: 1px solid #ccc; /* Граница полей */
-  border-radius: 4px; /* Закругленные углы */
-}
-
-.social_buttons {
-  display: flex;
-  justify-content: center; /* Центрирование кнопок */
-  gap: 15px; /* Отступ между кнопками */
-  margin-bottom: 20px; /* Отступ под кнопками */
-}
-
-.social_buttons a {
-  width: 48%; /* Ширина кнопок */
-  height: 40px;
-  display: block;
-  background-color: #e0e0e0; /* Цвет кнопки */
-  border-radius: 4px; /* Закругленные углы */
   text-align: center;
-  line-height: 40px;
-  color: #000;
-  text-decoration: none;
+  top: 0;
+  height: 100%;
+  width: 50%;
+  transform: translateX(0);
+  transition: transform 0.6s ease-in-out;
+
+  h1 {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 26px;
+    font-weight: bold;
+  }
+
+  p {
+    width: 100%;
+    text-align: center;
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0 auto 30px;
+    max-width: 260px;
+  }
+
+  button.ghost {
+    margin: 0 auto;
+    min-width: 180px;
+  }
 }
 
-.social-icon {
-  max-width: 100%; /* Ограничение ширины изображений */
-  height: auto; /* Автоматическая высота */
+.overlay-left {
+  transform: translateX(-20%);
+  left: 0;
+  width: 50%;
 }
 
-.questions {
-  margin: 10px 0; /* Уменьшенный отступ */
+.overlay-right {
+  right: 0;
+  transform: translateX(0);
+  width: 50%;
 }
 
-.policy {
-  font-size: 12px;
-  color: #666;
-  margin: 5px 0; /* Уменьшенный отступ */
-}
+.social-container {
+  margin: 20px 0;
+  
+  a.social {
+    border: 1px solid #DDDDDD;
+    border-radius: 50%;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 5px;
+    height: 40px;
+    width: 40px;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      background-color: #eee;
+      border-color: #FF5722;
+    }
 
-.submit-button {
-  width: 50%; /* Ширина кнопки 50% */
-  text-align: center;
-  background-color: #ff5722; /* Цвет кнопки */
-  color: #ffffff; /* Цвет текста кнопки */
-  padding: 10px 20px; /* Отступы внутри кнопки */
-  border: none; /* Убираем границу */
-  border-radius: 4px; /* Закругленные углы */
-  cursor: pointer; /* Курсор при наведении */
-  margin-top: 10px; /* Отступ сверху */
-  margin-left: auto; /* Центрирование кнопки */
-  margin-right: auto; /* Центрирование кнопки */
-}
-
-.submit-button:hover {
-  background-color: #e64a19; /* Цвет кнопки при наведении */
+    img.social-icon {
+      width: 20px;
+      height: 20px;
+      object-fit: contain;
+    }
+  }
 }
 
 .error-message {
-  color: #ff4d4d;
-  margin-top: 5px;
-  font-size: 14px;
+  color: #ff4444;
+  font-size: 12px;
+  margin: 8px 0;
 }
 
-.checkbox-label {
-  display: flex;
-  align-items: center; /* Центрирование по вертикали */
-  margin-bottom: 10px; /* Отступ снизу */
+@keyframes show {
+  0%, 49.99% {
+    opacity: 0;
+    z-index: 1;
+  }
+  
+  50%, 100% {
+    opacity: 1;
+    z-index: 5;
+  }
 }
 
-.link {
-  margin-top: 10px; /* Отступ сверху для ссылок */
-  color: #ff7f50; /* Цвет ссылок */
-  text-decoration: none; /* Без подчеркивания */
-}
+@media (max-width: 768px) {
+  .container {
+    min-height: 500px;
+  }
+  
+  .form-container {
+    width: 100%;
+    position: absolute;
+    top: 0;
+    height: 100%;
+    transition: all 0.6s ease-in-out;
+  }
+  
+  .overlay-container {
+    display: none;
+  }
 
-.link:hover {
-  text-decoration: underline; /* Подчеркивание при наведении */
-}
+  .mobile-switch {
+    display: block !important;
+    width: 100%;
+    margin-top: 20px;
+    background: transparent;
+    border: none;
+    color: #FF5722;
+    text-transform: none;
+    padding: 10px;
+    font-weight: normal;
+    letter-spacing: normal;
+  }
 
-/* Стили для выравнивания ссылок */
-.questions {
-  // display: flex;
-  justify-content: space-between; /* Разделение ссылок */
-  width: 100%; /* Ширина 100% */
+  .sign-up-container {
+    transform: translateX(100%);
+    opacity: 0;
+    z-index: 1;
+  }
+
+  .container.right-panel-active {
+    .sign-up-container {
+      transform: translateX(0);
+      opacity: 1;
+      z-index: 5;
+    }
+
+    .sign-in-container {
+      transform: translateX(-100%);
+      opacity: 0;
+      z-index: 1;
+    }
+  }
 }
 
 /* Мобильные стили */
@@ -143,5 +337,20 @@ h1 {
 @media (max-width: 854px) {
   .grid3 {
     padding-left: 0; /* Убираем отступ слева на мобильных устройствах */
+  }
+}
+
+/* Стили для мобильной кнопки переключения */
+.mobile-switch {
+  display: none;
+  background: none;
+  border: none;
+  color: #FF5722;
+  font-size: 14px;
+  margin-top: 20px;
+  padding: 10px;
+  
+  &:hover {
+    text-decoration: underline;
   }
 }

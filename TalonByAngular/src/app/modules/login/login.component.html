@@ -1,48 +1,69 @@
 <!-- <app-header></app-header> -->
 
-<div class="wrapper">
-    <h1>Вход в систему</h1>
+<div class="container" id="container" [class.right-panel-active]="isRightPanelActive">
+  <!-- Форма регистрации -->
+  <div class="form-container sign-up-container">
+    <form [formGroup]="registrationForm" (ngSubmit)="onRegister()">
+      <h1>Создать аккаунт</h1>
+      <div class="social-container">
+        <a href="#" class="social">
+          <img src="assets/images/vk-icon.svg" alt="VK" class="social-icon">
+        </a>
+        <a href="#" class="social">
+          <img src="assets/images/google-icon.svg" alt="Google" class="social-icon">
+        </a>
+      </div>
+      <span>или используйте email для регистрации</span>
+      <input type="email" placeholder="Email" formControlName="email" />
+      <input type="tel" placeholder="Телефон" formControlName="phone" />
+      <input type="password" placeholder="Пароль" formControlName="password" />
+      <div *ngIf="registrationError" class="error-message">{{ registrationError }}</div>
+      <button type="submit" [disabled]="registrationForm.invalid">Зарегистрироваться</button>
+      <button type="button" class="mobile-switch" (click)="togglePanel()">
+        Уже есть аккаунт? Войти
+      </button>
+    </form>
+  </div>
 
-    <div class="form-container">
-        <div class="label">Вход через аккаунт</div>
-        <div class="social_buttons">
-            <a class="vkontakte" href="https://talon.by/connect/vkontakte" title="Войти через ВКонтакте">
-                <img src="path/to/vk-icon.png" alt="VK" class="social-icon" />
-            </a>
-            <a class="google" href="https://talon.by/connect/google" title="Войти через Google">
-                <img src="path/to/google-icon.png" alt="Google" class="social-icon" />
-            </a>
-        </div>
-        <div class="questions"><p>или</p></div>
-        <div *ngIf="errorMessage" class="error-message">{{ errorMessage }}</div>
-        <div class="form-group">
-            <label for="username">E-mail или телефон</label>
-            <input type="text" id="username" name="username" required class="input_size_1" [(ngModel)]="email.value" placeholder="Введите email или телефон">
-        </div>
-        <div class="form-group">
-            <label for="password">Пароль</label>
-            <input type="password" id="password" name="password" required class="input_size_1" [(ngModel)]="password.value" placeholder="Введите пароль">
-        </div>
-        <div class="checkbox-label">
-            <input type="checkbox" id="remember_me" name="remember_me" value="on">
-            <label for="remember_me">Запомнить меня</label>
-        </div>
-        <div class="questions policy">
-            Нажимая "Вход", вы соглашаетесь с
-            <a href="/legal-docs/policy" class="link" target="_blank">Политикой обработки персональных данных</a>
-            и принимаете условия
-            <a href="/legal-docs/user-public-contract" class="link" target="_blank">Публичной оферты</a>
-        </div>
-        <button type="submit" class="submit-button">Войти</button>
-        <div class="questions">
-            <div class="left-link">
-                <a href="/register" class="link">Зарегистрироваться</a>
-            </div>
-            <div class="right-link">
-                <a href="/forgot-password" class="link">Забыли пароль?</a>
-            </div>
-        </div>
+  <!-- Форма входа -->
+  <div class="form-container sign-in-container">
+    <form [formGroup]="loginForm" (ngSubmit)="login()">
+      <h1>Вход в систему</h1>
+      <div class="social-container">
+        <a href="#" class="social">
+          <img src="assets/images/vk-icon.svg" alt="VK" class="social-icon">
+        </a>
+        <a href="#" class="social">
+          <img src="assets/images/google-icon.svg" alt="Google" class="social-icon">
+        </a>
+      </div>
+      <span>или используйте свой аккаунт</span>
+      <input type="email" placeholder="Email" formControlName="email" />
+      <input type="password" placeholder="Пароль" formControlName="password" />
+      <div *ngIf="errorMessage" class="error-message">{{ errorMessage }}</div>
+      <a href="/forgot-password">Забыли пароль?</a>
+      <button type="submit">Войти</button>
+      <button type="button" class="mobile-switch" (click)="togglePanel()">
+        Нет аккаунта? Зарегистрироваться
+      </button>
+    </form>
+  </div>
+
+  <!-- Панель переключения -->
+  <div class="overlay-container">
+    <div class="overlay">
+      <div class="overlay-panel overlay-left">
+        <h1>С возвращением!</h1>
+        <p>Чтобы оставаться на связи, войдите в систему</p>
+        <button class="ghost" (click)="togglePanel()">Войти</button>
+      </div>
+      <div class="overlay-panel overlay-right">
+        <h1>Здравствуйте!</h1>
+        <p>Введите свои данные и начните путешествие с нами</p>
+        <button class="ghost" (click)="togglePanel()">Регистрация</button>
+      </div>
     </div>
+  </div>
 </div>
 
 <!-- <app-footer></app-footer> -->

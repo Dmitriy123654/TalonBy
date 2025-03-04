@@ -1,6 +1,5 @@
 import { Routes } from '@angular/router';
 import { LoginComponent } from './modules/login/login.component';
-import { RegisterComponent } from './modules/register/register.component';
 import { MainPageComponent } from './modules/main-page/main-page.component';
 import { PaidServicesComponent } from './modules/paid-services/paid-services.component';
 import { MedicalInstitutionsComponent } from './modules/medical-institutions/medical-institutions.component';
@@ -10,7 +9,6 @@ import { BlogComponent } from './modules/blog/blog.component';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
-  { path: 'register', component: RegisterComponent },
   { path: 'main', component: MainPageComponent },
   { 
     path: 'order', 
