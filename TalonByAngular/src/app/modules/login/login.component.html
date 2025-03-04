@@ -1,6 +1,8 @@
 <!-- <app-header></app-header> -->
 
-<div class="container" id="container" [class.right-panel-active]="isRightPanelActive">
+<div class="container" id="container" 
+     [class.right-panel-active]="isRightPanelActive"
+     [class.show-verification]="showVerification">
   <!-- Форма регистрации -->
   <div class="form-container sign-up-container">
     <form [formGroup]="registrationForm" (ngSubmit)="onRegister()">
@@ -15,10 +17,32 @@
       </div>
       <span>или используйте email для регистрации</span>
       <input type="email" placeholder="Email" formControlName="email" />
-      <input type="tel" placeholder="Телефон" formControlName="phone" />
+      <div class="error-message" *ngIf="registrationForm.get('email')?.touched && getEmailError('register')">
+        {{ getEmailError('register') }}
+      </div>
+      <input 
+        type="tel" 
+        placeholder="Телефон" 
+        formControlName="phone" 
+        [mask]="'(00)000-00-00'"
+        prefix="+375"
+        [showMaskTyped]="true"
+        [dropSpecialCharacters]="false"
+        [clearIfNotMatch]="false"
+      />
+      <div class="error-message" *ngIf="registrationForm.get('phone')?.touched && getPhoneError()">
+        {{ getPhoneError() }}
+      </div>
       <input type="password" placeholder="Пароль" formControlName="password" />
+      <div class="error-message" *ngIf="registrationForm.get('password')?.touched && getPasswordError('register')">
+        {{ getPasswordError('register') }}
+      </div>
       <div *ngIf="registrationError" class="error-message">{{ registrationError }}</div>
-      <button type="submit" [disabled]="registrationForm.invalid">Зарегистрироваться</button>
+      <button type="submit" 
+              [disabled]="registrationForm.invalid || isRegistering">
+        <span class="spinner" *ngIf="isRegistering"></span>
+        {{ isRegistering ? 'Регистрация...' : 'Зарегистрироваться' }}
+      </button>
       <button type="button" class="mobile-switch" (click)="togglePanel()">
         Уже есть аккаунт? Войти
       </button>
@@ -39,7 +63,13 @@
       </div>
       <span>или используйте свой аккаунт</span>
       <input type="email" placeholder="Email" formControlName="email" />
+      <div class="error-message" *ngIf="loginForm.get('email')?.touched && getEmailError('login')">
+        {{ getEmailError('login') }}
+      </div>
       <input type="password" placeholder="Пароль" formControlName="password" />
+      <div class="error-message" *ngIf="loginForm.get('password')?.touched && getPasswordError('login')">
+        {{ getPasswordError('login') }}
+      </div>
       <div *ngIf="errorMessage" class="error-message">{{ errorMessage }}</div>
       <a href="/forgot-password">Забыли пароль?</a>
       <button type="submit">Войти</button>
@@ -54,14 +84,45 @@
     <div class="overlay">
       <div class="overlay-panel overlay-left">
         <h1>С возвращением!</h1>
-        <p>Чтобы оставаться на связи, войдите в систему</p>
+        <p>Чтобы оставаться с нами, войдите в систему</p>
         <button class="ghost" (click)="togglePanel()">Войти</button>
       </div>
       <div class="overlay-panel overlay-right">
         <h1>Здравствуйте!</h1>
-        <p>Введите свои данные и начните путешествие с нами</p>
+        <p>Введите свои данные и начните использовать наш сервис</p>
         <button class="ghost" (click)="togglePanel()">Регистрация</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Форма верификации -->
+  <div *ngIf="showVerification" class="verification-form">
+    <button class="close-button" (click)="closeVerification()">×</button>
+    <h2>Подтверждение</h2>
+    <p>Код подтверждения отправлен на {{ verificationMethod === 'email' ? 'email' : 'телефон' }}</p>
+    <p>{{ verificationContact }}</p>
+    
+    <input 
+      type="text" 
+      [(ngModel)]="verificationCode" 
+      placeholder="Введите код"
+      maxlength="6"
+    />
+    
+    <div *ngIf="verificationError" class="error-message">
+      {{ verificationError }}
+    </div>
+    
+    <div class="buttons-container">
+      <button (click)="verifyCode()">Подтвердить</button>
+      <button class="resend" 
+              (click)="sendVerificationCode()" 
+              [disabled]="isResending || resendTimeout > 0">
+        <span class="spinner" *ngIf="isResending"></span>
+        {{ isResending ? 'Отправка...' : 
+           resendTimeout > 0 ? 'Повторная отправка через ' + resendTimeout + ' сек' : 
+           'Отправить код повторно' }}
+      </button>
     </div>
   </div>
 </div>

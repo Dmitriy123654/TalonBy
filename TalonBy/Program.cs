@@ -116,6 +116,7 @@ namespace TalonBy
             builder.Services.AddTransient<IMedicalAppointmentService, MedicalAppointmentService>();
             builder.Services.AddTransient<IPatientService, PatientService>();
             builder.Services.AddTransient<IReceptionStatusService, ReceptionStatusService>();
+            builder.Services.AddScoped<IEmailService, EmailService>();
 
 
             //dal
@@ -126,6 +127,7 @@ namespace TalonBy
             builder.Services.AddTransient<IMedicalAppointmentRepository, MedicalAppointmentRepository>();
             builder.Services.AddTransient<IReceptionStatusRepository, ReceptionStatusRepository>();
             builder.Services.AddTransient<IPatientRepository, PatientRepository>();
+            builder.Services.AddScoped<IVerificationCodeRepository, VerificationCodeRepository>();
 
           
 

@@ -12,9 +12,8 @@ namespace TalonBy.Controllers
     public class DoctorsSpecialityController : ControllerBase
     {
         private readonly IDoctorsSpecialityService _doctorsSpecialityService;
-        private readonly IDoctorService _doctorService;
 
-        public DoctorsSpecialityController(IDoctorsSpecialityService doctorsSpecialityService, IDoctorService doctorService)
+        public DoctorsSpecialityController(IDoctorsSpecialityService doctorsSpecialityService)
         {
             _doctorsSpecialityService = doctorsSpecialityService;
 

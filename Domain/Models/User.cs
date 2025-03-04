@@ -1,6 +1,4 @@
-﻿
-
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain.Models
 {
@@ -12,6 +10,8 @@ namespace Domain.Models
         public string Password { get; set; }
         public RoleOfUser Role { get; set; }
         public int? PatientId { get; set; }
+        public bool IsEmailVerified { get; set; }
+        public bool IsPhoneVerified { get; set; }
 
         /*[ForeignKey("PatientId")]*/
         public virtual Patient Patient { get; set; }

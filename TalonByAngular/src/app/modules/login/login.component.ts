@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { AuthService } from '../../core/services/auth.service';
 import { Router, ActivatedRoute } from '@angular/router';
 import { catchError } from 'rxjs/operators';
@@ -14,36 +14,81 @@ import {
 import { CommonModule } from '@angular/common';
 import { HeaderComponent } from '../header/header.component';
 import { FooterComponent } from '../footer/footer.component';
+import { NgxMaskDirective } from 'ngx-mask';
+import { provideNgxMask } from 'ngx-mask';
+import { VerificationService } from '../../core/services/verification.service';
+import { Subject } from 'rxjs';
+import { debounceTime } from 'rxjs/operators';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormsModule, ReactiveFormsModule, CommonModule, HeaderComponent, FooterComponent],
+  imports: [
+    FormsModule, 
+    ReactiveFormsModule, 
+    CommonModule, 
+    HeaderComponent, 
+    FooterComponent,
+    NgxMaskDirective
+  ],
+  providers: [provideNgxMask()],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss'],
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit, OnDestroy {
   loginForm: FormGroup;
   registrationForm: FormGroup;
   errorMessage: string = '';
   registrationError: string = '';
   isRightPanelActive = false;
+  showVerification = false;
+  verificationCode = '';
+  verificationContact = '';
+  verificationMethod: 'email' | 'phone' = 'email';
+  attemptsLeft = 3;
+  nextAttemptTime: Date | null = null;
+  verificationError = '';
+  public isRegistering = false;
+  public isResending = false;
+  public resendTimeout = 0;
+  private registerSubject = new Subject<void>();
+  private resendTimer: any;
 
   constructor(
     private formBuilder: FormBuilder,
     private authService: AuthService,
+    private verificationService: VerificationService,
     private router: Router,
     private route: ActivatedRoute
   ) {
     this.loginForm = this.formBuilder.group({
-      email: ['', [Validators.required, Validators.email]],
-      password: ['', Validators.required]
+      email: ['', [
+        Validators.required,
+        Validators.email,
+        Validators.pattern('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$')
+      ]],
+      password: ['', [
+        Validators.required,
+        Validators.minLength(6),
+        Validators.pattern('^(?=.*[A-Z])(?=.*\\d)[A-Za-z\\d!@#$%^&*()_+\\-=\\[\\]{};:\'",.<>/?\\\\|`~]*$')
+      ]]
     });
 
     this.registrationForm = this.formBuilder.group({
-      email: ['', [Validators.required, Validators.email]],
-      phone: ['', [Validators.required, Validators.pattern('^\\+375(17|25|29|33|44)[0-9]{7}$')]],
-      password: ['', [Validators.required, Validators.minLength(6)]]
+      email: ['', [
+        Validators.required,
+        Validators.email,
+        Validators.pattern('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$')
+      ]],
+      phone: ['', [
+        Validators.required,
+        Validators.pattern('^\\+375\\([0-9]{2}\\)[0-9]{3}-[0-9]{2}-[0-9]{2}$')
+      ]],
+      password: ['', [
+        Validators.required,
+        Validators.minLength(6),
+        Validators.pattern('^(?=.*[A-Z])(?=.*\\d)[A-Za-z\\d!@#$%^&*()_+\\-=\\[\\]{};:\'",.<>/?\\\\|`~]*$')
+      ]]
     });
 
     // Проверяем параметр mode
@@ -51,6 +96,14 @@ export class LoginComponent {
       if (params['mode'] === 'register') {
         this.isRightPanelActive = true;
       }
+    });
+  }
+
+  ngOnInit() {
+    this.registerSubject.pipe(
+      debounceTime(500) // Игнорировать повторные клики в течение 500мс
+    ).subscribe(() => {
+      this.proceedWithRegistration();
     });
   }
 
@@ -77,6 +130,55 @@ export class LoginComponent {
     }
   }
 
+  getEmailError(form: 'login' | 'register'): string {
+    const email = form === 'login' ? 
+      this.loginForm.get('email') : 
+      this.registrationForm.get('email');
+    
+    if (email?.errors) {
+      if (email.errors['required']) {
+        return 'Email обязателен';
+      }
+      if (email.errors['email'] || email.errors['pattern']) {
+        return 'Введите корректный email';
+      }
+    }
+    return '';
+  }
+
+  getPasswordError(form: 'login' | 'register'): string {
+    const password = form === 'login' ? 
+      this.loginForm.get('password') : 
+      this.registrationForm.get('password');
+    
+    if (password?.errors) {
+      if (password.errors['required']) {
+        return 'Пароль обязателен';
+      }
+      if (password.errors['minlength']) {
+        return 'Пароль должен быть не менее 6 символов';
+      }
+      if (password.errors['pattern']) {
+        return 'Пароль должен содержать только латинские буквы, хотя бы одну заглавную букву и цифру';
+      }
+    }
+    return '';
+  }
+
+  getPhoneError(): string {
+    const phone = this.registrationForm.get('phone');
+    
+    if (phone?.errors) {
+      if (phone.errors['required']) {
+        return 'Телефон обязателен';
+      }
+      if (phone.errors['pattern']) {
+        return 'Формат: +375 (XX) XXX-XX-XX';
+      }
+    }
+    return '';
+  }
+
   login() {
     if (this.loginForm.valid) {
       const { email, password } = this.loginForm.value;
@@ -87,24 +189,128 @@ export class LoginComponent {
           }
         },
         error: (error) => {
-          this.errorMessage = error.error?.message || 'Ошибка при входе';
+          this.errorMessage = this.getServerErrorMessage(error);
         }
       });
     }
   }
 
-  onRegister() {
-    if (this.registrationForm.valid) {
-      const { email, password, phone } = this.registrationForm.value;
-      this.authService.register(email, password, phone).subscribe({
+  sendVerificationCode() {
+    if (this.isResending || this.resendTimeout > 0) return;
+    
+    this.isResending = true;
+    this.verificationService.resendVerification(this.verificationContact)
+      .subscribe({
         next: () => {
-          this.isRightPanelActive = false;
-          this.loginForm.patchValue({ email });
+          this.verificationError = 'Код успешно отправлен';
+          this.startResendTimer();
+          setTimeout(() => this.verificationError = '', 3000);
         },
         error: (error) => {
-          this.registrationError = error.error?.message || 'Ошибка при регистрации';
+          this.verificationError = this.getServerErrorMessage(error);
+        },
+        complete: () => {
+          this.isResending = false;
         }
       });
+  }
+
+  private startResendTimer() {
+    this.resendTimeout = 30;
+    this.resendTimer = setInterval(() => {
+      this.resendTimeout--;
+      if (this.resendTimeout <= 0) {
+        clearInterval(this.resendTimer);
+      }
+    }, 1000);
+  }
+
+  verifyCode() {
+    if (this.nextAttemptTime && new Date() < this.nextAttemptTime) {
+      const waitSeconds = Math.ceil((this.nextAttemptTime.getTime() - new Date().getTime()) / 1000);
+      this.verificationError = `Пожалуйста, подождите ${waitSeconds} секунд перед следующей попыткой`;
+      return;
+    }
+
+    this.verificationService.verifyEmail(this.verificationContact, this.verificationCode)
+      .subscribe({
+        next: () => {
+          this.showVerification = false;
+          this.isRightPanelActive = false;
+          this.loginForm.patchValue({ email: this.verificationContact });
+          this.verificationError = '';
+          this.attemptsLeft = 3;
+          this.nextAttemptTime = null;
+        },
+        error: (error) => {
+          this.attemptsLeft--;
+          if (this.attemptsLeft <= 0) {
+            this.nextAttemptTime = new Date(Date.now() + 60000); // +1 минута
+            this.attemptsLeft = 3;
+            this.verificationError = 'Слишком много попыток. Пожалуйста, подождите 1 минуту';
+          } else {
+            this.verificationError = `Неверный код. Осталось попыток: ${this.attemptsLeft}`;
+          }
+        }
+      });
+  }
+
+  onRegister() {
+    if (this.registrationForm.valid) {
+      this.registerSubject.next();
+    }
+  }
+
+  private proceedWithRegistration() {
+    if (this.isRegistering) return;
+  
+    this.isRegistering = true;
+    const { email, password, phone } = this.registrationForm.value;
+    const cleanPhone = phone.replace(/[\s()-]/g, '');
+    
+    this.authService.register(email, password, cleanPhone).subscribe({
+      next: (response) => {
+        this.verificationContact = email;
+        this.verificationMethod = 'email';
+        this.showVerification = true;
+      },
+      error: (error) => {
+        this.registrationError = this.getServerErrorMessage(error);
+        this.isRegistering = false; // Важно! Останавливаем спиннер при ошибке
+      },
+      complete: () => {
+        this.isRegistering = false;
+      }
+    });
+  }
+
+  private getServerErrorMessage(error: any): string {
+    // Проверяем наличие сообщения об ошибке
+    if (error.error?.message) {
+        return error.error.message;
+    }
+    // Проверяем наличие массива ошибок (для обратной совместимости)
+    if (Array.isArray(error.error)) {
+        return error.error[0];
+    }
+    return 'Произошла ошибка. Попробуйте позже';
+  }
+
+  closeVerification() {
+    this.showVerification = false;
+    this.verificationCode = '';
+    this.verificationError = '';
+    this.attemptsLeft = 3;
+    this.nextAttemptTime = null;
+    this.resendTimeout = 0;
+    if (this.resendTimer) {
+      clearInterval(this.resendTimer);
+    }
+  }
+
+  ngOnDestroy() {
+    if (this.resendTimer) {
+      clearInterval(this.resendTimer);
     }
   }
 }

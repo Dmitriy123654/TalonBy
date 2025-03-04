@@ -64,8 +64,11 @@ button {
   }
 
   &:disabled {
-    opacity: 0.7;
     cursor: not-allowed;
+    opacity: 0.7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 
@@ -98,6 +101,22 @@ input {
   max-width: 100%;
   min-height: 480px;
   margin: 80px 0; // Отступ для header и footer
+
+  &::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 999;
+    display: none;
+  }
+
+  &.show-verification::before {
+    display: block;
+  }
 }
 
 .wrapper {
@@ -261,7 +280,15 @@ input {
 .error-message {
   color: #ff4444;
   font-size: 12px;
-  margin: 8px 0;
+  margin: 4px 0;
+  min-height: 15px;
+  text-align: left;
+  width: 100%;
+}
+
+input.ng-touched.ng-invalid {
+  border: 1px solid #ff4444;
+  background-color: #fff9f9;
 }
 
 @keyframes show {
@@ -353,4 +380,142 @@ input {
   &:hover {
     text-decoration: underline;
   }
+}
+
+.verification-form {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 2rem;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  z-index: 1000;
+  text-align: center;
+  width: 90%;
+  max-width: 400px;
+
+  h2 {
+    margin-bottom: 1rem;
+  }
+
+  p {
+    margin-bottom: 1rem;
+    color: #666;
+  }
+
+  input {
+    width: 200px;
+    margin: 1rem auto;
+    text-align: center;
+    letter-spacing: 0.5em;
+    font-size: 1em;
+  }
+
+  .close-button {
+    position: absolute;
+    top: 1px;
+    right: 5px;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: #f44336;
+    font-size: 45px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+      color: #f44336;
+    }
+
+    &:focus {
+      outline: none;
+    }
+  }
+
+  button {
+    margin: 0.5rem;
+    width: 200px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    
+    &.resend {
+      width: 240px;
+      background-color: #FF5722;
+      color: white;
+      
+      &:hover {
+        background-color: #f4511e;
+      }
+
+      &:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  .error-message {
+    color: #f44336;
+    margin: 10px 0;
+    font-size: 14px;
+    text-align: center;
+  }
+
+  .spinner {
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+    border: 2px solid rgba(255,255,255,.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+  }
+
+  .buttons-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+  }
+}
+
+input[type="tel"] {
+  font-family: monospace;
+  letter-spacing: 0.5px;
+  font-size: 16px;
+  
+  &::placeholder {
+    font-family: 'Montserrat', sans-serif;
+    letter-spacing: normal;
+    font-size: 14px;
+  }
+}
+
+// Добавим стили для выделения активного поля
+input:focus {
+  outline: none;
+  border: 1px solid #FF5722;
+  background-color: #fff;
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  border: 2px solid rgba(255,255,255,.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }

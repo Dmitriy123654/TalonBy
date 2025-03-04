@@ -1,4 +1,4 @@
-﻿using BLL.Services;
+using BLL.Services;
 using Domain.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -7,6 +7,9 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.Extensions.Configuration;
 using System.Text;
+using System.Linq;
+using Microsoft.Extensions.Logging;
+using Domain.Models;
 
 namespace TalonBy.Controllers
 {
@@ -17,6 +20,7 @@ namespace TalonBy.Controllers
         private readonly IAuthService _authService;
         private readonly IConfiguration _configuration;
 
+
         public AuthController(IAuthService authService, IConfiguration configuration)
         {
             _authService = authService;
@@ -26,14 +30,12 @@ namespace TalonBy.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterModel model)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
             var result = await _authService.Register(model);
             if (!result.Succeeded)
-                return BadRequest(result.Errors);
-
-            return Ok(new { message = "Registration successful" });
+            {
+                return BadRequest(result);
+            }
+            return Ok(new { message = "Код подтверждения отправлен на email" });
         }
 
         [HttpPost("login")]
@@ -44,7 +46,7 @@ namespace TalonBy.Controllers
 
             var result = await _authService.Login(model);
             if (!result.Succeeded)
-                return BadRequest(new { message = "Invalid email or password" });
+                return BadRequest(new { message = result.Message });
 
             if (result.UserId == null || result.Email == null || result.Role == null)
             {
@@ -123,6 +125,28 @@ namespace TalonBy.Controllers
             {
                 return BadRequest(ex.Message);
             }
+        }
+
+        [HttpPost("verify-email")]
+        public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailModel model)
+        {
+            var result = await _authService.VerifyEmail(model.Email, model.Code);
+            if (!result.Succeeded)
+            {
+                return BadRequest(result);
+            }
+            return Ok(new { message = "Email подтвержден, регистрация завершена" });
+        }
+
+        [HttpPost("resend-verification")]
+        public async Task<IActionResult> ResendVerification([FromBody] ResendVerificationModel model)
+        {
+            var result = await _authService.ResendVerificationCode(model.Email);
+            if (!result.Succeeded)
+            {
+                return BadRequest(new { message = result.Message });
+            }
+            return Ok(new { message = "Код подтверждения отправлен повторно" });
         }
 
         [Authorize]

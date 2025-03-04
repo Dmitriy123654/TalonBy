@@ -15,6 +15,7 @@ namespace DAL
         public DbSet<ReceptionStatus> ReceptionStatuses { get; set; }
         public DbSet<DoctorsSpeciality> DoctorsSpecialities { get; set; }
         public DbSet<Doctor> Doctors { get; set; }
+        public DbSet<VerificationCode> VerificationCodes { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

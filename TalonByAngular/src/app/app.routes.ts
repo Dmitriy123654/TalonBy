@@ -8,6 +8,7 @@ import { MedicinesComponent } from './modules/medicines/medicines.component';
 import { BlogComponent } from './modules/blog/blog.component';
 
 export const routes: Routes = [
+  { path: '', redirectTo: '/main', pathMatch: 'full' },
   { path: 'login', component: LoginComponent },
   { path: 'main', component: MainPageComponent },
   { 
@@ -19,5 +20,5 @@ export const routes: Routes = [
   { path: 'analyses', component: AnalysesComponent },
   { path: 'medicines', component: MedicinesComponent },
   { path: 'blog', component: BlogComponent },
-  { path: '', redirectTo: '/main', pathMatch: 'full' },
+  { path: '**', redirectTo: '/main' }
 ];
