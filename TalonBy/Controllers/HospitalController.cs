@@ -8,7 +8,7 @@ namespace TalonBy.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class HospitalController : Controller
+    public class HospitalController : ControllerBase
     {
         private IHospitalService hospitalService;
         private IDoctorService doctorService;
@@ -19,11 +19,12 @@ namespace TalonBy.Controllers
             this.doctorService = doctorService;
         }
 
+        [AllowAnonymous]
         [HttpGet("GetAllHospitals")]
-        public List<Hospital> GetAllHospitals()
+        public async Task<IActionResult> GetAllHospitals()
         {
             var hospitals = hospitalService.GetAllHospitals();
-            return hospitals;
+            return Ok(hospitals);
         }
 
         [HttpGet("GetById/{id}")]

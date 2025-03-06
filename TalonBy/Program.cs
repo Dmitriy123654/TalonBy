@@ -33,23 +33,28 @@ namespace TalonBy
             builder.Services.AddControllers()
                 .AddJsonOptions(options =>
                 {
-                    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
+                    // Отключаем сериализацию метаданных .NET
+                    options.JsonSerializerOptions.ReferenceHandler = null;
+                    options.JsonSerializerOptions.DefaultIgnoreCondition = 
+                        System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
                 });
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddCors(options =>
             {
-                options.AddDefaultPolicy(
+                options.AddPolicy("DefaultPolicy",
                     builder =>
                     {
-                        builder.WithOrigins("http://localhost:4200")
-                            .AllowAnyHeader()
-                            .AllowAnyMethod();
+                        builder
+                            .WithOrigins("http://localhost:4200")
+                            .AllowCredentials()
+                            .AllowAnyMethod()
+                            .AllowAnyHeader();
                     });
             });
             builder.Services.AddSwaggerGen(c =>
             {
-                // �������� ����������� ������������ ��� ������������� JWT-������
+                //      JWT-
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
                     Description = "JWT Authorization header using the Bearer scheme.",
@@ -57,7 +62,7 @@ namespace TalonBy
                     Scheme = "bearer"
                 });
 
-                // �������� ���������� ������������ ��� ���� �������
+                //      
                 c.AddSecurityRequirement(new OpenApiSecurityRequirement
                 {
                     {
@@ -88,25 +93,31 @@ namespace TalonBy
             string audience = config["Jwt:Audience"];
             string key = config["Jwt:Key"];
 
-            builder.Services.AddAuthentication(options =>
-            {
-                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            })
-            .AddJwtBearer(options =>
-            {
-                options.TokenValidationParameters = new TokenValidationParameters
+            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options =>
                 {
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    ValidateLifetime = true,
-                    ValidateIssuerSigningKey = true,
-                    ValidIssuer = builder.Configuration["Jwt:Issuer"],
-                    ValidAudience = builder.Configuration["Jwt:Audience"],
-                    IssuerSigningKey = new SymmetricSecurityKey(
-                        Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
-                };
-            });
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                        ValidAudience = builder.Configuration["Jwt:Audience"],
+                        IssuerSigningKey = new SymmetricSecurityKey(
+                            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+                    };
+
+                    // Извлекаем токен из cookie
+                    options.Events = new JwtBearerEvents
+                    {
+                        OnMessageReceived = context =>
+                        {
+                            context.Token = context.Request.Cookies["auth_token"];
+                            return Task.CompletedTask;
+                        }
+                    };
+                });
 
             //bll
             builder.Services.AddTransient<IAuthService, AuthService>();
@@ -133,7 +144,7 @@ namespace TalonBy
 
 
             var app = builder.Build();
-            app.UseCors();
+            app.UseCors("DefaultPolicy");
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
@@ -145,9 +156,25 @@ namespace TalonBy
             }
             else 
             {
+                app.UseHsts();
                 app.UseHttpsRedirection();
             }
 
+            app.Use(async (context, next) =>
+            {
+                context.Response.Headers.Add("X-Content-Type-Options", "nosniff");
+                context.Response.Headers.Add("X-Frame-Options", "DENY");
+                context.Response.Headers.Add("X-XSS-Protection", "1; mode=block");
+                context.Response.Headers.Add("Referrer-Policy", "strict-origin-when-cross-origin");
+                context.Response.Headers.Add("Content-Security-Policy", 
+                    "default-src 'self'; " +
+                    "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+                    "style-src 'self' 'unsafe-inline';");
+                
+                await next();
+            });
+
+            app.UseCors("DefaultPolicy");
             app.UseAuthentication();
             app.UseAuthorization();
             
