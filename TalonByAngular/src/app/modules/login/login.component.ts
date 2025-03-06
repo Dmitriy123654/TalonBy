@@ -98,7 +98,32 @@ export class LoginComponent implements OnInit, OnDestroy {
       }
     });
   }
+  onLogin() {
+    if (this.loginForm.valid) {
+      const { email, password } = this.loginForm.value;
+      
+      this.authService.login(email, password).subscribe({
+        next: (response) => {
+          // После успешного входа перенаправляем на главную страницу
+          this.router.navigate(['/main']);
+        },
+        error: (error) => {
+          this.errorMessage = this.getServerErrorMessage(error);
+        }
+      });
+    } else {
+      this.markFormGroupTouched(this.loginForm);
+    }
+  }
+  private markFormGroupTouched(formGroup: FormGroup) {
+    Object.values(formGroup.controls).forEach(control => {
+      control.markAsTouched();
 
+      if (control instanceof FormGroup) {
+        this.markFormGroupTouched(control);
+      }
+    });
+  }
   ngOnInit() {
     this.registerSubject.pipe(
       debounceTime(500) // Игнорировать повторные клики в течение 500мс

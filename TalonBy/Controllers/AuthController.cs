@@ -10,6 +10,7 @@ using System.Text;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using Domain.Models;
+using Microsoft.AspNetCore.Http;
 
 namespace TalonBy.Controllers
 {
@@ -41,40 +42,15 @@ namespace TalonBy.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginModel model)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
             var result = await _authService.Login(model);
             if (!result.Succeeded)
-                return BadRequest(new { message = result.Message });
+                return BadRequest(result);
 
-            if (result.UserId == null || result.Email == null || result.Role == null)
-            {
-                return BadRequest(new { message = "Invalid login result." });
-            }
-
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, result.UserId.ToString()),
-                new Claim(ClaimTypes.Email, result.Email),
-                new Claim(ClaimTypes.Role, result.Role.ToString())
-            };
-
-            var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]);
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.UtcNow.AddDays(7),
-                Issuer = _configuration["Jwt:Issuer"],
-                Audience = _configuration["Jwt:Audience"],
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-            };
-
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            var tokenString = tokenHandler.WriteToken(token);
-
-            return Ok(new { token = tokenString });
+            return Ok(new LoginResponse 
+            { 
+                Token = result.Token,
+                User = new UserInfo { Email = result.Email }
+            });
         }
 
         [Authorize]
@@ -103,13 +79,12 @@ namespace TalonBy.Controllers
             return Ok(user);
         }
 
-        /*[HttpPost("logout")]
-        public async Task<IActionResult> Logout()
+        [HttpPost("logout")]
+        public IActionResult Logout()
         {
-            *//*int userId = GetCurrentUserId();
-            await _authService.LogoutAsync(userId);
-            return NoContent();*//*
-        }*/
+            Response.Cookies.Delete("auth_token");
+            return Ok(new { message = "Logged out successfully" });
+        }
 
         [Authorize]
         [HttpPost("CreatePatient")]
@@ -156,5 +131,23 @@ namespace TalonBy.Controllers
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             return int.Parse(userId);
         }
+    }
+
+    public class AuthResponse
+    {
+        public string Message { get; set; }
+    }
+
+    public class LoginResponse 
+    {
+        public string Token { get; set; }
+        public UserInfo User { get; set; }
+    }
+
+    public class UserInfo
+    {
+        public string Email { get; set; }
+        // Роль можно передавать в JWT токене
+        // ID пользователя тоже лучше хранить в токене
     }
 }

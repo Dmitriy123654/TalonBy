@@ -51,7 +51,7 @@
 
   <!-- Форма входа -->
   <div class="form-container sign-in-container">
-    <form [formGroup]="loginForm" (ngSubmit)="login()">
+    <form [formGroup]="loginForm" (ngSubmit)="onLogin()">
       <h1>Вход в систему</h1>
       <div class="social-container">
         <a href="#" class="social">
@@ -72,7 +72,7 @@
       </div>
       <div *ngIf="errorMessage" class="error-message">{{ errorMessage }}</div>
       <a href="/forgot-password">Забыли пароль?</a>
-      <button type="submit">Войти</button>
+      <button type="submit" [disabled]="loginForm.invalid">Войти</button>
       <button type="button" class="mobile-switch" (click)="togglePanel()">
         Нет аккаунта? Зарегистрироваться
       </button>

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { map, tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -12,21 +12,19 @@ export class AuthService {
   public currentUser = this.currentUserSubject.asObservable();
   
   constructor(private http: HttpClient) {
-    const token = this.getToken();
-    if (token) {
-      this.currentUserSubject.next({ token });
+    // Проверяем наличие данных пользователя при инициализации
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      this.currentUserSubject.next(JSON.parse(userData));
     }
   }
 
   login(email: string, password: string): Observable<any> {
-    return this.http.post<any>(`${environment.apiUrl}/auth/login`, { email, password })
+    return this.http.post(`${environment.apiUrl}/auth/login`, { email, password })
       .pipe(
-        map(response => {
-          if (response && response.token) {
-            localStorage.setItem('token', response.token);
-            this.currentUserSubject.next({ token: response.token });
-          }
-          return response;
+        tap(response => {
+          // Сохраняем данные пользователя в localStorage
+          this.setUserData(response);
         })
       );
   }
@@ -39,9 +37,14 @@ export class AuthService {
     });
   }
 
-  logout(): void {
-    localStorage.removeItem('token');
-    this.currentUserSubject.next(null);
+  logout(): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/auth/logout`, {})
+      .pipe(
+        tap(() => {
+          // Очищаем только данные пользователя
+          this.clearUserData();
+        })
+      );
   }
 
   getToken(): string | null {
@@ -49,7 +52,22 @@ export class AuthService {
   }
 
   isAuthenticated(): boolean {
-    const token = this.getToken();
-    return !!token;
+    return this.currentUserSubject.value !== null;
+  }
+
+  private setUserData(response: any): void {
+    // Сохраняем данные пользователя (без токена)
+    const userData = {
+      userId: response.userId,
+      email: response.email,
+      role: response.role
+    };
+    localStorage.setItem('user', JSON.stringify(userData));
+    this.currentUserSubject.next(userData);
+  }
+
+  public clearUserData(): void {
+    localStorage.removeItem('user');
+    this.currentUserSubject.next(null);
   }
 } 
