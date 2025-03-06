@@ -22,16 +22,24 @@ export class OrderService {
   getHospitals(): Observable<Hospital[]> {
     return this.http.get<any>(`${this.apiUrl}/Hospital/GetAllHospitals`).pipe(
       map(response => {
-        const hospitals = response.$values || [];
+        console.log('Raw hospital response:', response); // Добавим для отладки
+
+        // Если response уже является массивом, используем его напрямую
+        const hospitals = Array.isArray(response) ? response : 
+                        response.$values ? response.$values : 
+                        [];
+
+        console.log('Hospitals after extraction:', hospitals); // Для отладки
+
         return hospitals.map((hospital: any) => ({
           hospitalId: Number(hospital.hospitalId),
-          name: hospital.name?.trim(),
-          address: hospital.address,
-          type: hospital.type,
-          workingHours: hospital.workingHours,
-          phones: hospital.phones,
-          email: hospital.email,
-          description: hospital.description
+          name: hospital.name?.trim() || '',
+          address: hospital.address || '',
+          type: hospital.type || 0,
+          workingHours: hospital.workingHours || '',
+          phones: hospital.phones || '',
+          email: hospital.email || '',
+          description: hospital.description || ''
         }));
       })
     );
@@ -42,13 +50,15 @@ export class OrderService {
     return this.http.get<any>(`${this.apiUrl}/DoctorsSpeciality/GetByHospital/${hospitalId}`)
       .pipe(
         map(response => {
-          console.log('Raw specialities response:', response); // Для отладки
-          const specialities = response.$values || response;
+          console.log('Raw specialities response:', response);
+          const specialities = Array.isArray(response) ? response :
+                             response.$values ? response.$values :
+                             [];
           return specialities.map((spec: any) => ({
             doctorsSpecialityId: spec.doctorsSpecialityId,
-            name: spec.name,
+            name: spec.name || '',
             link: '',
-            description: spec.description
+            description: spec.description || ''
           }));
         })
       );
@@ -58,7 +68,12 @@ export class OrderService {
   getDoctorsByHospital(hospitalId: number): Observable<DoctorDetails[]> {
     return this.http.get<any>(`${this.apiUrl}/Doctor/GetByHospital/${hospitalId}`)
       .pipe(
-        map(response => response.$values || [])
+        map(response => {
+          const doctors = Array.isArray(response) ? response :
+                        response.$values ? response.$values :
+                        [];
+          return doctors;
+        })
       );
   }
 
@@ -72,8 +87,11 @@ export class OrderService {
     return this.http.get<any>(`${this.apiUrl}/Doctor/GetBySpecialtyAndHospital/${hospitalId}/${specialityId}`)
       .pipe(
         map(response => {
-          console.log('Raw doctors response:', response); // Для отладки
-          return response.$values || response;
+          console.log('Raw doctors response:', response);
+          const doctors = Array.isArray(response) ? response :
+                        response.$values ? response.$values :
+                        [];
+          return doctors;
         })
       );
   }

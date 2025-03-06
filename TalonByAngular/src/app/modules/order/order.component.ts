@@ -93,13 +93,8 @@ export class OrderComponent implements OnInit {
     this.orderService.getHospitals().subscribe({
       next: (hospitals) => {
         console.log('Received hospitals:', hospitals);
-        if (Array.isArray(hospitals)) {
-          this.hospitals = hospitals;
-          this.filterHospitals();
-        } else {
-          console.warn('Received non-array response:', hospitals);
-          this.hospitals = [];
-        }
+        this.hospitals = hospitals;
+        this.filterHospitals();
         this.isLoading = false;
       },
       error: (error) => {
