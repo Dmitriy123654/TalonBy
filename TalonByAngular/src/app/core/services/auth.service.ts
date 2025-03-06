@@ -4,70 +4,69 @@ import { Observable, BehaviorSubject } from 'rxjs';
 import { map, tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
+interface AuthResponse {
+  authenticated: boolean;
+}
+
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
-  private currentUserSubject = new BehaviorSubject<any>(null);
-  public currentUser = this.currentUserSubject.asObservable();
+  private currentUserSubject = new BehaviorSubject<boolean>(false);
+  public authState = this.currentUserSubject.asObservable();
   
   constructor(private http: HttpClient) {
-    // Проверяем наличие данных пользователя при инициализации
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      this.currentUserSubject.next(JSON.parse(userData));
-    }
-  }
-
-  login(email: string, password: string): Observable<any> {
-    return this.http.post(`${environment.apiUrl}/auth/login`, { email, password })
-      .pipe(
-        tap(response => {
-          // Сохраняем данные пользователя в localStorage
-          this.setUserData(response);
-        })
-      );
-  }
-
-  register(email: string, password: string, phone: string): Observable<any> {
-    return this.http.post<any>(`${environment.apiUrl}/auth/register`, {
-      email,
-      password,
-      phone
+    this.getCurrentUser().subscribe({
+      error: () => this.currentUserSubject.next(false)
     });
   }
 
-  logout(): Observable<any> {
-    return this.http.post(`${environment.apiUrl}/auth/logout`, {})
-      .pipe(
-        tap(() => {
-          // Очищаем только данные пользователя
-          this.clearUserData();
-        })
-      );
+  login(email: string, password: string): Observable<void> {
+    return this.http.post<void>(
+      `${environment.apiUrl}/auth/login`,
+      { email, password },
+      { withCredentials: true }
+    ).pipe(
+      tap(() => {
+        this.currentUserSubject.next(true);
+      })
+    );
   }
 
-  getToken(): string | null {
-    return localStorage.getItem('token');
+  register(email: string, password: string, phone: string): Observable<any> {
+    return this.http.post<any>(
+      `${environment.apiUrl}/auth/register`, 
+      { email, password, phone },
+      { withCredentials: true }
+    );
   }
 
-  isAuthenticated(): boolean {
-    return this.currentUserSubject.value !== null;
+  logout(): Observable<void> {
+    return this.http.post<void>(
+      `${environment.apiUrl}/auth/logout`,
+      {},
+      { withCredentials: true }
+    ).pipe(
+      tap(() => {
+        this.currentUserSubject.next(false);
+      })
+    );
   }
 
-  private setUserData(response: any): void {
-    // Сохраняем данные пользователя (без токена)
-    const userData = {
-      userId: response.userId,
-      email: response.email,
-      role: response.role
-    };
-    localStorage.setItem('user', JSON.stringify(userData));
-    this.currentUserSubject.next(userData);
+  // Метод для проверки аутентификации
+  checkAuth(): boolean {
+    return this.currentUserSubject.value;
   }
 
-  public clearUserData(): void {
-    localStorage.removeItem('user');
-    this.currentUserSubject.next(null);
+  // Метод для получения данных текущего пользователя
+  getCurrentUser(): Observable<AuthResponse> {
+    return this.http.get<AuthResponse>(
+      `${environment.apiUrl}/auth/me`,
+      { withCredentials: true }
+    ).pipe(
+      tap(response => {
+        this.currentUserSubject.next(response.authenticated);
+      })
+    );
   }
 } 

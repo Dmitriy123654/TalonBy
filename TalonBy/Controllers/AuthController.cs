@@ -44,13 +44,20 @@ namespace TalonBy.Controllers
         {
             var result = await _authService.Login(model);
             if (!result.Succeeded)
-                return BadRequest(result);
+                return BadRequest(new { message = result.Message });
 
-            return Ok(new LoginResponse 
-            { 
-                Token = result.Token,
-                User = new UserInfo { Email = result.Email }
-            });
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = false,  // Временно false для http в разработке
+                SameSite = SameSiteMode.Lax,
+                Expires = DateTime.UtcNow.AddDays(7)
+            };
+
+            Response.Cookies.Append("auth_token", result.Token, cookieOptions);
+
+            // Возвращаем пустой 200 OK
+            return Ok();
         }
 
         [Authorize]
@@ -125,6 +132,14 @@ namespace TalonBy.Controllers
         }
 
         [Authorize]
+        [HttpGet("me")]
+        public IActionResult GetCurrentUser()
+        {
+            // Минимум необходимой информации
+            return Ok(new { authenticated = true });
+        }
+
+        [Authorize]
         private int GetCurrentUserId()
         {
             // Получаем идентификатор текущего пользователя из JWT токена
@@ -138,16 +153,8 @@ namespace TalonBy.Controllers
         public string Message { get; set; }
     }
 
-    public class LoginResponse 
-    {
-        public string Token { get; set; }
-        public UserInfo User { get; set; }
-    }
-
-    public class UserInfo
+    public class LoginResponseDto
     {
         public string Email { get; set; }
-        // Роль можно передавать в JWT токене
-        // ID пользователя тоже лучше хранить в токене
     }
 }
