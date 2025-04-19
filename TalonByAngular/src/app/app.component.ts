@@ -6,6 +6,7 @@ import { HeaderComponent } from './modules/header/header.component';
 import { CommonModule } from '@angular/common';
 import { filter } from 'rxjs';
 import { FooterComponent } from './modules/footer/footer.component';
+import { ThemeService } from './core/services/theme.service';
 
 @Component({
   selector: 'app-root',
@@ -24,7 +25,7 @@ export class AppComponent {
   title = 'TalonByAngular';
   private readonly excludedRoutes = ['/login', '/register'];
 
-  constructor(private router: Router) {}
+  constructor(private router: Router, private themeService: ThemeService) {}
 
   ngOnInit() {
     this.router.events
