@@ -8,7 +8,7 @@
   align-items: center;
   min-height: calc(100vh - 160px); // Учитываем header и footer
   padding: 20px;
-  background: #f6f5f7;
+  background: var(--background-color);
   font-family: 'Montserrat', sans-serif;
 }
 
@@ -16,6 +16,7 @@ h1 {
   font-weight: bold;
   margin: 0;
   font-size: 24px;
+  color: var(--text-color);
 }
 
 p {
@@ -24,30 +25,36 @@ p {
   line-height: 20px;
   letter-spacing: 0.5px;
   margin: 20px 0 30px;
+  color: var(--text-light);
 }
 
 span {
   font-size: 12px;
+  color: var(--text-light);
 }
 
 a {
-  color: #333;
+  color: var(--text-color);
   font-size: 14px;
   text-decoration: none;
   margin: 15px 0;
+
+  &:hover {
+    color: var(--primary-color);
+  }
 }
 
 button {
   border-radius: 20px;
-  border: 1px solid #FF5722;
-  background-color: #FF5722;
+  border: 1px solid var(--primary-color);
+  background-color: var(--primary-color);
   color: #FFFFFF;
   font-size: 12px;
   font-weight: bold;
   padding: 12px 45px;
   letter-spacing: 1px;
   text-transform: uppercase;
-  transition: transform 80ms ease-in;
+  transition: transform 80ms ease-in, background-color 0.3s ease;
   cursor: pointer;
 
   &:active {
@@ -63,6 +70,10 @@ button {
     border-color: #FFFFFF;
   }
 
+  &:hover:not(:disabled) {
+    background-color: var(--primary-hover);
+  }
+
   &:disabled {
     cursor: not-allowed;
     opacity: 0.7;
@@ -73,7 +84,7 @@ button {
 }
 
 form {
-  background-color: #FFFFFF;
+  background-color: var(--card-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -84,17 +95,28 @@ form {
 }
 
 input {
-  background-color: #eee;
-  border: none;
+  background-color: var(--input-bg);
+  border: 1px solid var(--input-border);
+  color: #000000;
   padding: 12px 15px;
   margin: 8px 0;
   width: 100%;
+
+  &:focus {
+    border-color: var(--primary-color);
+    outline: none;
+    background-color: var(--input-bg);
+  }
+  
+  &::placeholder {
+    color: #666666;
+  }
 }
 
 .container {
-  background-color: #fff;
+  background-color: var(--card-bg);
   border-radius: 10px;
-  box-shadow: 0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22);
+  box-shadow: 0 14px 28px var(--shadow-color), 0 10px 10px var(--shadow-color);
   position: relative;
   overflow: hidden;
   width: 768px;
@@ -124,7 +146,7 @@ input {
   width: 100%;
   padding: 20px; /* Внутренние отступы */
   box-sizing: border-box; /* Учитывать отступы в ширине */
-  background-color: #ffffff; /* Цвет фона */
+  background-color: var(--card-bg); /* Цвет фона */
 }
 
 .form-container {
@@ -188,8 +210,8 @@ input {
 }
 
 .overlay {
-  background: #FF5722;
-  background: linear-gradient(to right, #FF5722, #F4511E);
+  background: var(--primary-color);
+  background: linear-gradient(to right, var(--primary-color), var(--primary-hover));
   background-repeat: no-repeat;
   background-size: cover;
   background-position: 0 0;
@@ -266,7 +288,7 @@ input {
     
     &:hover {
       background-color: #eee;
-      border-color: #FF5722;
+      border-color: var(--primary-color);
     }
 
     img.social-icon {
@@ -326,7 +348,7 @@ input.ng-touched.ng-invalid {
     margin-top: 20px;
     background: transparent;
     border: none;
-    color: #FF5722;
+    color: var(--primary-color);
     text-transform: none;
     padding: 10px;
     font-weight: normal;
@@ -372,7 +394,7 @@ input.ng-touched.ng-invalid {
   display: none;
   background: none;
   border: none;
-  color: #FF5722;
+  color: var(--primary-color);
   font-size: 14px;
   margin-top: 20px;
   padding: 10px;
@@ -447,11 +469,11 @@ input.ng-touched.ng-invalid {
     
     &.resend {
       width: 240px;
-      background-color: #FF5722;
+      background-color: var(--primary-color);
       color: white;
       
       &:hover {
-        background-color: #f4511e;
+        background-color: var(--primary-hover);
       }
 
       &:disabled {
@@ -501,7 +523,7 @@ input[type="tel"] {
 // Добавим стили для выделения активного поля
 input:focus {
   outline: none;
-  border: 1px solid #FF5722;
+  border: 1px solid var(--primary-color);
   background-color: #fff;
 }
 
@@ -518,4 +540,20 @@ input:focus {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* Ensure input text is visible on all themes */
+:host-context(.dark-theme) input,
+:host-context(.blue-theme) input,
+:host-context(.violet-theme) input,
+:host-context(.purple-theme) input {
+  color: #000000;
+  
+  &::placeholder {
+    color: #666666;
+  }
+  
+  &:focus {
+    color: #000000;
+  }
 }
