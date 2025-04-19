@@ -87,18 +87,21 @@ namespace BLL.Services
                 return new LoginResult { Succeeded = false, Message = "Неверный email или пароль" };
             }
 
-            var token = GenerateJwtToken(user);
+            // Создаем claims для JWT
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Role, user.Role.ToString())
+            };
 
-            // Логирование значений
-            _logger.LogInformation($"UserId: {user.UserId}, Email: {user.Email}, Role: {user.Role}");
+            // Генерируем JWT токен
+            var token = GenerateJwtToken(claims);
 
             return new LoginResult
             {
                 Succeeded = true,
                 Token = token,
-                UserId = user.UserId,
-                Email = user.Email,
-                Role = user.Role
             };
         }
 
@@ -126,7 +129,7 @@ namespace BLL.Services
             return await _userRepository.CreatePatientAsync(patient);
         }
 
-        private string GenerateJwtToken(User user)
+        private string GenerateJwtToken(Claim[] claims)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]);
@@ -135,12 +138,7 @@ namespace BLL.Services
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
-                Subject = new ClaimsIdentity(new[]
-                {
-                new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, user.Role.ToString())
-            }),
+                Subject = new ClaimsIdentity(claims),
                 Expires = DateTime.UtcNow.AddDays(7),
                 Issuer = issuer,
                 Audience = audience,

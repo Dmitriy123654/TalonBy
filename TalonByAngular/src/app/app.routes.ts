@@ -6,6 +6,7 @@ import { MedicalInstitutionsComponent } from './modules/medical-institutions/med
 import { AnalysesComponent } from './modules/analyses/analyses.component';
 import { MedicinesComponent } from './modules/medicines/medicines.component';
 import { BlogComponent } from './modules/blog/blog.component';
+import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/main', pathMatch: 'full' },
@@ -13,12 +14,33 @@ export const routes: Routes = [
   { path: 'main', component: MainPageComponent },
   { 
     path: 'order', 
-    loadChildren: () => import('./modules/order/order.module').then(m => m.OrderModule)
+    loadChildren: () => import('./modules/order/order.module').then(m => m.OrderModule),
+    canActivate: [authGuard]
   },
-  { path: 'paid-services', component: PaidServicesComponent },
-  { path: 'medical-institutions', component: MedicalInstitutionsComponent },
-  { path: 'analyses', component: AnalysesComponent },
-  { path: 'medicines', component: MedicinesComponent },
-  { path: 'blog', component: BlogComponent },
+  { 
+    path: 'paid-services', 
+    component: PaidServicesComponent,
+    canActivate: [authGuard]
+  },
+  { 
+    path: 'medical-institutions', 
+    component: MedicalInstitutionsComponent,
+    canActivate: [authGuard]
+  },
+  { 
+    path: 'analyses', 
+    component: AnalysesComponent,
+    canActivate: [authGuard]
+  },
+  { 
+    path: 'medicines', 
+    component: MedicinesComponent,
+    canActivate: [authGuard]
+  },
+  { 
+    path: 'blog', 
+    component: BlogComponent,
+    canActivate: [authGuard]
+  },
   { path: '**', redirectTo: '/main' }
 ];

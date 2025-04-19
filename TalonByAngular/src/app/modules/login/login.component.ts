@@ -53,6 +53,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   public resendTimeout = 0;
   private registerSubject = new Subject<void>();
   private resendTimer: any;
+  isLoading = false;
 
   constructor(
     private formBuilder: FormBuilder,
@@ -98,7 +99,37 @@ export class LoginComponent implements OnInit, OnDestroy {
       }
     });
   }
+  onLogin() {
+    if (this.loginForm.valid) {
+      this.isLoading = true;
+      const { email, password } = this.loginForm.value;
+      
+      this.authService.login(email, password).subscribe({
+        next: () => {
+          const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/main';
+          this.router.navigate([returnUrl]);
+        },
+        error: (error) => {
+          this.errorMessage = this.getServerErrorMessage(error);
+          this.isLoading = false;
+        },
+        complete: () => {
+          this.isLoading = false;
+        }
+      });
+    } else {
+      this.markFormGroupTouched(this.loginForm);
+    }
+  }
+  private markFormGroupTouched(formGroup: FormGroup) {
+    Object.values(formGroup.controls).forEach(control => {
+      control.markAsTouched();
 
+      if (control instanceof FormGroup) {
+        this.markFormGroupTouched(control);
+      }
+    });
+  }
   ngOnInit() {
     this.registerSubject.pipe(
       debounceTime(500) // Игнорировать повторные клики в течение 500мс
@@ -177,22 +208,6 @@ export class LoginComponent implements OnInit, OnDestroy {
       }
     }
     return '';
-  }
-
-  login() {
-    if (this.loginForm.valid) {
-      const { email, password } = this.loginForm.value;
-      this.authService.login(email, password).subscribe({
-        next: (response) => {
-          if (response && response.token) {
-            this.router.navigate(['/main']);
-          }
-        },
-        error: (error) => {
-          this.errorMessage = this.getServerErrorMessage(error);
-        }
-      });
-    }
   }
 
   sendVerificationCode() {
