@@ -1,0 +1,250 @@
+.profile-page {
+  background-color: var(--background-color);
+  min-height: 100vh;
+  padding-top: 80px; // For fixed header
+  padding-bottom: 40px;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.profile-header {
+  padding: 30px 0 20px;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+  
+  .user-email {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--text-color);
+    margin: 0;
+  }
+  
+  .settings-link {
+    margin-top: 5px;
+    font-size: 14px;
+    color: var(--primary-color);
+    text-decoration: none;
+    
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.profile-tabs {
+  margin-bottom: 30px;
+  border-bottom: 1px solid var(--border-color);
+  
+  .tabs {
+    display: flex;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    
+    .tab {
+      padding: 12px 20px;
+      cursor: pointer;
+      font-size: 16px;
+      color: var(--text-light);
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s ease;
+      
+      &:hover {
+        color: var(--text-color);
+      }
+      
+      &.active {
+        color: var(--primary-color);
+        border-bottom-color: var(--primary-color);
+        font-weight: 500;
+      }
+    }
+  }
+}
+
+.profile-content {
+  .patients-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 30px;
+  }
+  
+  .patient-card {
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px var(--shadow-color);
+    transition: transform 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    
+    &.own-profile {
+      border-left: 3px solid var(--primary-color);
+    }
+    
+    &.add-patient {
+      cursor: pointer;
+      border: 2px dashed var(--border-color);
+      background-color: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 200px;
+      box-shadow: none;
+      transition: all 0.2s ease;
+      
+      &:hover {
+        border-color: var(--primary-color);
+        background-color: rgba(var(--primary-color-rgb), 0.05);
+        
+        .add-patient-text {
+          color: var(--primary-color);
+        }
+      }
+      
+      .add-patient-content {
+        text-align: center;
+        padding: 20px;
+      }
+      
+      .add-patient-text {
+        font-size: 16px;
+        color: var(--text-light);
+        font-weight: 500;
+        transition: color 0.2s ease;
+      }
+    }
+    
+    .card-header {
+      padding: 15px 20px;
+      border-bottom: 1px solid var(--border-color);
+      
+      h2 {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text-color);
+        margin: 0;
+      }
+    }
+    
+    .card-body {
+      padding: 20px;
+      flex-grow: 1;
+      
+      .profile-name {
+        font-size: 18px;
+        font-weight: 500;
+        color: var(--text-color);
+        margin-bottom: 10px;
+      }
+      
+      .profile-address, .profile-birthdate {
+        font-size: 14px;
+        color: var(--text-light);
+        margin-bottom: 5px;
+      }
+    }
+    
+    .card-actions {
+      display: flex;
+      justify-content: flex-end;
+      padding: 10px 20px;
+      border-top: 1px solid var(--border-color);
+      
+      .action-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 5px;
+        margin-left: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-light);
+        transition: color 0.2s ease;
+        
+        &.edit:hover {
+          color: var(--primary-color);
+        }
+        
+        &.delete:hover {
+          color: #E53935;
+        }
+      }
+    }
+  }
+}
+
+// Other tabs sections
+.appointments-section,
+.visits-section,
+.analyses-section {
+  h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 20px;
+  }
+  
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    color: var(--text-light);
+    font-size: 16px;
+    
+    a {
+      color: var(--primary-color);
+      text-decoration: none;
+      
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  font-size: 18px;
+  color: var(--text-light);
+}
+
+// Responsive styles
+@media (max-width: 768px) {
+  .profile-header {
+    padding: 20px 0 15px;
+    
+    .user-email {
+      font-size: 22px;
+    }
+  }
+  
+  .profile-tabs {
+    .tabs {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      
+      .tab {
+        padding: 10px 15px;
+        font-size: 14px;
+        white-space: nowrap;
+      }
+    }
+  }
+  
+  .patient-card {
+    &.add-patient {
+      min-height: 150px;
+    }
+  }
+} 

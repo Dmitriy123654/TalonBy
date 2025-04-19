@@ -14,12 +14,27 @@
     </nav>
 
     <div class="right">
+      <!-- Show login link if not logged in -->
+      <a *ngIf="!isLoggedIn" routerLink="/login" class="login-link">Войти</a>
+      
+      <!-- Show profile link if logged in -->
+      <a *ngIf="isLoggedIn" routerLink="/profile" class="login-link">Профиль</a>
+      
+      <div class="theme-selector desktop-theme-selector">
+        <button class="theme-toggle" (click)="toggleTheme()" [title]="getNextTheme().name">
+          <span>{{ getCurrentThemeIcon() }}</span>
+        </button>
+      </div>
+      <div class="theme-selector mobile-theme-selector">
+        <button class="theme-toggle" (click)="toggleTheme()" [title]="getNextTheme().name">
+          <span>{{ getCurrentThemeIcon() }}</span>
+        </button>
+      </div>
       <button class="burger-menu" (click)="toggleMenu()">
         <span></span>
         <span></span>
         <span></span>
       </button>
-      <a routerLink="/login" class="login-link">Войти</a>
       <!-- <a routerLink="/login" class="[queryParams]="{mode: 'register'}">Регистрация</a> -->
     </div>
   </div>
@@ -34,7 +49,9 @@
         <li><a routerLink="/analyses">Анализы</a></li>
         <li><a routerLink="/medicines">Лекарства</a></li>
         <li><a routerLink="/blog">Блог</a></li>
-        <li><a routerLink="/blog">Тест</a></li>
+        <li *ngIf="isLoggedIn"><a routerLink="/profile">Профиль</a></li>
+        <li *ngIf="isLoggedIn"><a href="#" (click)="logout(); $event.preventDefault()">Выйти</a></li>
+        <li *ngIf="!isLoggedIn"><a routerLink="/login">Войти</a></li>
       </ul>
     </nav>
   </div>

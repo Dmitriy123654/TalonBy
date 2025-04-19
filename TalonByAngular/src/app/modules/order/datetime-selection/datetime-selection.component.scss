@@ -3,10 +3,10 @@
 .datetime-selection-page {
   main {
     .calendar-wrapper {
-      background: #fff;
+      background: var(--card-bg);
       border-radius: 8px;
       padding: 20px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 4px var(--shadow-color);
       width: calc(100% - 10px);
       margin-right: 10px;
       box-sizing: border-box;
@@ -20,19 +20,19 @@
         h3 {
           font-size: 18px;
           margin: 0;
-          color: #333;
+          color: var(--text-color);
         }
 
         .month-nav {
           background: none;
           border: none;
           font-size: 20px;
-          color: #666;
+          color: var(--text-light);
           cursor: pointer;
           padding: 5px 10px;
 
           &:hover {
-            color: #FF5722;
+            color: var(--primary-color);
           }
 
           &.disabled {
@@ -54,13 +54,13 @@
           .weekday {
             text-align: center;
             font-size: 14px;
-            color: #666;
+            color: var(--text-light);
             text-transform: uppercase;
             padding: 5px;
 
             &:last-child,
             &:nth-last-child(2) {
-              color: #FF5722;
+              color: var(--primary-color);
             }
           }
         }
@@ -72,7 +72,7 @@
           .week {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            border-bottom: 2px solid rgba(200, 200, 200, 0.5);
+            border-bottom: 2px solid var(--border-color);
 
             &:last-child {
               border-bottom: none;
@@ -82,7 +82,7 @@
           .day {
             aspect-ratio: 1;
             padding: 8px;
-            border-right: 2px solid rgba(200, 200, 200, 0.5);
+            border-right: 2px solid var(--border-color);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -95,23 +95,23 @@
             }
 
             &:not(.disabled):hover {
-              background-color: rgba(255,87,34,0.05);
+              background-color: rgba(var(--primary-color-rgb), 0.05);
             }
 
             &.weekend {
               .date {
-                color: #FF5722;
+                color: var(--primary-color);
               }
             }
 
             &.disabled {
               opacity: 0.5;
               cursor: not-allowed;
-              background: #fafafa;
+              background: var(--hover-bg);
             }
 
             &.selected {
-              background-color: rgba(255,87,34,0.05);
+              background-color: rgba(var(--primary-color-rgb), 0.05);
               position: relative;
 
               &::after {
@@ -121,7 +121,7 @@
                 top: 0;
                 bottom: 0;
                 width: 3px;
-                background: #FF5722;
+                background: var(--primary-color);
               }
             }
 
@@ -129,16 +129,17 @@
               font-size: 16px;
               font-weight: 500;
               margin-bottom: 4px;
+              color: var(--text-color);
             }
 
             .slots {
               font-size: 12px;
-              color: #FF5722;
+              color: var(--primary-color);
 
               @media (min-width: 1100px) {
                 &::after {
                   content: ' талонов';
-                  color: #FF5722;
+                  color: var(--primary-color);
                   font-size: 11px;
                 }
               }
@@ -147,14 +148,14 @@
 
           .time-slots-row {
             grid-column: 1 / -1;
-            border-top: 1px solid #eee;
+            border-top: 1px solid var(--border-color);
             padding: 15px;
             box-sizing: border-box;
             width: 100%;
 
             .selected-date {
               font-size: 14px;
-              color: #666;
+              color: var(--text-light);
               margin-bottom: 15px;
             }
 
@@ -162,16 +163,16 @@
               display: grid;
               grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
               gap: 1.5px;
-              background: rgba(200, 200, 200, 0.3);
+              background: var(--border-color);
               padding: 1.5px;
               width: 100%;
               box-sizing: border-box;
 
               .time-slot {
-                background: #fff;
+                background: var(--card-bg);
                 border: none;
                 padding: 8px;
-                color: #333;
+                color: var(--text-color);
                 font-size: 13px;
                 cursor: pointer;
                 transition: all 0.2s;
@@ -181,11 +182,11 @@
                 justify-content: center;
 
                 &:hover {
-                  color: #FF5722;
+                  color: var(--primary-color);
                 }
 
                 &.selected {
-                  background: #FF5722;
+                  background: var(--primary-color);
                   color: white;
                 }
               }
@@ -218,8 +219,8 @@
             .time-slots-row {
               margin: 0;
               padding: 10px;
-              border-top: 1px solid #eee;
-              background: #fff;
+              border-top: 1px solid var(--border-color);
+              background: var(--card-bg);
               
               .selected-date {
                 margin-bottom: 10px;

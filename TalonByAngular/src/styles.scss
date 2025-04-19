@@ -1,20 +1,924 @@
 /* You can add global styles to this file, and also import other style files */
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;600&display=swap");
+@import url('https://fonts.googleapis.com/css?family=Montserrat:400,800');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+/* @import '~bootstrap/dist/css/bootstrap.min.css'; */
+/* @import 'swiper/swiper-bundle.css'; */
 
-:root {
+.light-theme {
   --primary-color: #FF5722;  
+  --primary-color-rgb: 255, 87, 34;
+  --primary-hover: #FF7043;
   --text-color: #333333;
-  --background-color: #f5f5f5; // Светло-серый фон
+  --text-light: #666666;
+  --background-color: #f5f5f5;
   --white-color: #FFFFFF;
+  --secondary-color: #9e9e9e;
+  --header-footer-bg: #FFFFFF;
+  --border-color: #E0E0E0;
+  --card-bg: #FFFFFF;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+  --input-bg: #FFFFFF;
+  --input-border: #E0E0E0;
+  --input-text: #333333;
+  --login-button-bg: #FF5722;
+  --login-button-text: #FFFFFF;
+  --hover-bg: #f9f9f9;
+  --menu-active: #FF5722;
+  --logo-color: #FF5722;
+  --link-color: #FF5722;
+  --link-hover: #FF7043;
+  --tile-bg: #FFFFFF;
+  --accent-bg: #FF5722;
+  
+  /* SVG фильтры */
+  --svg-filter-primary: invert(45%) sepia(96%) saturate(1429%) hue-rotate(346deg) brightness(101%) contrast(104%);
+  --svg-filter-text: invert(13%) sepia(0%) saturate(7%) hue-rotate(173deg) brightness(97%) contrast(91%);
+  --svg-filter-text-light: invert(36%) sepia(9%) saturate(10%) hue-rotate(20deg) brightness(97%) contrast(86%);
 }
 
+.dark-theme {
+  --primary-color: #C5757C;  
+  --primary-color-rgb: 197, 117, 124;
+  --primary-hover: #A1525F;
+  --text-color: #FFFFFF;     /* Pure white text for high contrast */
+  --text-light: #CCCCCC;     /* Light gray for secondary text */
+  --background-color: #121212; /* Very dark, almost black background */
+  --white-color: #FFFFFF;    
+  --secondary-color: #683A46; 
+  --header-footer-bg: #1E1E1E; /* Slightly lighter than background */
+  --border-color: #333333;   /* Dark gray borders */
+  --card-bg: #1E1E1E;        /* Slightly lighter than background */
+  --shadow-color: rgba(0, 0, 0, 0.5);
+  --input-bg: #1E1E1E;       
+  --input-border: #333333;   
+  --input-text: #FFFFFF;     
+  --login-button-bg: #C5757C;
+  --login-button-text: #FFFFFF;
+  --hover-bg: #2C2C2C;       /* Subtle hover state */
+  --menu-active: #C5757C;
+  --logo-color: #C5757C;
+  --link-color: #C5757C;     
+  --link-hover: #A1525F;     
+  --tile-bg: #1E1E1E;        
+  --accent-bg: #C5757C;      
+  
+  /* SVG фильтры */
+  --svg-filter-primary: invert(58%) sepia(15%) saturate(1046%) hue-rotate(307deg) brightness(92%) contrast(86%);
+  --svg-filter-text: invert(100%) sepia(0%) saturate(0%) hue-rotate(232deg) brightness(105%) contrast(101%);
+  --svg-filter-text-light: invert(89%) sepia(0%) saturate(0%) hue-rotate(147deg) brightness(99%) contrast(84%);
+}
+
+.blue-theme {
+  --primary-color: #42a5f5;  
+  --primary-color-rgb: 66, 165, 245;
+  --primary-hover: #64b5f6;  
+  --text-color: #c4e3ff;     
+  --text-light: #90caf9;     
+  --background-color: #0e2338; /* Slightly lighter background */
+  --white-color: #c4e3ff;    
+  --secondary-color: #3374ab;
+  --header-footer-bg: #13293e; /* Less contrast with background */
+  --border-color: #1d4d77;
+  --card-bg: #13293e;        /* Less contrast with background */
+  --shadow-color: rgba(0, 0, 0, 0.3);
+  --input-bg: #13293e;
+  --input-border: #1d4d77;
+  --input-text: #FFFFFF;     
+  --login-button-bg: #42a5f5;
+  --login-button-text: #c4e3ff;
+  --hover-bg: #1d4d77;
+  --menu-active: #42a5f5;
+  --logo-color: #42a5f5;
+  --link-color: #64b5f6;
+  --link-hover: #90caf9;
+  --tile-bg: #13293e;        
+  --accent-bg: #42a5f5;      
+  
+  /* SVG фильтры */
+  --svg-filter-primary: invert(67%) sepia(58%) saturate(5043%) hue-rotate(189deg) brightness(100%) contrast(95%);
+  --svg-filter-text: invert(87%) sepia(16%) saturate(1515%) hue-rotate(190deg) brightness(103%) contrast(103%);
+  --svg-filter-text-light: invert(67%) sepia(31%) saturate(764%) hue-rotate(188deg) brightness(103%) contrast(101%);
+}
+
+
 body {
-  font-family: 'Roboto', sans-serif;
+  font-family: 'Roboto', 'Montserrat', sans-serif;
   color: var(--text-color);
   background-color: var(--background-color);
   margin: 0;
   padding: 0;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 header, footer {
-  background-color: var(--white-color);
+  background-color: var(--header-footer-bg);
+  transition: background-color 0.3s ease;
+  border-color: var(--border-color);
+}
+
+/* Глобальные стили для всех компонентов */
+a {
+  color: var(--link-color);
+  transition: color 0.3s ease;
+  
+  &:hover {
+    color: var(--link-hover);
+  }
+}
+
+button {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+input, select, textarea {
+  background-color: var(--input-bg);
+  color: var(--input-text);
+  border-color: var(--input-border);
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+.card, .panel {
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  border-color: var(--border-color);
+  box-shadow: 0 2px 8px var(--shadow-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Дополнительные общие стили */
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+  
+  &:hover {
+    background-color: var(--primary-hover);
+  }
+}
+
+/* Анимации и переходы */
+.theme-transition {
+  transition: all 0.3s ease;
+}
+
+/* Стили для SVG иконок */
+.svg-icon {
+  fill: currentColor;
+}
+
+.svg-icon-primary {
+  filter: var(--svg-filter-primary);
+}
+
+.svg-icon-text {
+  filter: var(--svg-filter-text);
+}
+
+.svg-icon-light {
+  filter: var(--svg-filter-text-light);
+}
+
+/* Фиолетовая тема */
+.purple-theme {
+  --primary-color: #8A2BE2;
+  --secondary-color: #E6E6FA;
+  --text-color: #e1cae5;
+  --bg-color: #27063e;
+  --header-footer-bg: #5c347e;
+  --border-color: #8A2BE2;
+  --white-color: #e1cae5; /* Светло-фиолетовый вместо глубокого фиолетового */
+  --black-color: #000000;
+  --gray-color: #a890bb;
+  --light-gray-color: #7d5a9e;
+  --disabled-color: #63446a;
+  --error-color: #FF6B6B;
+  --success-color: #4CAF50;
+  --link-color: #bb86fc;
+
+  --card-bg: #5c347e;
+  --card-border: 1px solid #8A2BE2;
+  --card-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  --button-primary-bg: #8A2BE2;
+  --button-primary-text: #e1cae5;
+  --button-secondary-bg: #27063e;
+  --button-secondary-text: #8A2BE2;
+  --button-secondary-border: 1px solid #8A2BE2;
+  --input-bg: #5c347e;
+  --input-border: 1px solid #8A2BE2;
+  --input-focus-border: 1px solid #bb86fc;
+  --sidebar-bg: #27063e;
+  --login-button-text: #e1cae5; /* Светло-фиолетовый вместо белого */
+  --login-button-bg: #8A2BE2;
+  --login-button-border: none;
+  --login-register-button-bg: #27063e;
+  --login-register-button-border: #8A2BE2 1px solid;
+  --login-register-button-text: #8A2BE2;
+  --login-form-bg: #5c347e;
+  --login-form-border: 1px solid #8A2BE2;
+  --login-header-text: #e1cae5;
+  
+  /* SVG фильтры для фиолетовой темы */
+  --svg-filter-primary: invert(25%) sepia(97%) saturate(7471%) hue-rotate(271deg) brightness(89%) contrast(93%);
+  --svg-filter-text: invert(93%) sepia(9%) saturate(919%) hue-rotate(216deg) brightness(92%) contrast(88%);
+  --svg-filter-white: invert(93%) sepia(9%) saturate(919%) hue-rotate(216deg) brightness(92%) contrast(88%);
+}
+
+/* Синяя тема */
+.blue-theme {
+  --primary-color: #1E90FF;
+  --secondary-color: #E6F2FF;
+  --text-color: #c4e3ff; /* Светло-синий вместо белого */
+  --bg-color: #0a2642;
+  --header-footer-bg: #1a3c5e;
+  --border-color: #1E90FF;
+  --white-color: #c4e3ff; /* Светло-синий вместо синего */
+  --black-color: #000000;
+  --gray-color: #7d9cb7;
+  --light-gray-color: #3a617e;
+  --disabled-color: #335573;
+  --error-color: #FF6B6B;
+  --success-color: #4CAF50;
+  --link-color: #64b5f6;
+
+  --card-bg: #1a3c5e;
+  --card-border: 1px solid #1E90FF;
+  --card-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  --button-primary-bg: #1E90FF;
+  --button-primary-text: #c4e3ff;
+  --button-secondary-bg: #0a2642;
+  --button-secondary-text: #1E90FF;
+  --button-secondary-border: 1px solid #1E90FF;
+  --input-bg: #1a3c5e;
+  --input-border: 1px solid #1E90FF;
+  --input-focus-border: 1px solid #64b5f6;
+  --sidebar-bg: #0a2642;
+  --login-button-text: #c4e3ff; /* Светло-синий вместо белого */
+  --login-button-bg: #1E90FF;
+  --login-button-border: none;
+  --login-register-button-bg: #0a2642;
+  --login-register-button-border: #1E90FF 1px solid;
+  --login-register-button-text: #1E90FF;
+  --login-form-bg: #1a3c5e;
+  --login-form-border: 1px solid #1E90FF;
+  --login-header-text: #c4e3ff;
+  
+  /* SVG фильтры для синей темы */
+  --svg-filter-primary: invert(46%) sepia(76%) saturate(1891%) hue-rotate(193deg) brightness(98%) contrast(95%);
+  --svg-filter-text: invert(86%) sepia(18%) saturate(512%) hue-rotate(181deg) brightness(105%) contrast(101%);
+  --svg-filter-white: invert(86%) sepia(18%) saturate(512%) hue-rotate(181deg) brightness(105%) contrast(101%);
+}
+
+/* Стили для всплывающих сообщений */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+}
+
+.toast {
+  padding: 15px 20px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 300px;
+  max-width: 500px;
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast-success {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.toast-error {
+  background-color: #F44336;
+  color: white;
+}
+
+.toast-warning {
+  background-color: #FF9800;
+  color: white;
+}
+
+.toast-info {
+  background-color: #2196F3;
+  color: white;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  margin-left: 10px;
+}
+
+/* Общие стили для компонентов */
+.card {
+  background-color: var(--card-bg);
+  border: var(--card-border);
+  border-radius: 8px;
+  box-shadow: var(--card-shadow);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.btn {
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-primary {
+  background-color: var(--button-primary-bg);
+  color: var(--button-primary-text);
+  border: none;
+  
+  &:hover {
+    background-color: var(--primary-color);
+    opacity: 0.9;
+  }
+  
+  &:disabled {
+    background-color: var(--disabled-color);
+    cursor: not-allowed;
+  }
+}
+
+.btn-secondary {
+  background-color: var(--button-secondary-bg);
+  color: var(--button-secondary-text);
+  border: var(--button-secondary-border);
+  
+  &:hover {
+    background-color: var(--secondary-color);
+  }
+  
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 14px;
+  border-radius: 4px;
+  background-color: var(--input-bg);
+  border: var(--input-border);
+  color: var(--text-color);
+  
+  &:focus {
+    outline: none;
+    border: var(--input-focus-border);
+  }
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.home-tiles-items {
+  background-color: var(--card-bg) !important;
+}
+
+/* Стили для иконок VK/Google в форме авторизации */
+.auth-form .social-container .social .social-icon,
+.social-container .social .social-icon {
+  filter: var(--svg-filter-primary) !important;
+}
+
+/* Стили для иконок в подвале */
+.footer-social img {
+  filter: var(--svg-filter-text) !important;
+}
+
+/* Исправления для страницы order */
+.hospital-card .arrow-icon {
+  filter: var(--svg-filter-primary) !important;
+}
+
+/* Ссылки на странице order */
+.order-page a {
+  color: var(--primary-color) !important;
+}
+
+/* Заголовки на странице order */
+.order-page h2, .order-page h3 {
+  color: var(--text-color) !important;
+}
+
+/* Имя врача и кабинет на странице order */
+.doctor-name, .cabinet-number {
+  color: var(--text-color) !important;
+}
+
+/* New styles for purple and blue themes */
+body.purple-theme {
+  --primary-color: #9C27B0;
+  --secondary-color: #7B1FA2;
+  --background-color: #F3E5F5;
+  --header-footer-bg: #27063e;
+  --footer-bg: #27063e;
+  --text-color: #333333;
+  --text-header: #e1cae5;
+  --text-footer: #e1cae5;
+  --hover-color: #7B1FA2;
+  --border-color: rgba(156, 39, 176, 0.1);
+  --white-color: #FFFFFF;
+  --light-bg: #F3E5F5;
+  --card-bg: #FFFFFF;
+  --svg-filter-primary: invert(25%) sepia(82%) saturate(1936%) hue-rotate(260deg) brightness(85%) contrast(97%);
+  --svg-filter-text: invert(20%) sepia(0%) saturate(0%) hue-rotate(153deg) brightness(96%) contrast(92%);
+  --svg-filter-white: invert(88%) sepia(5%) saturate(1191%) hue-rotate(246deg) brightness(100%) contrast(89%);
+}
+
+body.blue-theme {
+  --primary-color: #2196F3;
+  --secondary-color: #1976D2;
+  --background-color: #E3F2FD;
+  --header-footer-bg: #0D47A1;
+  --footer-bg: #0D47A1;
+  --text-color: #333333;
+  --text-header: #CFE8FC;
+  --text-footer: #CFE8FC;
+  --hover-color: #1976D2;
+  --border-color: rgba(33, 150, 243, 0.1);
+  --white-color: #FFFFFF;
+  --light-bg: #E3F2FD;
+  --card-bg: #FFFFFF;
+  --svg-filter-primary: invert(50%) sepia(96%) saturate(1548%) hue-rotate(187deg) brightness(97%) contrast(96%);
+  --svg-filter-text: invert(20%) sepia(0%) saturate(0%) hue-rotate(153deg) brightness(96%) contrast(92%);
+  --svg-filter-white: invert(93%) sepia(20%) saturate(507%) hue-rotate(184deg) brightness(105%) contrast(100%);
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: 'Roboto', sans-serif;
+  color: var(--text-color);
+  background-color: var(--background-color);
+}
+
+a {
+  color: var(--primary-color);
+  text-decoration: none;
+  transition: color 0.3s ease;
+  
+  &:hover {
+    color: var(--hover-color);
+    text-decoration: none;
+  }
+}
+
+/* Buttons */
+.btn-primary {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  
+  &:hover {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+  }
+}
+
+.btn-outline-primary {
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+  
+  &:hover {
+    background-color: var(--primary-color);
+    color: white;
+  }
+}
+
+/* Cards */
+.card {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  background-color: var(--card-bg);
+  
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  }
+  
+  .card-title {
+    color: var(--primary-color);
+  }
+}
+
+/* Forms */
+.form-control {
+  border-color: var(--border-color);
+  
+  &:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(var(--primary-color-rgb), 0.25);
+  }
+}
+
+/* Badges */
+.badge-primary {
+  background-color: var(--primary-color);
+}
+
+/* Section backgrounds */
+.section-light {
+  background-color: var(--light-bg);
+  padding: 60px 0;
+}
+
+.section-dark {
+  background-color: var(--header-footer-bg);
+  color: var(--text-header);
+  padding: 60px 0;
+}
+
+/* Icons */
+.icon {
+  fill: var(--primary-color);
+  transition: fill 0.3s ease;
+  
+  &:hover {
+    fill: var(--secondary-color);
+  }
+}
+
+/* Login/registration form fix for all themes */
+.auth-form {
+  .form-control {
+    color: var(--text-color);
+    background-color: var(--background-color);
+  }
+  
+  .btn-social {
+    svg {
+      fill: var(--white-color);
+    }
+  }
+}
+
+/* Fix for home-tiles items */
+.home-tiles-item {
+  background-color: var(--card-bg);
+}
+
+/* Fix for order page */
+.order-page {
+  .hospital-card {
+    .arrow-icon,
+    &::after {
+      filter: var(--svg-filter-primary) !important;
+    }
+  }
+  
+  .doctor-info {
+    color: var(--text-color);
+    
+    .doctor-name, .doctor-office, h5, .cabinet, .speciality {
+      color: var(--text-color) !important;
+    }
+  }
+  
+  h2, h3, h4 {
+    color: var(--text-color) !important;
+  }
+  
+  ul li a {
+    color: var(--primary-color) !important;
+    
+    &:hover {
+      color: var(--secondary-color) !important;
+    }
+  }
+  
+  /* Make sure headings on order pages respect theme */
+  .order-title, .speciality-selection-title {
+    color: var(--text-header) !important;
+  }
+}
+
+/* Новая фиолетовая тема */
+.violet-theme {
+  --primary-color: #8D77A8;  
+  --primary-color-rgb: 141, 119, 168;
+  --primary-hover: #C4ADDD;
+  --text-color: #FFFFFF;     
+  --text-light: #D1C0EC;     
+  --background-color: #1B0E20; 
+  --white-color: #FFFFFF;    
+  --secondary-color: #44334A; 
+  --header-footer-bg: #44334A; 
+  --border-color: #333333;   
+  --card-bg: #44334A;        
+  --shadow-color: rgba(0, 0, 0, 0.5);
+  --input-bg: #44334A;       
+  --input-border: #5B4663;   
+  --input-text: #FFFFFF;     
+  --login-button-bg: #8D77A8;
+  --login-button-text: #FFFFFF;
+  --hover-bg: #35253D;       
+  --menu-active: #8D77A8;
+  --logo-color: #8D77A8;
+  --link-color: #C4ADDD;     
+  --link-hover: #D1C0EC;     
+  --tile-bg: #44334A;        
+  --accent-bg: #8D77A8;      
+  
+  /* SVG фильтры */
+  --svg-filter-primary: invert(62%) sepia(12%) saturate(1066%) hue-rotate(223deg) brightness(88%) contrast(87%);
+  --svg-filter-text: invert(100%) sepia(0%) saturate(0%) hue-rotate(232deg) brightness(105%) contrast(101%);
+  --svg-filter-text-light: invert(82%) sepia(12%) saturate(639%) hue-rotate(219deg) brightness(94%) contrast(92%);
+}
+
+/* Fix для иконок при наведении */
+.home-tile:hover .home-icon {
+  filter: brightness(1.1) var(--svg-filter-primary) !important;
+  background-color: transparent !important;
+}
+
+.home-tile:hover .home-icon.home-icon-accented {
+  background: var(--primary-hover) !important;
+}
+
+/* Добавление рамки для home-tile-fill */
+.home-tiles .home-tile.home-tile-fill {
+  border: 1px solid var(--border-color) !important;
+}
+
+/* Более конкретное исправление зеленых стрелок в hospital-selection */
+html body.dark-theme .hospital-selection .hospitals-list .hospital-card::after,
+html body.violet-theme .hospital-selection .hospitals-list .hospital-card::after,
+html body.blue-theme .hospital-selection .hospitals-list .hospital-card::after {
+  filter: var(--svg-filter-primary) !important;
+  color: var(--primary-color) !important;
+}
+
+html body.dark-theme .hospital-card .arrow-icon,
+html body.violet-theme .hospital-card .arrow-icon,
+html body.blue-theme .hospital-card .arrow-icon {
+  filter: var(--svg-filter-primary) !important;
+  color: var(--primary-color) !important;
+}
+
+/* Важно! Перекрываем все стрелки, которые могут использоваться */
+html body.dark-theme [class*="arrow"],
+html body.violet-theme [class*="arrow"],
+html body.blue-theme [class*="arrow"] {
+  filter: var(--svg-filter-primary) !important;
+  color: var(--primary-color) !important;
+}
+
+/* Исправление оранжевого текста в hospital-nav */
+.hospital-nav ul li a {
+  color: var(--primary-color) !important;
+}
+
+.hospital-nav ul li a:hover {
+  color: var(--primary-hover) !important;
+}
+
+/* Исправление текста "Заказ талона" и "Выбор специальности" */
+.order-title, 
+.order-page-title, 
+.speciality-selection-title,
+.spec-selection-title {
+  color: var(--text-color) !important;
+}
+
+.order-subtitle,
+.speciality-selection-subtitle {
+  color: var(--text-light) !important;
+}
+
+/* Более конкретное исправление текста для страниц order */
+html body.dark-theme .order-title,
+html body.dark-theme .order-page-title,
+html body.dark-theme .speciality-selection-title,
+html body.dark-theme .spec-selection-title,
+html body.dark-theme .order-page h1,
+html body.dark-theme .order-page h2,
+html body.dark-theme .order-page .order-step-title,
+html body.violet-theme .order-title,
+html body.violet-theme .order-page-title,
+html body.violet-theme .speciality-selection-title,
+html body.violet-theme .spec-selection-title,
+html body.violet-theme .order-page h1,
+html body.violet-theme .order-page h2,
+html body.violet-theme .order-page .order-step-title,
+html body.blue-theme .order-title,
+html body.blue-theme .order-page-title,
+html body.blue-theme .speciality-selection-title,
+html body.blue-theme .spec-selection-title,
+html body.blue-theme .order-page h1,
+html body.blue-theme .order-page h2,
+html body.blue-theme .order-page .order-step-title {
+  color: #FFFFFF !important;
+}
+
+html body.dark-theme .order-subtitle,
+html body.dark-theme .speciality-selection-subtitle,
+html body.dark-theme .order-page h3,
+html body.dark-theme .order-page .order-step-subtitle,
+html body.violet-theme .order-subtitle,
+html body.violet-theme .speciality-selection-subtitle,
+html body.violet-theme .order-page h3,
+html body.violet-theme .order-page .order-step-subtitle,
+html body.blue-theme .order-subtitle,
+html body.blue-theme .speciality-selection-subtitle,
+html body.blue-theme .order-page h3,
+html body.blue-theme .order-page .order-step-subtitle {
+  color: #CCCCCC !important;
+}
+
+/* Перекрываем все возможные классы с текстом на страницах order */
+html body.dark-theme [class*="order"] [class*="title"],
+html body.violet-theme [class*="order"] [class*="title"],
+html body.blue-theme [class*="order"] [class*="title"] {
+  color: #FFFFFF !important;
+}
+
+html body.dark-theme [class*="order"] [class*="subtitle"],
+html body.violet-theme [class*="order"] [class*="subtitle"],
+html body.blue-theme [class*="order"] [class*="subtitle"] {
+  color: #CCCCCC !important;
+}
+
+/* Исправления для мобильного меню */
+body.dark-theme .mobile-menu,
+body.violet-theme .mobile-menu,
+body.blue-theme .mobile-menu {
+  background-color: var(--header-footer-bg) !important;
+}
+
+body.dark-theme .mobile-menu nav ul li a,
+body.violet-theme .mobile-menu nav ul li a,
+body.blue-theme .mobile-menu nav ul li a {
+  color: var(--text-color) !important;
+}
+
+/* Дополнительные исправления для order страниц */
+body.dark-theme .order-container,
+body.violet-theme .order-container,
+body.blue-theme .order-container {
+  background-color: var(--background-color) !important;
+}
+
+body.dark-theme .order-step,
+body.violet-theme .order-step,
+body.blue-theme .order-step,
+body.dark-theme .hospital-card,
+body.violet-theme .hospital-card,
+body.blue-theme .hospital-card,
+body.dark-theme .doctor-card,
+body.violet-theme .doctor-card,
+body.blue-theme .doctor-card {
+  background-color: var(--card-bg) !important;
+  color: var(--text-color) !important;
+}
+
+/* Убедимся, что имена врачей и заголовки отображаются корректно */
+body.dark-theme .doctor-name,
+body.dark-theme .doctor-details h5,
+body.dark-theme .cabinet,
+body.violet-theme .doctor-name,
+body.violet-theme .doctor-details h5,
+body.violet-theme .cabinet,
+body.blue-theme .doctor-name,
+body.blue-theme .doctor-details h5,
+body.blue-theme .cabinet {
+  color: var(--text-color) !important;
+}
+
+/* Исправление иконок VK и Google на странице логина */
+.dark-theme .social-container .social .social-icon,
+.violet-theme .social-container .social .social-icon,
+.blue-theme .social-container .social .social-icon {
+  filter: var(--svg-filter-primary) !important;
+}
+
+/* Важно, чтобы svg в .container обходились в темных темах цвета */
+.dark-theme .container img.social-icon,
+.violet-theme .container img.social-icon,
+.blue-theme .container img.social-icon {
+  filter: var(--svg-filter-primary) !important;
+}
+
+/* Перекрываем любые случаи использования социальных иконок */
+.dark-theme img[src*="vk-icon.svg"], 
+.dark-theme img[src*="google-icon.svg"],
+.violet-theme img[src*="vk-icon.svg"], 
+.violet-theme img[src*="google-icon.svg"],
+.blue-theme img[src*="vk-icon.svg"], 
+.blue-theme img[src*="google-icon.svg"] {
+  filter: var(--svg-filter-primary) !important;
+}
+
+/* Исправление проблемы с иконками на home-tile-fill */
+.dark-theme .home-tile.home-tile-fill .home-icon,
+.violet-theme .home-tile.home-tile-fill .home-icon {
+  background-color: var(--primary-color) !important;
+}
+
+.dark-theme .home-tile.home-tile-fill:hover .home-icon,
+.violet-theme .home-tile.home-tile-fill:hover .home-icon {
+  background-color: var(--primary-hover) !important;
+}
+
+.dark-theme .home-tile .home-icon .site-icon,
+.violet-theme .home-tile .home-icon .site-icon {
+  filter: brightness(0) invert(1) !important;
+}
+
+/* Исправление border для home-tile-fill */
+.dark-theme .home-tiles .home-tile.home-tile-fill,
+.violet-theme .home-tiles .home-tile.home-tile-fill,
+.blue-theme .home-tiles .home-tile.home-tile-fill {
+  border: 1px solid var(--border-color) !important;
+}
+
+/* Более конкретное исправление оранжевого текста в hospital-nav */
+html body.dark-theme .hospital-nav ul li a,
+html body.violet-theme .hospital-nav ul li a,
+html body.blue-theme .hospital-nav ul li a {
+  color: var(--primary-color) !important;
+}
+
+html body.dark-theme .hospital-nav ul li a:hover,
+html body.violet-theme .hospital-nav ul li a:hover, 
+html body.blue-theme .hospital-nav ul li a:hover {
+  color: var(--primary-hover) !important;
+}
+
+/* Охватываем больше конкретных случаев */
+html body.dark-theme .order-page nav a,
+html body.violet-theme .order-page nav a,
+html body.blue-theme .order-page nav a {
+  color: var(--primary-color) !important;
+}
+
+html body.dark-theme .order-page nav a:hover,
+html body.violet-theme .order-page nav a:hover,
+html body.blue-theme .order-page nav a:hover {
+  color: var(--primary-hover) !important;
+}
+
+/* Исправления для всех тем - сделать селекторы более специфичными */
+
+/* 1. Исправление header в violet-theme */
+html body.violet-theme header {
+  background-color: #44334A !important;
+}
+
+html body.violet-theme .order-page header {
+  background-color: #3A2C40 !important;
+}
+
+/* 2. Исправление зеленого фона иконок при наведении */
+html body.dark-theme .home-tile:hover .home-icon,
+html body.violet-theme .home-tile:hover .home-icon {
+  background-color: transparent !important;
+}
+
+html body.dark-theme .home-tile:hover .home-icon.home-icon-accented,
+html body.violet-theme .home-tile:hover .home-icon.home-icon-accented {
+  background-color: var(--primary-hover) !important;
+}
+
+html body.dark-theme .home-tile .home-icon .site-icon,
+html body.violet-theme .home-tile .home-icon .site-icon {
+  filter: brightness(0) invert(1) !important;
+}
+
+/* Добавление рамки для home-tile-fill */
+html body.dark-theme .home-tiles .home-tile.home-tile-fill,
+html body.violet-theme .home-tiles .home-tile.home-tile-fill,
+html body.blue-theme .home-tiles .home-tile.home-tile-fill {
+  border: 1px solid var(--border-color) !important;
 }

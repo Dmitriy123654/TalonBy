@@ -37,20 +37,20 @@
 
               h5 {
                 font-size: 16px;
-                color: $text-color;
+                color: var(--text-color);
                 margin: 0;
                 font-weight: 500;
               }
 
               .speciality {
-                color: #666;
+                color: var(--text-light);
                 font-size: 14px;
                 margin: 0;
                 line-height: 1.2;
               }
 
               .cabinet {
-                color: #999;
+                color: var(--text-light);
                 font-size: 13px;
                 margin: 4px 0 0;
               }
@@ -59,8 +59,8 @@
 
           &:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            border-color: $primary-color;
+            box-shadow: 0 4px 8px var(--shadow-color);
+            border-color: var(--primary-color);
           }
         }
       }
