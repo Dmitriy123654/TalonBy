@@ -196,6 +196,15 @@ export class DatetimeSelectionComponent implements OnInit, OnDestroy {
       this.selectedDate = null;
     } else {
       this.selectedDate = new Date(day.year, day.month, day.date);
+      
+      // Добавляем прокрутку к слотам времени после небольшой задержки,
+      // чтобы дать время для отображения слотов
+      setTimeout(() => {
+        const timeSlotsRow = document.querySelector('.time-slots-row');
+        if (timeSlotsRow) {
+          timeSlotsRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 100);
     }
   }
 
