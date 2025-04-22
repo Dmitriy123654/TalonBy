@@ -17,9 +17,13 @@ namespace DAL
         {
             db = dbContext;
         }
+        
+        // Этот метод теперь возвращает первого пациента пользователя (для обратной совместимости)
         public Patient GetPatientByUserId(int userId)
         {
-            return db.Patients.FirstOrDefault(p => p.UserId == userId);
+            return db.Patients
+                .Include(p => p.User)
+                .FirstOrDefault(p => p.UserId == userId);
         }
 
         public Patient UpdatePatient(Patient patient)

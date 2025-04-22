@@ -24,10 +24,10 @@ namespace DAL
         }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<User>()
-                .HasOne(u => u.Patient)
-                .WithOne(p => p.User)
-                .HasForeignKey<Patient>(p => p.UserId);
+            modelBuilder.Entity<Patient>()
+                .HasOne(p => p.User)
+                .WithMany(u => u.Patients)
+                .HasForeignKey(p => p.UserId);
 
             modelBuilder.Entity<MedicalAppointment>()
                 .HasOne(ma => ma.Hospital)

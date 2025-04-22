@@ -50,6 +50,21 @@ namespace TalonBy.Controllers
             }
         }
 
+        [HttpGet("my-patients")]
+        public async Task<IActionResult> GetMyPatients()
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                var patients = await _patientService.GetPatientsByUserIdAsync(userId);
+                return Ok(patients);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
         [HttpGet]
         [Authorize(Roles = "Administrator,Doctor,ChiefDoctor")]
         public async Task<IActionResult> GetAllPatients()

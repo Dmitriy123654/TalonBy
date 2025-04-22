@@ -22,7 +22,9 @@ namespace DAL
 
         public async Task<User> GetByEmail(string email)
         {
-            return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            return await _context.Users
+                .Include(u => u.Patients)
+                .FirstOrDefaultAsync(u => u.Email == email);
         }
 
         public async Task Create(User user)
@@ -32,7 +34,9 @@ namespace DAL
         }
         public async Task<User> GetUserByIdAsync(int userId)
         {
-            return await _context.Users.FindAsync(userId);
+            return await _context.Users
+                .Include(u => u.Patients)
+                .FirstOrDefaultAsync(u => u.UserId == userId);
         }
 
         public async Task UpdateUserAsync(User user)
@@ -72,7 +76,9 @@ namespace DAL
         // Implement new CRUD operations
         public async Task<List<User>> GetAllUsersAsync()
         {
-            return await _context.Users.ToListAsync();
+            return await _context.Users
+                .Include(u => u.Patients)
+                .ToListAsync();
         }
 
         public async Task DeleteUserAsync(int userId)

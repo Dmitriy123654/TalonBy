@@ -121,14 +121,30 @@ namespace BLL.Services
 
         public async Task<Patient> CreatePatientAsync(PatientModel patientDto, int userId)
         {
+            var user = await _userRepository.GetUserByIdAsync(userId);
+            if (user == null)
+            {
+                throw new Exception($"Пользователь с идентификатором {userId} не найден");
+            }
+
             var patient = new Patient
             {
                 Name = patientDto.Name,
                 Gender = patientDto.Gender,
                 DateOfBirth = patientDto.DateOfBirth,
                 Address = patientDto.Address,
-                UserId = userId
+                UserId = userId,
+                User = user
             };
+
+            // Инициализация коллекции, если она null
+            if (user.Patients == null)
+            {
+                user.Patients = new List<Patient>();
+            }
+            
+            // Добавляем нового пациента в коллекцию пользователя
+            user.Patients.Add(patient);
 
             return await _userRepository.CreatePatientAsync(patient);
         }
