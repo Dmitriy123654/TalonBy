@@ -2,7 +2,7 @@
   <div class="container">
     <div class="profile-header">
       <h1 class="user-email">{{ currentUser.email }}</h1>
-      <a href="#" class="settings-link">Настройки аккаунта</a>
+      <a href="javascript:void(0)" class="settings-link" (click)="setActiveTab('settings')">Настройки аккаунта</a>
     </div>
 
     <div class="profile-tabs">
@@ -19,6 +19,9 @@
         <li class="tab" [class.active]="activeTab === 'analyses'" (click)="setActiveTab('analyses')">
           Анализы
         </li>
+        <li class="tab" [class.active]="activeTab === 'settings'" (click)="setActiveTab('settings')">
+          Настройки аккаунта
+        </li>
       </ul>
     </div>
 
@@ -26,52 +29,10 @@
       <!-- Пациенты tab content -->
       <div class="patients-section" *ngIf="activeTab === 'patients'">
         <div class="patients-grid">
-          <!-- Main user profile card -->
-          <div class="patient-card own-profile">
-            <div class="card-header">
-              <h2>Мой профиль</h2>
-            </div>
-            <div class="card-body">
-              <div class="profile-name">{{ currentUser.fullName }}</div>
-              <div class="profile-address">{{ currentUser.address }}</div>
-              <div class="profile-birthdate">{{ currentUser.birthDate }}</div>
-            </div>
-            <div class="card-actions">
-              <button class="action-btn edit" (click)="editProfile()">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                </svg>
-              </button>
-              <button class="action-btn delete" (click)="deleteProfile()">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="3 6 5 6 21 6"></polyline>
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                  <line x1="10" y1="11" x2="10" y2="17"></line>
-                  <line x1="14" y1="11" x2="14" y2="17"></line>
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          <!-- Add adult patient card -->
-          <div class="patient-card add-patient" (click)="addAdultPatient()">
-            <div class="add-patient-content">
-              <span class="add-patient-text">Добавить пациента (взрослый)</span>
-            </div>
-          </div>
-
-          <!-- Add child patient card -->
-          <div class="patient-card add-patient" (click)="addChildPatient()">
-            <div class="add-patient-content">
-              <span class="add-patient-text">Добавить пациента (дети)</span>
-            </div>
-          </div>
-
-          <!-- List of added patients would go here -->
+          <!-- List of added patients -->
           <div class="patient-card" *ngFor="let patient of currentUser.patients">
             <div class="card-header">
-              <h2>{{ patient.relationship }}</h2>
+              <h2>{{ patient.relationship === 'male' ? 'Мужской' : patient.relationship === 'female' ? 'Женский' : 'Пол не указан' }}</h2>
             </div>
             <div class="card-body">
               <div class="profile-name">{{ patient.fullName }}</div>
@@ -95,23 +56,157 @@
               </button>
             </div>
           </div>
+
+          <!-- Add patient cards (up to 6 - current patients) -->
+          <ng-container *ngIf="(currentUser?.patients?.length || 0) < 6">
+            <div class="patient-card add-patient" *ngFor="let i of getRemainingPatientsSlots()" (click)="addAdultPatient()">
+              <div class="add-patient-content">
+                <span class="add-patient-text">Добавить пациента</span>
+              </div>
+            </div>
+          </ng-container>
         </div>
       </div>
 
-      <!-- Other tabs content -->
+      <!-- Appointments tab content -->
       <div class="appointments-section" *ngIf="activeTab === 'appointments'">
         <h2>Ваши талоны</h2>
         <p *ngIf="true" class="empty-state">У вас пока нет талонов. Вы можете <a routerLink="/order">записаться на прием</a>.</p>
       </div>
 
+      <!-- Visits tab content -->
       <div class="visits-section" *ngIf="activeTab === 'visits'">
         <h2>Вызовы врача</h2>
         <p *ngIf="true" class="empty-state">У вас пока нет вызовов врача.</p>
       </div>
 
+      <!-- Analyses tab content -->
       <div class="analyses-section" *ngIf="activeTab === 'analyses'">
         <h2>Анализы</h2>
         <p *ngIf="true" class="empty-state">У вас пока нет анализов.</p>
+      </div>
+
+      <!-- Settings tab content -->
+      <div class="settings-section" *ngIf="activeTab === 'settings'">
+        <h2>Настройки аккаунта</h2>
+        <div class="settings-form">
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" [(ngModel)]="userSettings.email" class="form-control" required 
+                   pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$" 
+                   [class.is-invalid]="emailInvalid && isUserFormSubmitted">
+            <div class="error-feedback" *ngIf="emailInvalid && isUserFormSubmitted">
+              Введите корректный email
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="phone">Телефон</label>
+            <input type="tel" id="phone" [(ngModel)]="userSettings.phone" class="form-control" required 
+                   [mask]="'(00)000-00-00'"
+                   prefix="+375"
+                   [showMaskTyped]="true"
+                   [dropSpecialCharacters]="false"
+                   [clearIfNotMatch]="false"
+                   [class.is-invalid]="phoneInvalid && isUserFormSubmitted">
+            <div class="error-feedback" *ngIf="phoneInvalid && isUserFormSubmitted">
+              Формат: +375 (XX) XXX-XX-XX
+            </div>
+          </div>
+          
+          <div class="password-section">
+            <h3>Изменение пароля</h3>
+            <div class="form-group">
+              <label for="currentPassword">Текущий пароль</label>
+              <input type="password" id="currentPassword" [(ngModel)]="passwordChange.currentPassword" class="form-control"
+                     [class.is-invalid]="currentPasswordInvalid && isPasswordFormSubmitted">
+              <div class="error-feedback" *ngIf="currentPasswordInvalid && isPasswordFormSubmitted">
+                Введите текущий пароль
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="newPassword">Новый пароль</label>
+              <input type="password" id="newPassword" [(ngModel)]="passwordChange.newPassword" class="form-control"
+                     pattern="^(?=.*[A-Z])(?=.*\d)[A-Za-z\d!@#$%^&*()_+\-=\[\]{};:'&quot;,.<>/?\\|`~]*$" 
+                     [class.is-invalid]="newPasswordInvalid && isPasswordFormSubmitted">
+              <div class="error-feedback" *ngIf="newPasswordInvalid && isPasswordFormSubmitted">
+                Пароль должен содержать минимум 6 символов, хотя бы одну заглавную букву и цифру
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="confirmPassword">Подтверждение пароля</label>
+              <input type="password" id="confirmPassword" [(ngModel)]="passwordChange.confirmPassword" class="form-control"
+                     [class.is-invalid]="confirmPasswordInvalid && isPasswordFormSubmitted">
+              <div class="error-feedback" *ngIf="confirmPasswordInvalid && isPasswordFormSubmitted">
+                Пароли не совпадают
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn btn-primary" (click)="changePassword()">Изменить пароль</button>
+            </div>
+          </div>
+          
+          <div class="form-actions user-settings-actions">
+            <button type="button" class="btn btn-primary" (click)="saveUserSettings()">Сохранить настройки</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Edit Patient tab content -->
+      <div class="edit-patient-section" *ngIf="activeTab === 'editPatient'">
+        <div class="section-header">
+          <button class="back-button" (click)="setActiveTab('patients')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"></line>
+              <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            Назад к списку пациентов
+          </button>
+          <h2>Редактирование пациента</h2>
+        </div>
+        
+        <div class="patient-edit-form" *ngIf="editingPatient">
+          <div class="form-group">
+            <label for="patientFullName">ФИО</label>
+            <input type="text" id="patientFullName" [(ngModel)]="editingPatient.fullName" class="form-control" required 
+                   [class.is-invalid]="patientFullNameInvalid && isPatientFormSubmitted">
+            <div class="error-feedback" *ngIf="patientFullNameInvalid && isPatientFormSubmitted">
+              Введите ФИО пациента
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="patientRelationship">Пол</label>
+            <select id="patientRelationship" [(ngModel)]="editingPatient.relationship" class="form-control" required
+                    [class.is-invalid]="patientRelationshipInvalid && isPatientFormSubmitted">
+              <option value="">Выберите...</option>
+              <option value="male">Мужской</option>
+              <option value="female">Женский</option>
+            </select>
+            <div class="error-feedback" *ngIf="patientRelationshipInvalid && isPatientFormSubmitted">
+              Выберите пол пациента
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="patientBirthDate">Дата рождения</label>
+            <input type="date" id="patientBirthDate" [(ngModel)]="editingPatient.birthDate" class="form-control" required
+                   [max]="today" 
+                   [class.is-invalid]="patientBirthDateInvalid && isPatientFormSubmitted">
+            <div class="error-feedback" *ngIf="patientBirthDateInvalid && isPatientFormSubmitted">
+              Введите корректную дату рождения (не позднее сегодняшней)
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="patientAddress">Адрес</label>
+            <input type="text" id="patientAddress" [(ngModel)]="editingPatient.address" class="form-control">
+          </div>
+          
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" (click)="setActiveTab('patients')">Отмена</button>
+            <button type="button" class="btn btn-primary" (click)="savePatient()">Сохранить</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
