@@ -11,5 +11,10 @@ namespace Domain.Interfaces
     {
         Patient GetPatientByUserId(int userId);
         Patient UpdatePatient(Patient patient);
+        Task<List<Patient>> GetAllPatientsAsync();
+        Task<Patient> GetPatientByIdAsync(int patientId);
+        Task DeletePatientAsync(int patientId);
+        Task<bool> PatientExistsAsync(int patientId);
+        Task<List<Patient>> GetPatientsByUserIdAsync(int userId);
     }
 }

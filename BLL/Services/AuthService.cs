@@ -24,6 +24,10 @@ namespace BLL.Services
         Task<Result> VerifyEmail(string email, string code);
         Task<Result> ResendVerificationCode(string email);
         string GenerateVerificationCode();
+        Task<List<User>> GetAllUsersAsync();
+        Task DeleteUserAsync(int userId);
+        Task<bool> UserExistsAsync(int userId);
+        Task<User> UpdateUserProfileAsync(int userId, UpdateUserModel updateModel);
     }
 
     public class AuthService : IAuthService
@@ -247,6 +251,31 @@ namespace BLL.Services
             await _emailService.SendEmailAsync(email, subject, body);
 
             return new Result { Succeeded = true };
+        }
+
+        public async Task<List<User>> GetAllUsersAsync()
+        {
+            return await _userRepository.GetAllUsersAsync();
+        }
+
+        public async Task DeleteUserAsync(int userId)
+        {
+            await _userRepository.DeleteUserAsync(userId);
+        }
+
+        public async Task<bool> UserExistsAsync(int userId)
+        {
+            return await _userRepository.UserExistsAsync(userId);
+        }
+
+        public async Task<User> UpdateUserProfileAsync(int userId, UpdateUserModel updateModel)
+        {
+            if (!await _userRepository.UserExistsAsync(userId))
+            {
+                throw new Exception($"Пользователь с ID {userId} не найден");
+            }
+            
+            return await _userRepository.UpdateUserProfileAsync(userId, updateModel);
         }
     }
 }

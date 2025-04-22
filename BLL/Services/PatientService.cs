@@ -12,7 +12,14 @@ namespace BLL.Services
     public interface IPatientService
     {
         Patient UpdatePatient(int userId, PatientModel patientUpdateModel);
+        Task<List<Patient>> GetAllPatientsAsync();
+        Task<Patient> GetPatientByIdAsync(int patientId);
+        Task<Patient> GetPatientByUserIdAsync(int userId);
+        Task DeletePatientAsync(int patientId);
+        Task<bool> PatientExistsAsync(int patientId);
+        Task<List<Patient>> GetPatientsByUserIdAsync(int userId);
     }
+
     public class PatientService : IPatientService
     {
         private IPatientRepository patientRepository;
@@ -21,12 +28,13 @@ namespace BLL.Services
         {
             this.patientRepository = patientRepository;
         }
+
         public Patient UpdatePatient(int userId, PatientModel patientUpdateModel)
         {
             var patient = patientRepository.GetPatientByUserId(userId);
             if (patient == null)
             {
-                throw new Exception("Patient not found");
+                throw new Exception("Пациент не найден");
             }
 
             patient.Name = patientUpdateModel.Name;
@@ -35,6 +43,51 @@ namespace BLL.Services
             patient.Address = patientUpdateModel.Address;
 
             return patientRepository.UpdatePatient(patient);
+        }
+
+        public async Task<List<Patient>> GetAllPatientsAsync()
+        {
+            return await patientRepository.GetAllPatientsAsync();
+        }
+
+        public async Task<Patient> GetPatientByIdAsync(int patientId)
+        {
+            var patient = await patientRepository.GetPatientByIdAsync(patientId);
+            if (patient == null)
+            {
+                throw new Exception($"Пациент с ID {patientId} не найден");
+            }
+            return patient;
+        }
+
+        public async Task<Patient> GetPatientByUserIdAsync(int userId)
+        {
+            var patient = patientRepository.GetPatientByUserId(userId);
+            if (patient == null)
+            {
+                throw new Exception($"Пациент с ID пользователя {userId} не найден");
+            }
+            return patient;
+        }
+
+        public async Task DeletePatientAsync(int patientId)
+        {
+            var exists = await patientRepository.PatientExistsAsync(patientId);
+            if (!exists)
+            {
+                throw new Exception($"Пациент с ID {patientId} не найден");
+            }
+            await patientRepository.DeletePatientAsync(patientId);
+        }
+
+        public async Task<bool> PatientExistsAsync(int patientId)
+        {
+            return await patientRepository.PatientExistsAsync(patientId);
+        }
+
+        public async Task<List<Patient>> GetPatientsByUserIdAsync(int userId)
+        {
+            return await patientRepository.GetPatientsByUserIdAsync(userId);
         }
     }
 }

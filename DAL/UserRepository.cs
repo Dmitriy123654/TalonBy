@@ -1,5 +1,6 @@
 ﻿using Domain.Interfaces;
 using Domain.Models;
+using Domain.ViewModels;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -66,6 +67,50 @@ namespace DAL
             _context.Patients.Add(patient);
             await _context.SaveChangesAsync();
             return patient;
+        }
+
+        // Implement new CRUD operations
+        public async Task<List<User>> GetAllUsersAsync()
+        {
+            return await _context.Users.ToListAsync();
+        }
+
+        public async Task DeleteUserAsync(int userId)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user != null)
+            {
+                _context.Users.Remove(user);
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        public async Task<bool> UserExistsAsync(int userId)
+        {
+            return await _context.Users.AnyAsync(u => u.UserId == userId);
+        }
+
+        public async Task<User> UpdateUserProfileAsync(int userId, UpdateUserModel updateModel)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+            {
+                throw new Exception($"Пользователь с ID {userId} не найден");
+            }
+
+            // Update only the properties provided in the model
+            if (!string.IsNullOrEmpty(updateModel.Email))
+            {
+                user.Email = updateModel.Email;
+            }
+            if (!string.IsNullOrEmpty(updateModel.Phone))
+            {
+                user.Phone = updateModel.Phone;
+            }
+
+            _context.Users.Update(user);
+            await _context.SaveChangesAsync();
+            return user;
         }
     }
 }

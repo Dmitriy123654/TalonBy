@@ -76,7 +76,7 @@ namespace TalonBy.Controllers
             var userId = GetCurrentUserId();
             var user = await _authService.GetUserByIdAsync(userId);
             if (user == null)
-                return NotFound();
+                return NotFound("Пользователь не найден");
 
             user.Email = model.Email;
             user.Phone = model.Phone;
@@ -90,7 +90,7 @@ namespace TalonBy.Controllers
         public IActionResult Logout()
         {
             Response.Cookies.Delete("auth_token");
-            return Ok(new { message = "Logged out successfully" });
+            return Ok(new { message = "Выход выполнен успешно" });
         }
 
         [Authorize]
@@ -145,6 +145,111 @@ namespace TalonBy.Controllers
             // Получаем идентификатор текущего пользователя из JWT токена
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             return int.Parse(userId);
+        }
+
+        [HttpGet("users")]
+        [Authorize(Roles = "Administrator")]
+        public async Task<IActionResult> GetAllUsers()
+        {
+            try
+            {
+                var users = await _authService.GetAllUsersAsync();
+                return Ok(users);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("users/{id}")]
+        [Authorize(Roles = "Administrator")]
+        public async Task<IActionResult> GetUser(int id)
+        {
+            try
+            {
+                var user = await _authService.GetUserByIdAsync(id);
+                if (user == null)
+                {
+                    return NotFound($"Пользователь с ID {id} не найден");
+                }
+                return Ok(user);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPut("users/{id}")]
+        [Authorize(Roles = "Administrator")]
+        public async Task<IActionResult> UpdateUser(int id, [FromBody] UpdateUserModel updateModel)
+        {
+            try
+            {
+                var user = await _authService.UpdateUserProfileAsync(id, updateModel);
+                return Ok(user);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpDelete("users/{id}")]
+        [Authorize(Roles = "Administrator")]
+        public async Task<IActionResult> DeleteUser(int id)
+        {
+            try
+            {
+                if (!await _authService.UserExistsAsync(id))
+                {
+                    return NotFound($"Пользователь с ID {id} не найден");
+                }
+                
+                await _authService.DeleteUserAsync(id);
+                return Ok(new { message = "Пользователь успешно удален" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpGet("profile")]
+        [Authorize]
+        public async Task<IActionResult> GetCurrentUserProfile()
+        {
+            try
+            {
+                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+                var user = await _authService.GetUserByIdAsync(userId);
+                if (user == null)
+                {
+                    return NotFound("Пользователь не найден");
+                }
+                return Ok(user);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPut("profile")]
+        [Authorize]
+        public async Task<IActionResult> UpdateCurrentUserProfile([FromBody] UpdateUserModel updateModel)
+        {
+            try
+            {
+                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+                var user = await _authService.UpdateUserProfileAsync(userId, updateModel);
+                return Ok(user);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
     }
 

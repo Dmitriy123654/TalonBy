@@ -28,5 +28,42 @@ namespace DAL
             db.SaveChanges();
             return patient;
         }
+
+        public async Task<List<Patient>> GetAllPatientsAsync()
+        {
+            return await db.Patients
+                .Include(p => p.User)
+                .ToListAsync();
+        }
+
+        public async Task<Patient> GetPatientByIdAsync(int patientId)
+        {
+            return await db.Patients
+                .Include(p => p.User)
+                .FirstOrDefaultAsync(p => p.PatientId == patientId);
+        }
+
+        public async Task DeletePatientAsync(int patientId)
+        {
+            var patient = await db.Patients.FindAsync(patientId);
+            if (patient != null)
+            {
+                db.Patients.Remove(patient);
+                await db.SaveChangesAsync();
+            }
+        }
+
+        public async Task<bool> PatientExistsAsync(int patientId)
+        {
+            return await db.Patients.AnyAsync(p => p.PatientId == patientId);
+        }
+
+        public async Task<List<Patient>> GetPatientsByUserIdAsync(int userId)
+        {
+            return await db.Patients
+                .Include(p => p.User)
+                .Where(p => p.UserId == userId)
+                .ToListAsync();
+        }
     }
 }
