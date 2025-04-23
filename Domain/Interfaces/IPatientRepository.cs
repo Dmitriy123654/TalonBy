@@ -9,8 +9,9 @@ namespace Domain.Interfaces
 {
     public interface IPatientRepository
     {
-        Patient GetPatientByUserId(int userId);
-        Patient UpdatePatient(Patient patient);
+        Task<Patient> AddPatientAsync(Patient patient);
+        Task<Patient> GetPatientByUserIdAsync(int userId);
+        Task<Patient> UpdatePatientAsync(Patient patient);
         Task<List<Patient>> GetAllPatientsAsync();
         Task<Patient> GetPatientByIdAsync(int patientId);
         Task DeletePatientAsync(int patientId);

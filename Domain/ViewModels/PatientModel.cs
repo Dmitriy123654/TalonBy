@@ -8,6 +8,7 @@ namespace Domain.ViewModels
 {
     public class PatientModel
     {
+        public int PatientId { get; set; }
         public string Name { get; set; }
         public Gender Gender { get; set; }
         public DateTime DateOfBirth { get; set; }

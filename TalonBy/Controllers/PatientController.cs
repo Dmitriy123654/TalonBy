@@ -10,7 +10,7 @@ namespace TalonBy.Controllers
 {
     [Authorize]
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/patients")]
     public class PatientController : ControllerBase
     {
         private readonly IPatientService _patientService;
@@ -20,13 +20,39 @@ namespace TalonBy.Controllers
             _patientService = patientService;
         }
 
-        [HttpPut("UpdatePatient")]
-        public IActionResult UpdatePatient(PatientModel patientUpdateModel)
+        [HttpPost]
+        public async Task<IActionResult> AddPatient([FromBody] PatientModel patientModel)
         {
             try
             {
                 var userId = GetCurrentUserId();
-                var updatedPatient = _patientService.UpdatePatient(userId, patientUpdateModel);
+                var patient = await _patientService.AddPatientAsync(userId, patientModel);
+                return Ok(patient);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdatePatient(int id, [FromBody] PatientModel patientModel)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                
+                // Проверяем, принадлежит ли пациент текущему пользователю
+                var patients = await _patientService.GetPatientsByUserIdAsync(userId);
+                var patient = patients.FirstOrDefault(p => p.PatientId == id);
+                
+                if (patient == null)
+                {
+                    return NotFound("Пациент не найден или не принадлежит текущему пользователю");
+                }
+                
+                patientModel.PatientId = id;
+                var updatedPatient = await _patientService.UpdatePatientAsync(userId, patientModel);
                 return Ok(updatedPatient);
             }
             catch (Exception ex)
@@ -50,7 +76,7 @@ namespace TalonBy.Controllers
             }
         }
 
-        [HttpGet("my-patients")]
+        [HttpGet("my")]
         public async Task<IActionResult> GetMyPatients()
         {
             try
@@ -81,13 +107,29 @@ namespace TalonBy.Controllers
         }
 
         [HttpGet("{id}")]
-        [Authorize(Roles = "Administrator,Doctor,ChiefDoctor")]
         public async Task<IActionResult> GetPatient(int id)
         {
             try
             {
-                var patient = await _patientService.GetPatientByIdAsync(id);
-                return Ok(patient);
+                var userId = GetCurrentUserId();
+                
+                // Проверяем права доступа
+                var isAdmin = User.IsInRole("Administrator") || User.IsInRole("Doctor") || User.IsInRole("ChiefDoctor");
+                
+                // Если не администратор, проверяем принадлежность пациента
+                if (!isAdmin)
+                {
+                    var patients = await _patientService.GetPatientsByUserIdAsync(userId);
+                    var patient = patients.FirstOrDefault(p => p.PatientId == id);
+                    
+                    if (patient == null)
+                    {
+                        return NotFound("Пациент не найден или не принадлежит текущему пользователю");
+                    }
+                }
+                
+                var patientData = await _patientService.GetPatientByIdAsync(id);
+                return Ok(patientData);
             }
             catch (Exception ex)
             {
@@ -96,11 +138,26 @@ namespace TalonBy.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Administrator")]
         public async Task<IActionResult> DeletePatient(int id)
         {
             try
             {
+                // Проверяем права доступа
+                var isAdmin = User.IsInRole("Administrator");
+                var userId = GetCurrentUserId();
+                
+                // Если не администратор, проверяем принадлежность пациента
+                if (!isAdmin)
+                {
+                    var patients = await _patientService.GetPatientsByUserIdAsync(userId);
+                    var patient = patients.FirstOrDefault(p => p.PatientId == id);
+                    
+                    if (patient == null)
+                    {
+                        return NotFound("Пациент не найден или не принадлежит текущему пользователю");
+                    }
+                }
+                
                 await _patientService.DeletePatientAsync(id);
                 return Ok(new { message = "Пациент успешно удален" });
             }
@@ -130,6 +187,5 @@ namespace TalonBy.Controllers
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             return int.Parse(userId);
         }
-        // Методы контроллера будут добавлены здесь
     }
 }

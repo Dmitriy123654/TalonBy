@@ -18,18 +18,24 @@ namespace DAL
             db = dbContext;
         }
         
-        // Этот метод теперь возвращает первого пациента пользователя (для обратной совместимости)
-        public Patient GetPatientByUserId(int userId)
+        public async Task<Patient> AddPatientAsync(Patient patient)
         {
-            return db.Patients
+            await db.Patients.AddAsync(patient);
+            await db.SaveChangesAsync();
+            return patient;
+        }
+        
+        public async Task<Patient> GetPatientByUserIdAsync(int userId)
+        {
+            return await db.Patients
                 .Include(p => p.User)
-                .FirstOrDefault(p => p.UserId == userId);
+                .FirstOrDefaultAsync(p => p.UserId == userId);
         }
 
-        public Patient UpdatePatient(Patient patient)
+        public async Task<Patient> UpdatePatientAsync(Patient patient)
         {
             db.Patients.Update(patient);
-            db.SaveChanges();
+            await db.SaveChangesAsync();
             return patient;
         }
 
