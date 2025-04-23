@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject, of } from 'rxjs';
-import { tap, catchError } from 'rxjs/operators';
+import { tap, catchError, map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
-import { User, Patient, PatientType } from '../../shared/interfaces/user.interface';
+import { User, Patient } from '../../shared/interfaces/user.interface';
 
 @Injectable({
   providedIn: 'root',
@@ -12,117 +12,186 @@ export class UserService {
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser = this.currentUserSubject.asObservable();
   
-  // Mock data for development until backend is ready
-  private mockUser: User = {
-    userId: 1,
-    email: 'dimaermak06@gmail.com',
-    fullName: 'Ермак Дмитрий Сергеевич',
-    address: 'г. Минск, ул. Макаёнка 12а, корп. -, кв. 202',
-    birthDate: '10 ноября 2003 г.',
-    phone: '+375291234567',
-    patients: []
-  };
-  
   constructor(private http: HttpClient) {
-    // For development, initialize with mock data
-    this.currentUserSubject.next(this.mockUser);
+    // При инициализации попробуем получить данные пользователя
+    this.getUserProfile().subscribe({
+      error: (err) => console.error('Error loading initial user profile:', err)
+    });
   }
 
   getUserProfile(): Observable<User> {
-    // For development, return mock data
-    // In production, uncomment the HTTP request
-    
-    /*
-    return this.http.get<User>(
+    return this.http.get<any>(
       `${environment.apiUrl}/users/profile`,
       { withCredentials: true }
     ).pipe(
-      tap(user => {
+      map(response => {
+        // Преобразуем данные в формат фронтенда
+        const user: User = {
+          userId: response.userId,
+          email: response.email,
+          fullName: response.fullName || '',
+          phone: response.phone,
+          patients: Array.isArray(response.patients) ? response.patients.map((p: any) => ({
+            patientId: p.patientId,
+            fullName: p.name,
+            relationship: p.gender === 0 ? 'male' : 'female',
+            birthDate: new Date(p.dateOfBirth).toISOString().split('T')[0],
+            isAdult: true,
+            address: p.address
+          })) : []
+        };
         this.currentUserSubject.next(user);
+        return user;
       }),
       catchError(error => {
         console.error('Error fetching user profile:', error);
-        return of(null);
+        return of(this.currentUserSubject.value || {} as User);
       })
     );
-    */
-    
-    return of(this.mockUser);
   }
   
   updateUserProfile(userData: Partial<User>): Observable<User> {
-    // For development, update mock data
-    this.mockUser = { ...this.mockUser, ...userData };
-    this.currentUserSubject.next(this.mockUser);
-    
-    /*
-    return this.http.put<User>(
+    return this.http.put<any>(
       `${environment.apiUrl}/users/profile`,
       userData,
       { withCredentials: true }
     ).pipe(
-      tap(user => {
+      map(response => {
+        // Преобразуем данные в формат фронтенда
+        const user: User = {
+          userId: response.userId,
+          email: response.email,
+          fullName: response.fullName || '',
+          phone: response.phone,
+          patients: Array.isArray(response.patients) ? response.patients.map((p: any) => ({
+            patientId: p.patientId,
+            fullName: p.name,
+            relationship: p.gender === 0 ? 'male' : 'female',
+            birthDate: new Date(p.dateOfBirth).toISOString().split('T')[0],
+            isAdult: true,
+            address: p.address
+          })) : []
+        };
+        
         this.currentUserSubject.next(user);
+        return user;
+      }),
+      catchError(error => {
+        console.error('Error updating user profile:', error);
+        return of(this.currentUserSubject.value || {} as User);
       })
     );
-    */
-    
-    return of(this.mockUser);
   }
   
+  changePassword(currentPassword: string, newPassword: string): Observable<any> {
+    return this.http.post(
+      `${environment.apiUrl}/auth/change-password`,
+      { currentPassword, newPassword },
+      { withCredentials: true }
+    );
+  }
+  
+  // Методы для работы с пациентами
   addPatient(patient: Omit<Patient, 'patientId'>): Observable<Patient> {
-    // For development, add to mock data
-    const newPatient: Patient = {
-      ...patient,
-      patientId: Date.now() // Generate unique ID for development
+    // Сопоставляем поля нашей модели с моделью сервера
+    const serverPatient = {
+      name: patient.fullName,
+      gender: patient.relationship === 'male' ? 0 : 1, // В enum Gender: 0 - Male, 1 - Female
+      dateOfBirth: new Date(patient.birthDate), // Преобразуем строку в дату
+      address: patient.address || '',
     };
     
-    this.mockUser.patients = [...(this.mockUser.patients || []), newPatient];
-    this.currentUserSubject.next(this.mockUser);
-    
-    /*
-    return this.http.post<Patient>(
-      `${environment.apiUrl}/users/patients`,
-      patient,
+    return this.http.post<any>(
+      `${environment.apiUrl}/patients`,
+      serverPatient,
       { withCredentials: true }
     ).pipe(
-      tap(newPatient => {
+      map(response => {
+        // Преобразуем ответ сервера в нашу модель
+        const newPatient: Patient = {
+          patientId: response.patientId,
+          fullName: response.name,
+          relationship: response.gender === 0 ? 'male' : 'female',
+          birthDate: new Date(response.dateOfBirth).toISOString().split('T')[0],
+          isAdult: true,
+          address: response.address
+        };
+        
+        // Обновляем состояние
         const currentUser = this.currentUserSubject.value;
         if (currentUser) {
-          currentUser.patients = [...(currentUser.patients || []), newPatient];
-          this.currentUserSubject.next(currentUser);
+          const updatedPatients = [...(currentUser.patients || []), newPatient];
+          this.currentUserSubject.next({
+            ...currentUser,
+            patients: updatedPatients
+          });
         }
+        
+        return newPatient;
       })
     );
-    */
+  }
+  
+  updatePatient(patientId: number, patientData: Partial<Patient>): Observable<Patient> {
+    // Сопоставляем поля нашей модели с моделью сервера
+    const serverPatient = {
+      patientId: patientId,
+      name: patientData.fullName,
+      gender: patientData.relationship === 'male' ? 0 : 1,
+      dateOfBirth: patientData.birthDate ? new Date(patientData.birthDate) : undefined,
+      address: patientData.address
+    };
     
-    return of(newPatient);
+    return this.http.put<any>(
+      `${environment.apiUrl}/patients/${patientId}`,
+      serverPatient,
+      { withCredentials: true }
+    ).pipe(
+      map(response => {
+        // Преобразуем ответ сервера в нашу модель
+        const updatedPatient: Patient = {
+          patientId: response.patientId,
+          fullName: response.name,
+          relationship: response.gender === 0 ? 'male' : 'female',
+          birthDate: new Date(response.dateOfBirth).toISOString().split('T')[0],
+          isAdult: true,
+          address: response.address
+        };
+        
+        // Обновляем состояние
+        const currentUser = this.currentUserSubject.value;
+        if (currentUser && currentUser.patients) {
+          const updatedPatients = currentUser.patients.map(p => 
+            p.patientId === patientId ? updatedPatient : p
+          );
+          this.currentUserSubject.next({
+            ...currentUser,
+            patients: updatedPatients
+          });
+        }
+        
+        return updatedPatient;
+      })
+    );
   }
   
   deletePatient(patientId: number): Observable<boolean> {
-    // For development, remove from mock data
-    if (this.mockUser.patients) {
-      this.mockUser.patients = this.mockUser.patients.filter(p => p.patientId !== patientId);
-      this.currentUserSubject.next(this.mockUser);
-    }
-    
-    /*
     return this.http.delete<void>(
-      `${environment.apiUrl}/users/patients/${patientId}`,
+      `${environment.apiUrl}/patients/${patientId}`,
       { withCredentials: true }
     ).pipe(
-      tap(() => {
+      map(() => {
         const currentUser = this.currentUserSubject.value;
         if (currentUser && currentUser.patients) {
-          currentUser.patients = currentUser.patients.filter(p => p.patientId !== patientId);
-          this.currentUserSubject.next(currentUser);
+          const updatedPatients = currentUser.patients.filter(p => p.patientId !== patientId);
+          this.currentUserSubject.next({
+            ...currentUser,
+            patients: updatedPatients
+          });
         }
+        return true;
       }),
-      map(() => true),
       catchError(() => of(false))
     );
-    */
-    
-    return of(true);
   }
 } 

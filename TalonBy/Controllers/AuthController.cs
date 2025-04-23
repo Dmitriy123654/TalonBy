@@ -11,6 +11,7 @@ using System.Linq;
 using Microsoft.Extensions.Logging;
 using Domain.Models;
 using Microsoft.AspNetCore.Http;
+using BCrypt.Net;
 
 namespace TalonBy.Controllers
 {
@@ -245,6 +246,38 @@ namespace TalonBy.Controllers
                 var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
                 var user = await _authService.UpdateUserProfileAsync(userId, updateModel);
                 return Ok(user);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPost("change-password")]
+        [Authorize]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordModel model)
+        {
+            try
+            {
+                int userId = GetCurrentUserId();
+                var user = await _authService.GetUserByIdAsync(userId);
+                
+                if (user == null)
+                {
+                    return NotFound("Пользователь не найден");
+                }
+                
+                // Проверка текущего пароля
+                if (!BCrypt.Net.BCrypt.Verify(model.CurrentPassword, user.Password))
+                {
+                    return BadRequest("Текущий пароль неверен");
+                }
+                
+                // Обновление пароля
+                user.Password = BCrypt.Net.BCrypt.HashPassword(model.NewPassword);
+                await _authService.UpdateUserAsync(user);
+                
+                return Ok(new { message = "Пароль успешно изменен" });
             }
             catch (Exception ex)
             {
