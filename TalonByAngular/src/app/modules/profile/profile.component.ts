@@ -1,7 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { UserService } from '../../core/services/user.service';
 import { AuthService } from '../../core/services/auth.service';
-import { User, Patient, PatientType } from '../../shared/interfaces/user.interface';
+import { User, Patient } from '../../shared/interfaces/user.interface';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-profile',
@@ -13,6 +14,7 @@ export class ProfileComponent implements OnInit {
   activeTab: string = 'patients';
   showEditForm: boolean = false;
   editingPatient: Patient | null = null;
+  isLoading: boolean = true;
   
   // Текущая дата для ограничения выбора даты рождения
   today: string = new Date().toISOString().split('T')[0];
@@ -37,7 +39,8 @@ export class ProfileComponent implements OnInit {
   
   constructor(
     private userService: UserService,
-    private authService: AuthService
+    private authService: AuthService,
+    private router: Router
   ) { }
 
   ngOnInit(): void {
@@ -45,18 +48,25 @@ export class ProfileComponent implements OnInit {
   }
 
   loadUserProfile(): void {
+    this.isLoading = true;
     this.userService.getUserProfile().subscribe({
       next: (user) => {
-        this.currentUser = user;
-        if (!this.currentUser.patients) {
-          this.currentUser.patients = [];
-        }
+        // Если пациенты не существуют, инициализируем пустым массивом
+        this.currentUser = {
+          ...user,
+          patients: user.patients || []
+        };
+        
         // Инициализация настроек пользователя
         this.userSettings.email = this.currentUser.email;
         this.userSettings.phone = this.currentUser.phone || '';
+        this.isLoading = false;
+        
+        console.log('Loaded user profile:', this.currentUser); // Для отладки
       },
       error: (error) => {
         console.error('Error loading user profile:', error);
+        this.isLoading = false;
       }
     });
   }
@@ -103,14 +113,17 @@ export class ProfileComponent implements OnInit {
         next: (success) => {
           if (success) {
             console.log(`Patient with ID ${patientId} deleted successfully`);
-            // Refresh the user profile
+            // Загружаем обновленные данные с сервера
             this.loadUserProfile();
           } else {
             console.error(`Failed to delete patient with ID ${patientId}`);
+            // Обновляем профиль, чтобы получить актуальные данные с сервера
+            this.loadUserProfile();
           }
         },
         error: (error) => {
           console.error('Error deleting patient:', error);
+          this.loadUserProfile();
         }
       });
     }
@@ -151,31 +164,43 @@ export class ProfileComponent implements OnInit {
         relationship: this.editingPatient.relationship,
         birthDate: this.editingPatient.birthDate,
         isAdult: this.editingPatient.isAdult,
-        address: this.editingPatient.address
+        address: this.editingPatient.address || ''
       };
       
       this.userService.addPatient(newPatient).subscribe({
         next: (patient) => {
           console.log('Patient added successfully:', patient);
+          // Загружаем обновленные данные с сервера
           this.loadUserProfile();
           this.setActiveTab('patients');
         },
         error: (error) => {
           console.error('Error adding patient:', error);
+          alert('Ошибка при добавлении пациента. Пожалуйста, попробуйте еще раз.');
         }
       });
     } else {
       // Обновление существующего пациента
-      // Здесь должен быть вызов API для обновления пациента
-      // Пока просто обновим в локальном массиве
-      if (this.currentUser && this.currentUser.patients) {
-        const index = this.currentUser.patients.findIndex(p => p.patientId === this.editingPatient!.patientId);
-        if (index !== -1) {
-          this.currentUser.patients[index] = { ...this.editingPatient };
-          // В реальном приложении здесь должен быть вызов API для сохранения изменений
+      const patientData: Partial<Patient> = {
+        fullName: this.editingPatient.fullName,
+        relationship: this.editingPatient.relationship,
+        birthDate: this.editingPatient.birthDate,
+        isAdult: this.editingPatient.isAdult,
+        address: this.editingPatient.address
+      };
+      
+      this.userService.updatePatient(this.editingPatient.patientId, patientData).subscribe({
+        next: (patient) => {
+          console.log('Patient updated successfully:', patient);
+          // Загружаем обновленные данные с сервера
+          this.loadUserProfile();
           this.setActiveTab('patients');
+        },
+        error: (error) => {
+          console.error('Error updating patient:', error);
+          alert('Ошибка при обновлении пациента. Пожалуйста, попробуйте еще раз.');
         }
-      }
+      });
     }
   }
   
@@ -229,7 +254,7 @@ export class ProfileComponent implements OnInit {
         },
         error: (error) => {
           console.error('Error updating user settings:', error);
-          alert('Ошибка при сохранении настроек');
+          alert('Ошибка при сохранении настроек. Пожалуйста, попробуйте еще раз.');
         }
       });
     }
@@ -244,17 +269,26 @@ export class ProfileComponent implements OnInit {
       return;
     }
     
-    // Здесь должен быть вызов API для изменения пароля
-    console.log('Change password:', this.passwordChange);
-    alert('Пароль успешно изменен');
-    
-    // Сбрасываем поля формы
-    this.passwordChange = {
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: ''
-    };
-    this.isPasswordFormSubmitted = false;
+    this.userService.changePassword(
+      this.passwordChange.currentPassword,
+      this.passwordChange.newPassword
+    ).subscribe({
+      next: () => {
+        alert('Пароль успешно изменен');
+        
+        // Сбрасываем поля формы
+        this.passwordChange = {
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        };
+        this.isPasswordFormSubmitted = false;
+      },
+      error: (error) => {
+        console.error('Error changing password:', error);
+        alert('Ошибка при изменении пароля. Пожалуйста, проверьте текущий пароль и попробуйте еще раз.');
+      }
+    });
   }
   
   // Валидация формы пользователя
@@ -290,7 +324,7 @@ export class ProfileComponent implements OnInit {
   }
   
   get newPasswordInvalid(): boolean {
-    const passwordRegex = /^(?=.*[A-Z])(?=.*\d)[A-Za-z\d!@#$%^&*()_+\-=\[\]{};:'",.<>/?\\|`~]*$/;
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[0-9]).*$/;
     return !this.passwordChange.newPassword || 
            this.passwordChange.newPassword.length < 6 ||
            !passwordRegex.test(this.passwordChange.newPassword);
@@ -308,5 +342,20 @@ export class ProfileComponent implements OnInit {
     
     const remainingSlots = 6 - this.currentUser.patients.length;
     return remainingSlots > 0 ? Array(remainingSlots).fill(0).map((x, i) => i) : [];
+  }
+
+  logout(): void {
+    if (confirm('Вы уверены, что хотите выйти?')) {
+      this.authService.logout().subscribe({
+        next: () => {
+          this.router.navigate(['/']);
+        },
+        error: (error) => {
+          console.error('Error during logout:', error);
+          // Navigate anyway, even if there was an error
+          this.router.navigate(['/']);
+        }
+      });
+    }
   }
 } 
