@@ -138,11 +138,11 @@ export class UserService {
               if (refreshResponse.refreshToken) {
                 localStorage.setItem('talonby_refreshToken', refreshResponse.refreshToken);
               }
-            }
-            
+        }
+        
             // Now force refresh the user profile with new token data
             return this.getUserProfile(true);
-          }),
+      }),
           catchError(() => {
             // Even if token refresh fails, try to get updated profile
             return this.getUserProfile(true);

@@ -12,9 +12,22 @@
     </div>
   </div>
 
+  <!-- Выбор больницы (только для администраторов) -->
+  <div class="selection-row" *ngIf="userRole === 'Administrator'">
+    <div class="hospital-selection">
+      <h3>Выберите больницу</h3>
+      <select [(ngModel)]="selectedHospitalId" (change)="onHospitalChange(selectedHospitalId)">
+        <option *ngFor="let hospital of hospitals" [value]="hospital.id">
+          {{ hospital.name }}
+        </option>
+      </select>
+    </div>
+  </div>
+
   <!-- Выбор врача и периода -->
   <div class="selection-row">
-    <div class="doctor-selection">
+    <!-- Выбор врача (только для администраторов и главврачей) -->
+    <div class="doctor-selection" *ngIf="userRole === 'Administrator' || userRole === 'ChiefDoctor'">
       <h3>Выберите врача</h3>
       <select [(ngModel)]="selectedDoctorId" (change)="onDoctorChange(selectedDoctorId)">
         <option *ngFor="let doctor of doctors" [value]="doctor.id">
@@ -33,6 +46,7 @@
             id="startDate" 
             [(ngModel)]="startDate" 
             (change)="onPeriodChange()"
+            [min]="startDate"
           >
         </div>
         <div class="date-input">
@@ -42,7 +56,10 @@
             id="endDate" 
             [(ngModel)]="endDate" 
             (change)="onPeriodChange()"
+            [min]="startDate"
+            [max]="maxEndDate"
           >
+          <div class="date-hint">Не более 3 месяцев от текущей даты</div>
         </div>
       </div>
     </div>
@@ -84,24 +101,47 @@
             id="slotDuration" 
             formControlName="slotDuration"
             min="5" 
-            max="120"
+            max="60"
           >
           <div *ngIf="settingsForm.controls['slotDuration'].invalid && settingsForm.controls['slotDuration'].touched" class="error">
-            Длительность должна быть от 5 до 120 минут
+            Длительность должна быть от 5 до 60 минут
           </div>
         </div>
 
         <div class="form-group">
           <label for="breakDuration">Перерыв между приемами (мин):</label>
-          <input 
-            type="number" 
+          <select 
             id="breakDuration" 
             formControlName="breakDuration"
-            min="0" 
-            max="60"
           >
+            <option *ngFor="let duration of breakOptions" [value]="duration">{{ duration }}</option>
+          </select>
           <div *ngIf="settingsForm.controls['breakDuration'].invalid && settingsForm.controls['breakDuration'].touched" class="error">
-            Перерыв должен быть от 0 до 60 минут
+            Выберите значение из списка
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="lunchStart">Начало обеденного перерыва:</label>
+          <input 
+            type="time" 
+            id="lunchStart" 
+            formControlName="lunchStart"
+          >
+          <div *ngIf="settingsForm.controls['lunchStart'].invalid && settingsForm.controls['lunchStart'].touched" class="error">
+            Укажите корректное время
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="lunchEnd">Конец обеденного перерыва:</label>
+          <input 
+            type="time" 
+            id="lunchEnd" 
+            formControlName="lunchEnd"
+          >
+          <div *ngIf="settingsForm.controls['lunchEnd'].invalid && settingsForm.controls['lunchEnd'].touched" class="error">
+            Укажите корректное время
           </div>
         </div>
       </div>
@@ -118,6 +158,13 @@
         </div>
       </div>
 
+      <div class="auto-generate-section">
+        <label class="auto-generate-checkbox">
+          <input type="checkbox" [(ngModel)]="autoGenerateEnabled" [ngModelOptions]="{standalone: true}">
+          <span class="checkbox-text">Генерировать автоматически</span>
+        </label>
+      </div>
+
       <div class="action-buttons">
         <button type="submit" class="btn btn-primary" [disabled]="settingsForm.invalid || isLoading">
           <i class="icon-save"></i> Сохранить настройки
@@ -129,42 +176,68 @@
     </form>
   </div>
 
-  <!-- Отображение текущего расписания -->
-  <div class="schedule-display" *ngIf="currentSchedule">
-    <h3>Расписание: {{ currentSchedule.doctorName }} ({{ currentSchedule.specialization }})</h3>
+  <!-- Отображение текущего расписания в виде календаря -->
+  <div class="schedule-display">
+    <div class="schedule-header">
+      <h3 *ngIf="currentSchedule">Расписание: {{ currentSchedule.doctorName }} ({{ currentSchedule.specialization }})</h3>
+      <h3 *ngIf="!currentSchedule">Календарь</h3>
+      
+      <div class="schedule-actions" *ngIf="currentSchedule">
+        <button class="btn btn-secondary" (click)="editSchedule()">
+          <i class="icon-edit"></i> Изменить расписание
+        </button>
+      </div>
+    </div>
 
-    <div class="schedule-container">
-      <div *ngIf="getSortedDates().length === 0" class="empty-schedule">
-        <p>Нет доступных дат для выбранного периода.</p>
+    <div class="calendar-wrapper">
+      <div class="calendar-header">
+        <button class="month-nav" (click)="prevMonth()" [disabled]="!canGoToPrevMonth()">&lt;</button>
+        <h3>{{ getMonthName(currentMonth) }} {{ currentMonth.getFullYear() }}</h3>
+        <button class="month-nav" (click)="nextMonth()" [disabled]="!canGoToNextMonth()">&gt;</button>
       </div>
 
-      <div *ngFor="let date of getSortedDates()" class="schedule-day">
-        <div class="day-header">
-          <h4>{{ formatDisplayDate(date) }}</h4>
-          <span class="day-of-week">{{ getDayOfWeek(date) }}</span>
+      <div class="calendar">
+        <div class="weekdays">
+          <div class="weekday" *ngFor="let day of calendarWeekDays">{{ day }}</div>
         </div>
+        
+        <div class="calendar-grid">
+          <div class="week" *ngFor="let week of calendarDays">
+            <div class="day" *ngFor="let day of week" 
+                 [class.weekend]="day.isWeekend"
+                 [class.disabled]="day.isDisabled"
+                 [class.today]="day.isToday"
+                 [class.selected]="selectedCalendarDate && day.date === selectedCalendarDate.getDate() && 
+                                day.month === selectedCalendarDate.getMonth() && 
+                                day.year === selectedCalendarDate.getFullYear()"
+                 (click)="selectCalendarDate(day)">
+              <div class="day-content">
+                <span class="date">{{ day.date || '' }}</span>
+                <span class="slots" *ngIf="day.date && !day.isDisabled && day.availableSlots > 0">
+                  {{ day.availableSlots }}
+                </span>
+              </div>
+            </div>
+          </div>
 
-        <div class="time-slots">
-          <div *ngFor="let slot of currentSchedule.schedule[date]" 
-               class="time-slot" 
-               [class.available]="slot.isAvailable"
-               [class.unavailable]="!slot.isAvailable">
-            <span class="time">{{ slot.time }}</span>
-            <div class="status-controls">
-              <button 
-                [class.active]="slot.isAvailable" 
-                (click)="updateSlotAvailability(slot, true)"
-                title="Сделать доступным"
-                [disabled]="isLoading || slot.isAvailable">
-                <i class="icon-check"></i>
-              </button>
-              <button 
-                [class.active]="!slot.isAvailable" 
-                (click)="updateSlotAvailability(slot, false)"
-                title="Сделать недоступным"
-                [disabled]="isLoading || !slot.isAvailable">
-                <i class="icon-close"></i>
-              </button>
+          <div class="time-slots-row" *ngIf="selectedCalendarDate && selectedDaySlots.length > 0">
+            <div class="selected-date">
+              {{ formatSelectedDate(selectedCalendarDate) }}, {{ getDayOfWeekForDate(selectedCalendarDate) }}
+            </div>
+            
+            <div class="slot-status-legend">
+              <div class="status-item available">Доступно</div>
+              <div class="status-item unavailable">Занято</div>
+            </div>
+            
+            <div class="time-slots">
+              <div *ngFor="let slot of selectedDaySlots" 
+                   class="time-slot" 
+                   [class.available]="slot.isAvailable"
+                   [class.unavailable]="!slot.isAvailable"
+                   (click)="updateSlotAvailability(slot, !slot.isAvailable)">
+                {{ slot.time }}
+              </div>
             </div>
           </div>
         </div>
