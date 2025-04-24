@@ -40,6 +40,18 @@
     }
   }
   
+  .admin-settings-link {
+    position: relative;
+    
+    &:before {
+      content: "•";
+      position: absolute;
+      left: -10px;
+      top: 0;
+      color: var(--primary-color);
+    }
+  }
+  
   .logout-link {
     color: #e25c5c;
   }

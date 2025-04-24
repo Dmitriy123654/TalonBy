@@ -102,14 +102,23 @@ export class LoginComponent implements OnInit, OnDestroy {
   onLogin() {
     if (this.loginForm.valid) {
       this.isLoading = true;
+      this.errorMessage = ''; // Очищаем сообщение об ошибке
       const { email, password } = this.loginForm.value;
       
+      console.log('Trying to login user:', email);
+      
       this.authService.login(email, password).subscribe({
-        next: () => {
+        next: (response) => {
+          console.log('Login successful');
+          // Получаем URL для перенаправления или переходим на главную
           const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/main';
-          this.router.navigate([returnUrl]);
+          // Небольшая задержка, чтобы успели применится изменения состояния
+          setTimeout(() => {
+            this.router.navigate([returnUrl]);
+          }, 100);
         },
         error: (error) => {
+          console.error('Login error:', error);
           this.errorMessage = this.getServerErrorMessage(error);
           this.isLoading = false;
         },
@@ -118,6 +127,7 @@ export class LoginComponent implements OnInit, OnDestroy {
         }
       });
     } else {
+      // Если форма невалидна, отмечаем все поля как "тронутые"
       this.markFormGroupTouched(this.loginForm);
     }
   }
@@ -252,10 +262,22 @@ export class LoginComponent implements OnInit, OnDestroy {
         next: () => {
           this.showVerification = false;
           this.isRightPanelActive = false;
+          // Заполняем поле email в форме входа
           this.loginForm.patchValue({ email: this.verificationContact });
+          this.loginForm.get('password')?.setErrors(null); // Сбрасываем ошибки пароля
           this.verificationError = '';
           this.attemptsLeft = 3;
           this.nextAttemptTime = null;
+          
+          // Показываем сообщение об успешной регистрации
+          this.errorMessage = 'Регистрация успешно завершена! Вы можете войти, используя свой email и пароль.';
+          
+          // Очищаем сообщение через 5 секунд
+          setTimeout(() => {
+            if (this.errorMessage === 'Регистрация успешно завершена! Вы можете войти, используя свой email и пароль.') {
+              this.errorMessage = '';
+            }
+          }, 5000);
         },
         error: (error) => {
           this.attemptsLeft--;
@@ -283,7 +305,12 @@ export class LoginComponent implements OnInit, OnDestroy {
     const { email, password, phone } = this.registrationForm.value;
     const cleanPhone = phone.replace(/[\s()-]/g, '');
     
-    this.authService.register(email, password, cleanPhone).subscribe({
+    this.authService.register({ 
+      email, 
+      password, 
+      phone: cleanPhone,
+      fullName: '' // Required by interface but not used in this context
+    }).subscribe({
       next: (response) => {
         this.verificationContact = email;
         this.verificationMethod = 'email';
@@ -300,15 +327,21 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   private getServerErrorMessage(error: any): string {
-    // Проверяем наличие сообщения об ошибке
-    if (error.error?.message) {
-        return error.error.message;
+    if (error?.error?.message) {
+      return error.error.message;
     }
-    // Проверяем наличие массива ошибок (для обратной совместимости)
-    if (Array.isArray(error.error)) {
-        return error.error[0];
+    if (error?.error?.title) {
+      return error.error.title;
     }
-    return 'Произошла ошибка. Попробуйте позже';
+    if (error?.message) {
+      // Обработка общих ошибок
+      if (error.message.includes('Http failure response for')) {
+        return 'Не удалось соединиться с сервером. Пожалуйста, проверьте подключение к интернету.';
+      }
+      return error.message;
+    }
+    // Если ничего не подошло, возвращаем общее сообщение
+    return 'Произошла ошибка при входе. Пожалуйста, попробуйте снова позже.';
   }
 
   closeVerification() {

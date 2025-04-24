@@ -4,6 +4,7 @@
       <h1 class="user-email">{{ currentUser.email }}</h1>
       <div class="header-links">
         <a href="javascript:void(0)" class="settings-link" (click)="setActiveTab('settings')">Настройки аккаунта</a>
+        <a *ngIf="hasAdminAccess" routerLink="/admin" class="settings-link admin-settings-link">Настройки(работа)</a>
         <a href="javascript:void(0)" class="logout-link" (click)="logout()">Выйти</a>
       </div>
     </div>
