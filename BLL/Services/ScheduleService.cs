@@ -33,6 +33,12 @@ namespace BLL.Services
 
         // Удаление временного слота
         Task DeleteTimeSlotAsync(int slotId);
+
+        // Обновление группы слотов для конкретного дня
+        Task<bool> UpdateDayScheduleAsync(int doctorId, DateTime date, List<UpdateSlotViewModel> slotsToUpdate);
+
+        // Автоматическая генерация расписания по шаблону
+        Task<DoctorScheduleViewModel> GenerateAutomaticScheduleAsync(int doctorId, DateTime startDate, DateTime endDate, ScheduleSettingsViewModel settings);
     }
 
     public class ScheduleService : IScheduleService
@@ -67,14 +73,17 @@ namespace BLL.Services
                 WorkdayEnd = settings.WorkdayEnd.ToString(@"hh\:mm"),
                 SlotDuration = settings.SlotDuration,
                 BreakDuration = settings.BreakDuration,
-                WorkDays = settings.WorkDays.Split(',').Select(int.Parse).ToList()
+                WorkDays = settings.WorkDays,
+                LunchBreak = settings.LunchBreak,
+                LunchStart = settings.LunchStart?.ToString(@"hh\:mm"),
+                LunchEnd = settings.LunchEnd?.ToString(@"hh\:mm"),
+                HospitalId = settings.HospitalId
             };
         }
 
         public async Task<ScheduleSettingsViewModel> SaveDoctorScheduleSettingsAsync(ScheduleSettingsViewModel model)
         {
             var settings = await _scheduleSettingsRepository.GetDoctorScheduleSettingsAsync(model.DoctorId);
-            string workDaysString = string.Join(",", model.WorkDays);
 
             if (settings == null)
             {
@@ -85,8 +94,16 @@ namespace BLL.Services
                     WorkdayEnd = TimeSpan.Parse(model.WorkdayEnd),
                     SlotDuration = model.SlotDuration,
                     BreakDuration = model.BreakDuration,
-                    WorkDays = workDaysString
+                    WorkDays = model.WorkDays,
+                    LunchBreak = model.LunchBreak,
+                    HospitalId = model.HospitalId
                 };
+
+                if (model.LunchBreak && !string.IsNullOrEmpty(model.LunchStart) && !string.IsNullOrEmpty(model.LunchEnd))
+                {
+                    settings.LunchStart = TimeSpan.Parse(model.LunchStart);
+                    settings.LunchEnd = TimeSpan.Parse(model.LunchEnd);
+                }
 
                 await _scheduleSettingsRepository.SaveDoctorScheduleSettingsAsync(settings);
             }
@@ -96,7 +113,20 @@ namespace BLL.Services
                 settings.WorkdayEnd = TimeSpan.Parse(model.WorkdayEnd);
                 settings.SlotDuration = model.SlotDuration;
                 settings.BreakDuration = model.BreakDuration;
-                settings.WorkDays = workDaysString;
+                settings.WorkDays = model.WorkDays;
+                settings.LunchBreak = model.LunchBreak;
+                settings.HospitalId = model.HospitalId;
+
+                if (model.LunchBreak && !string.IsNullOrEmpty(model.LunchStart) && !string.IsNullOrEmpty(model.LunchEnd))
+                {
+                    settings.LunchStart = TimeSpan.Parse(model.LunchStart);
+                    settings.LunchEnd = TimeSpan.Parse(model.LunchEnd);
+                }
+                else
+                {
+                    settings.LunchStart = null;
+                    settings.LunchEnd = null;
+                }
 
                 await _scheduleSettingsRepository.UpdateDoctorScheduleSettingsAsync(settings);
             }
@@ -106,9 +136,63 @@ namespace BLL.Services
 
         public async Task<bool> GenerateScheduleAsync(GenerateScheduleRequestViewModel request)
         {
-            var settings = await _scheduleSettingsRepository.GetDoctorScheduleSettingsAsync(request.DoctorId);
+            // Если передали новые настройки, сначала сохраним их
+            if (request.Settings != null)
+            {
+                await SaveDoctorScheduleSettingsAsync(request.Settings);
+                // После сохранения, получим настройки из базы
+                var settings = await _scheduleSettingsRepository.GetDoctorScheduleSettingsAsync(request.DoctorId);
+                
+                if (settings == null)
+                {
+                    // Если по какой-то причине настройки не сохранились, создадим их сейчас
+                    settings = new DoctorScheduleSettings
+                    {
+                        DoctorId = request.DoctorId,
+                        WorkdayStart = TimeSpan.Parse(request.Settings.WorkdayStart),
+                        WorkdayEnd = TimeSpan.Parse(request.Settings.WorkdayEnd),
+                        SlotDuration = request.Settings.SlotDuration,
+                        BreakDuration = request.Settings.BreakDuration,
+                        WorkDays = request.Settings.WorkDays,
+                        LunchBreak = request.Settings.LunchBreak,
+                        HospitalId = request.Settings.HospitalId
+                    };
+
+                    if (request.Settings.LunchBreak && !string.IsNullOrEmpty(request.Settings.LunchStart) && !string.IsNullOrEmpty(request.Settings.LunchEnd))
+                    {
+                        settings.LunchStart = TimeSpan.Parse(request.Settings.LunchStart);
+                        settings.LunchEnd = TimeSpan.Parse(request.Settings.LunchEnd);
+                    }
+
+                    await _scheduleSettingsRepository.SaveDoctorScheduleSettingsAsync(settings);
+                }
+            }
+
+            // Затем используем сохраненные настройки для генерации
+            var savedSettings = await _scheduleSettingsRepository.GetDoctorScheduleSettingsAsync(request.DoctorId);
             
-            if (settings == null)
+            if (savedSettings == null && request.Settings != null)
+            {
+                // Используем настройки из запроса, если сохраненных нет
+                savedSettings = new DoctorScheduleSettings
+                {
+                    DoctorId = request.DoctorId,
+                    WorkdayStart = TimeSpan.Parse(request.Settings.WorkdayStart),
+                    WorkdayEnd = TimeSpan.Parse(request.Settings.WorkdayEnd),
+                    SlotDuration = request.Settings.SlotDuration,
+                    BreakDuration = request.Settings.BreakDuration,
+                    WorkDays = request.Settings.WorkDays,
+                    LunchBreak = request.Settings.LunchBreak,
+                    HospitalId = request.Settings.HospitalId
+                };
+
+                if (request.Settings.LunchBreak && !string.IsNullOrEmpty(request.Settings.LunchStart) && !string.IsNullOrEmpty(request.Settings.LunchEnd))
+                {
+                    savedSettings.LunchStart = TimeSpan.Parse(request.Settings.LunchStart);
+                    savedSettings.LunchEnd = TimeSpan.Parse(request.Settings.LunchEnd);
+                }
+            }
+            else if (savedSettings == null && request.Settings == null)
             {
                 throw new InvalidOperationException("Настройки расписания врача не найдены");
             }
@@ -123,10 +207,10 @@ namespace BLL.Services
             while (currentDate <= endDate)
             {
                 // Проверяем, является ли день рабочим для врача
-                if (IsWorkingDay(currentDate, settings.WorkDays))
+                if (IsWorkingDay(currentDate, savedSettings.WorkDays))
                 {
                     // Создаем временные слоты для текущего дня
-                    var daySlots = GenerateDaySlots(currentDate, settings);
+                    var daySlots = GenerateDaySlots(currentDate, savedSettings);
                     generatedSlots.AddRange(daySlots);
                 }
 
@@ -140,7 +224,7 @@ namespace BLL.Services
             }
 
             // Возвращаем сгенерированное расписание
-            return true;
+            return generatedSlots.Count > 0;
         }
 
         public async Task<List<TimeSlotViewModel>> GetDoctorTimeSlotsAsync(int doctorId, DateTime startDate, DateTime endDate)
@@ -154,7 +238,8 @@ namespace BLL.Services
                 Date = ts.Date.ToString("yyyy-MM-dd"),
                 Time = ts.Time.ToString(@"hh\:mm"),
                 Duration = ts.Duration,
-                IsAvailable = ts.IsAvailable
+                IsAvailable = ts.IsAvailable,
+                HospitalId = ts.HospitalId
             }).ToList();
         }
 
@@ -177,7 +262,8 @@ namespace BLL.Services
                 Date = timeSlot.Date.ToString("yyyy-MM-dd"),
                 Time = timeSlot.Time.ToString(@"hh\:mm"),
                 Duration = timeSlot.Duration,
-                IsAvailable = timeSlot.IsAvailable
+                IsAvailable = timeSlot.IsAvailable,
+                HospitalId = timeSlot.HospitalId
             };
         }
 
@@ -213,9 +299,21 @@ namespace BLL.Services
         // Вспомогательные методы
         private bool IsWorkingDay(DateTime date, string workDays)
         {
-            // Проверяем, является ли день недели рабочим днем
-            var dayOfWeek = (int)date.DayOfWeek;
-            return workDays.Contains(dayOfWeek.ToString());
+            if (string.IsNullOrEmpty(workDays))
+                return false;
+
+            // Получаем день недели (0 - воскресенье, 1 - понедельник и т.д. по стандарту .NET)
+            int dayOfWeek = (int)date.DayOfWeek;
+            
+            // Разбиваем строку рабочих дней на массив
+            var workingDays = workDays.Split(',')
+                .Select(d => d.Trim())
+                .Where(d => !string.IsNullOrEmpty(d))
+                .Select(int.Parse)
+                .ToList();
+            
+            // Проверяем, входит ли текущий день недели в список рабочих дней
+            return workingDays.Contains(dayOfWeek);
         }
 
         private List<TimeSlot> GenerateDaySlots(DateTime date, DoctorScheduleSettings settings)
@@ -227,21 +325,44 @@ namespace BLL.Services
             
             while (currentTime.Add(TimeSpan.FromMinutes(settings.SlotDuration)) <= settings.WorkdayEnd)
             {
-                // Создаем временной слот
-                var timeSlot = new TimeSlot
+                // Проверяем, не попадает ли слот на обеденный перерыв
+                bool isLunchTime = false;
+                
+                if (settings.LunchBreak && settings.LunchStart.HasValue && settings.LunchEnd.HasValue)
                 {
-                    DoctorId = settings.DoctorId,
-                    Date = date,
-                    Time = currentTime,
-                    Duration = settings.SlotDuration,
-                    IsAvailable = true
-                };
+                    // Проверка на обеденный перерыв
+                    isLunchTime = (currentTime >= settings.LunchStart.Value && 
+                                   currentTime < settings.LunchEnd.Value) ||
+                                  (currentTime.Add(TimeSpan.FromMinutes(settings.SlotDuration)) > settings.LunchStart.Value && 
+                                   currentTime < settings.LunchEnd.Value);
+                }
 
-                slots.Add(timeSlot);
+                if (!isLunchTime)
+                {
+                    // Создаем временной слот
+                    var timeSlot = new TimeSlot
+                    {
+                        DoctorId = settings.DoctorId,
+                        Date = date,
+                        Time = currentTime,
+                        Duration = settings.SlotDuration,
+                        IsAvailable = true,
+                        HospitalId = settings.HospitalId
+                    };
+
+                    slots.Add(timeSlot);
+                }
 
                 // Переходим к следующему слоту (учитывая перерыв)
                 currentTime = currentTime.Add(TimeSpan.FromMinutes(settings.SlotDuration))
                     .Add(TimeSpan.FromMinutes(settings.BreakDuration));
+                
+                // Если мы в обеденном перерыве, пропускаем его
+                if (settings.LunchBreak && settings.LunchStart.HasValue && settings.LunchEnd.HasValue && 
+                    currentTime >= settings.LunchStart.Value && currentTime < settings.LunchEnd.Value)
+                {
+                    currentTime = settings.LunchEnd.Value;
+                }
             }
 
             return slots;
@@ -270,7 +391,8 @@ namespace BLL.Services
                 Date = date,
                 Time = time,
                 Duration = slotDto.Duration,
-                IsAvailable = slotDto.IsAvailable
+                IsAvailable = slotDto.IsAvailable,
+                HospitalId = slotDto.HospitalId
             };
 
             await _timeSlotRepository.CreateTimeSlotAsync(newSlot);
@@ -283,7 +405,8 @@ namespace BLL.Services
                 Date = newSlot.Date.ToString("yyyy-MM-dd"),
                 Time = newSlot.Time.ToString(@"hh\:mm"),
                 Duration = newSlot.Duration,
-                IsAvailable = newSlot.IsAvailable
+                IsAvailable = newSlot.IsAvailable,
+                HospitalId = newSlot.HospitalId
             };
         }
 
@@ -297,6 +420,68 @@ namespace BLL.Services
             }
 
             await _timeSlotRepository.DeleteTimeSlotAsync(slotId);
+        }
+
+        // Обновление группы слотов для конкретного дня
+        public async Task<bool> UpdateDayScheduleAsync(int doctorId, DateTime date, List<UpdateSlotViewModel> slotsToUpdate)
+        {
+            if (slotsToUpdate == null || !slotsToUpdate.Any())
+            {
+                return false;
+            }
+
+            // Получаем все слоты на указанную дату
+            var existingSlots = await _timeSlotRepository.GetTimeSlotsForDateAsync(doctorId, date);
+            
+            if (existingSlots == null || !existingSlots.Any())
+            {
+                throw new KeyNotFoundException($"Слоты для врача с ID {doctorId} на дату {date:yyyy-MM-dd} не найдены");
+            }
+
+            // Обновляем доступность для каждого слота
+            foreach (var slotUpdate in slotsToUpdate)
+            {
+                if (slotUpdate.SlotId <= 0) continue;
+
+                var slot = existingSlots.FirstOrDefault(s => s.TimeSlotId == slotUpdate.SlotId);
+                if (slot != null)
+                {
+                    slot.IsAvailable = slotUpdate.IsAvailable;
+                    await _timeSlotRepository.UpdateTimeSlotAsync(slot);
+                }
+            }
+
+            return true;
+        }
+
+        // Автоматическая генерация расписания по шаблону
+        public async Task<DoctorScheduleViewModel> GenerateAutomaticScheduleAsync(int doctorId, DateTime startDate, DateTime endDate, ScheduleSettingsViewModel settings)
+        {
+            if (settings == null)
+            {
+                throw new ArgumentNullException(nameof(settings), "Настройки расписания не могут быть пустыми");
+            }
+
+            // Сначала сохраняем настройки
+            await SaveDoctorScheduleSettingsAsync(settings);
+
+            // Создаем запрос на генерацию расписания
+            var request = new GenerateScheduleRequestViewModel
+            {
+                DoctorId = doctorId,
+                StartDate = startDate,
+                EndDate = endDate
+            };
+
+            // Генерируем расписание
+            var success = await GenerateScheduleAsync(request);
+            if (!success)
+            {
+                throw new InvalidOperationException("Не удалось сгенерировать расписание автоматически");
+            }
+
+            // Возвращаем сгенерированное расписание
+            return await GetDoctorScheduleWithTimeSlotsAsync(doctorId, startDate, endDate);
         }
     }
 } 

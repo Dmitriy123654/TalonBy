@@ -27,6 +27,15 @@ namespace Domain.Models
         [Required]
         public string WorkDays { get; set; } = "1,2,3,4,5"; // По умолчанию Пн-Пт
 
+        [Required]
+        public bool LunchBreak { get; set; } = true; // Наличие обеденного перерыва
+        
+        public TimeSpan? LunchStart { get; set; } // Время начала обеденного перерыва
+        
+        public TimeSpan? LunchEnd { get; set; } // Время окончания обеденного перерыва
+
+        public int? HospitalId { get; set; } // ID больницы (необязательное)
+
         [ForeignKey("DoctorId")]
         public virtual Doctor Doctor { get; set; }
     }

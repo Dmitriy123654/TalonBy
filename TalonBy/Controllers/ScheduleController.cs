@@ -154,5 +154,75 @@ namespace TalonBy.Controllers
                 return StatusCode(500, $"Ошибка при удалении слота: {ex.Message}");
             }
         }
+
+        // Обновление группы слотов для конкретного дня
+        [HttpPatch("{doctorId}/day/{date}")]
+        [Authorize(Roles = "Doctor,ChiefDoctor,MedicalStaff,Administrator")]
+        public async Task<IActionResult> UpdateDaySchedule(int doctorId, DateTime date, [FromBody] List<UpdateSlotViewModel> slots)
+        {
+            try
+            {
+                var success = await _scheduleService.UpdateDayScheduleAsync(doctorId, date, slots);
+                if (success)
+                {
+                    // Возвращаем обновленное расписание на этот день
+                    var updatedSlots = await _scheduleService.GetDoctorTimeSlotsAsync(doctorId, date, date);
+                    return Ok(updatedSlots);
+                }
+                return BadRequest("Не удалось обновить расписание");
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Ошибка при обновлении расписания: {ex.Message}");
+            }
+        }
+
+        // Автоматическая генерация расписания
+        [HttpPost("generate-automatic")]
+        [Authorize(Roles = "Doctor,ChiefDoctor,MedicalStaff,Administrator")]
+        public async Task<IActionResult> GenerateAutomaticSchedule([FromBody] AutomaticScheduleRequest request)
+        {
+            try
+            {
+                if (request == null || request.Settings == null)
+                {
+                    return BadRequest("Настройки расписания не могут быть пустыми");
+                }
+
+                var schedule = await _scheduleService.GenerateAutomaticScheduleAsync(
+                    request.DoctorId, 
+                    request.StartDate, 
+                    request.EndDate, 
+                    request.Settings
+                );
+                
+                return Ok(schedule);
+            }
+            catch (ArgumentNullException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Ошибка при автоматической генерации расписания: {ex.Message}");
+            }
+        }
+    }
+
+    // DTO для запроса автоматической генерации
+    public class AutomaticScheduleRequest
+    {
+        public int DoctorId { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public ScheduleSettingsViewModel Settings { get; set; }
     }
 } 

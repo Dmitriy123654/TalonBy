@@ -180,7 +180,8 @@
   <div class="schedule-display">
     <div class="schedule-header">
       <h3 *ngIf="currentSchedule">Расписание: {{ currentSchedule.doctorName }} ({{ currentSchedule.specialization }})</h3>
-      <h3 *ngIf="!currentSchedule">Календарь</h3>
+      <h3 *ngIf="!currentSchedule && !isLoading">Календарь</h3>
+      <h3 *ngIf="!currentSchedule && isLoading">Загрузка расписания...</h3>
       
       <div class="schedule-actions" *ngIf="currentSchedule">
         <button class="btn btn-secondary" (click)="editSchedule()">
@@ -190,57 +191,66 @@
     </div>
 
     <div class="calendar-wrapper">
-      <div class="calendar-header">
-        <button class="month-nav" (click)="prevMonth()" [disabled]="!canGoToPrevMonth()">&lt;</button>
-        <h3>{{ getMonthName(currentMonth) }} {{ currentMonth.getFullYear() }}</h3>
-        <button class="month-nav" (click)="nextMonth()" [disabled]="!canGoToNextMonth()">&gt;</button>
+      <!-- Показываем календарь, только если данные загружены или это пустой календарь -->
+      <div *ngIf="currentSchedule || !isLoading">
+        <div class="calendar-header">
+          <button class="month-nav" (click)="prevMonth()" [disabled]="!canGoToPrevMonth()">&lt;</button>
+          <h3>{{ getMonthName(currentMonth) }} {{ currentMonth.getFullYear() }}</h3>
+          <button class="month-nav" (click)="nextMonth()" [disabled]="!canGoToNextMonth()">&gt;</button>
+        </div>
+
+        <div class="calendar">
+          <div class="weekdays">
+            <div class="weekday" *ngFor="let day of calendarWeekDays">{{ day }}</div>
+          </div>
+          
+          <div class="calendar-grid">
+            <div class="week" *ngFor="let week of calendarDays">
+              <div class="day" *ngFor="let day of week" 
+                  [class.weekend]="day.isWeekend"
+                  [class.disabled]="day.isDisabled"
+                  [class.today]="day.isToday"
+                  [class.selected]="selectedCalendarDate && day.date === selectedCalendarDate.getDate() && 
+                                  day.month === selectedCalendarDate.getMonth() && 
+                                  day.year === selectedCalendarDate.getFullYear()"
+                  (click)="selectCalendarDate(day)">
+                <div class="day-content">
+                  <span class="date">{{ day.date || '' }}</span>
+                  <span class="slots" *ngIf="day.date && !day.isDisabled && day.availableSlots > 0">
+                    {{ day.availableSlots }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="time-slots-row" *ngIf="selectedCalendarDate && selectedDaySlots.length > 0">
+              <div class="selected-date">
+                {{ formatSelectedDate(selectedCalendarDate) }}, {{ getDayOfWeekForDate(selectedCalendarDate) }}
+              </div>
+              
+              <div class="slot-status-legend">
+                <div class="status-item available">Доступно</div>
+                <div class="status-item unavailable">Занято</div>
+              </div>
+              
+              <div class="time-slots">
+                <div *ngFor="let slot of selectedDaySlots" 
+                    class="time-slot" 
+                    [class.available]="slot.isAvailable"
+                    [class.unavailable]="!slot.isAvailable"
+                    (click)="updateSlotAvailability(slot, !slot.isAvailable)">
+                  {{ slot.time }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="calendar">
-        <div class="weekdays">
-          <div class="weekday" *ngFor="let day of calendarWeekDays">{{ day }}</div>
-        </div>
-        
-        <div class="calendar-grid">
-          <div class="week" *ngFor="let week of calendarDays">
-            <div class="day" *ngFor="let day of week" 
-                 [class.weekend]="day.isWeekend"
-                 [class.disabled]="day.isDisabled"
-                 [class.today]="day.isToday"
-                 [class.selected]="selectedCalendarDate && day.date === selectedCalendarDate.getDate() && 
-                                day.month === selectedCalendarDate.getMonth() && 
-                                day.year === selectedCalendarDate.getFullYear()"
-                 (click)="selectCalendarDate(day)">
-              <div class="day-content">
-                <span class="date">{{ day.date || '' }}</span>
-                <span class="slots" *ngIf="day.date && !day.isDisabled && day.availableSlots > 0">
-                  {{ day.availableSlots }}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div class="time-slots-row" *ngIf="selectedCalendarDate && selectedDaySlots.length > 0">
-            <div class="selected-date">
-              {{ formatSelectedDate(selectedCalendarDate) }}, {{ getDayOfWeekForDate(selectedCalendarDate) }}
-            </div>
-            
-            <div class="slot-status-legend">
-              <div class="status-item available">Доступно</div>
-              <div class="status-item unavailable">Занято</div>
-            </div>
-            
-            <div class="time-slots">
-              <div *ngFor="let slot of selectedDaySlots" 
-                   class="time-slot" 
-                   [class.available]="slot.isAvailable"
-                   [class.unavailable]="!slot.isAvailable"
-                   (click)="updateSlotAvailability(slot, !slot.isAvailable)">
-                {{ slot.time }}
-              </div>
-            </div>
-          </div>
-        </div>
+      <!-- Индикатор загрузки для календаря -->
+      <div *ngIf="isLoading" class="calendar-loading">
+        <div class="spinner"></div>
+        <p>Загрузка и построение расписания...</p>
       </div>
     </div>
   </div>

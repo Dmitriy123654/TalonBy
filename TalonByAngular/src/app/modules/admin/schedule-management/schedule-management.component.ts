@@ -13,7 +13,7 @@ export class ScheduleManagementComponent implements OnInit {
   // Настройки расписания
   settingsForm: FormGroup;
   // Выбранный доктор
-  selectedDoctorId: number = 1;
+  selectedDoctorId: number = 5;
   // Выбранная больница (для администраторов)
   selectedHospitalId: number = 1;
   // Текущее расписание
@@ -85,7 +85,9 @@ export class ScheduleManagementComponent implements OnInit {
       breakDuration: [5, [Validators.required, Validators.min(0), Validators.max(10)]],
       lunchStart: ['13:00', [Validators.required, Validators.pattern('^([01]?[0-9]|2[0-3]):[0-5][0-9]$')]],
       lunchEnd: ['14:00', [Validators.required, Validators.pattern('^([01]?[0-9]|2[0-3]):[0-5][0-9]$')]],
-      workDays: [[1, 2, 3, 4, 5, 6], Validators.required] // По умолчанию ПН-СБ
+      workDays: [[1, 2, 3, 4, 5, 6], Validators.required], // По умолчанию ПН-СБ
+      doctorId: [5], // Заглушка для doctorId
+      hospitalId: [1] // Заглушка для hospitalId
     }, { validators: [this.validateLunchBreak, this.validateWorkHours] });
     
     // Инициализация дат
@@ -268,7 +270,9 @@ export class ScheduleManagementComponent implements OnInit {
       breakDuration: [5, [Validators.required, Validators.min(0), Validators.max(10)]],
       lunchStart: ['13:00', [Validators.required, Validators.pattern('^([01]?[0-9]|2[0-3]):[0-5][0-9]$')]],
       lunchEnd: ['14:00', [Validators.required, Validators.pattern('^([01]?[0-9]|2[0-3]):[0-5][0-9]$')]],
-      workDays: [[1, 2, 3, 4, 5, 6], Validators.required] // По умолчанию ПН-СБ
+      workDays: [[1, 2, 3, 4, 5, 6], Validators.required], // По умолчанию ПН-СБ
+      doctorId: [5], // Заглушка для doctorId
+      hospitalId: [1] // Заглушка для hospitalId
     }, { validators: [this.validateLunchBreak, this.validateWorkHours] });
   }
 
@@ -309,7 +313,9 @@ export class ScheduleManagementComponent implements OnInit {
           breakDuration: settings.breakDuration,
           lunchStart: settings.lunchStart || '13:00',
           lunchEnd: settings.lunchEnd || '14:00',
-          workDays: workDaysArray
+          workDays: workDaysArray,
+          doctorId: doctorId,
+          hospitalId: this.selectedHospitalId
         });
         
         // После загрузки настроек загружаем расписание
@@ -326,6 +332,7 @@ export class ScheduleManagementComponent implements OnInit {
   // Загрузка текущего расписания
   loadSchedule(): void {
     this.isLoading = true;
+    this.currentSchedule = null; // Очищаем текущее расписание во время загрузки
     this.scheduleService.getDoctorSchedule(
       this.selectedDoctorId, 
       this.startDate, 
@@ -365,51 +372,29 @@ export class ScheduleManagementComponent implements OnInit {
   // Сохранение настроек расписания
   saveSettings(): void {
     if (this.settingsForm.invalid) {
-      // Проверка специфических ошибок валидации
-      if (this.settingsForm.errors?.['lunchTooLong']) {
-        this.errorMessage = 'Обеденный перерыв не может быть более 2 часов';
-        return;
-      }
-      
-      if (this.settingsForm.errors?.['lunchEndBeforeStart']) {
-        this.errorMessage = 'Время окончания обеда должно быть позже времени начала';
-        return;
-      }
-      
-      if (this.settingsForm.errors?.['workdayEndBeforeStart']) {
-        this.errorMessage = 'Время окончания рабочего дня должно быть позже времени начала';
-        return;
-      }
-      
-      this.errorMessage = 'Пожалуйста, исправьте ошибки в форме';
       return;
     }
     
     this.isLoading = true;
+    // Собираем данные из формы
     const formValues = this.settingsForm.value;
-    console.log('Сохраняемые значения формы:', formValues);
     
-    // Преобразуем массив рабочих дней в строку
-    const workDaysString = Array.isArray(formValues.workDays) 
-      ? formValues.workDays.join(',') 
-      : formValues.workDays;
+    // Преобразуем массив дней недели в строку через запятую
+    const workDaysString = formValues.workDays.join(',');
     
+    // Формируем объект настроек
     const settings: ScheduleSettings = {
-      doctorId: this.selectedDoctorId,
+      doctorId: this.selectedDoctorId || 5, // Используем заглушку, если нет выбранного врача
+      hospitalId: this.selectedHospitalId || 1, // Используем заглушку, если нет выбранной больницы
       workdayStart: formValues.workdayStart,
       workdayEnd: formValues.workdayEnd,
       slotDuration: formValues.slotDuration,
       breakDuration: formValues.breakDuration,
+      lunchBreak: true, // Всегда включен обеденный перерыв
       lunchStart: formValues.lunchStart,
       lunchEnd: formValues.lunchEnd,
-      workDays: workDaysString,
-      lunchBreak: true // Adding missing property
+      workDays: workDaysString
     };
-    
-    // Если пользователь - администратор, добавляем ID больницы
-    if (this.userRole === 'Administrator') {
-      settings.hospitalId = this.selectedHospitalId;
-    }
     
     console.log('Сохранение настроек:', settings);
     
@@ -444,12 +429,12 @@ export class ScheduleManagementComponent implements OnInit {
         return;
       }
       
-      if (this.settingsForm.errors?.['lunchEndBeforeStart']) {
+      if (this.settingsForm.errors?.['invalidLunchTime']) {
         this.errorMessage = 'Время окончания обеда должно быть позже времени начала';
         return;
       }
       
-      if (this.settingsForm.errors?.['workdayEndBeforeStart']) {
+      if (this.settingsForm.errors?.['invalidWorkHours']) {
         this.errorMessage = 'Время окончания рабочего дня должно быть позже времени начала';
         return;
       }
@@ -476,7 +461,8 @@ export class ScheduleManagementComponent implements OnInit {
       : formValues.workDays;
     
     const settings: ScheduleSettings = {
-      doctorId: this.selectedDoctorId,
+      doctorId: 5, // Заглушка для doctorId
+      hospitalId: 1, // Заглушка для hospitalId
       workdayStart: formValues.workdayStart,
       workdayEnd: formValues.workdayEnd,
       slotDuration: Number(formValues.slotDuration),
@@ -487,11 +473,6 @@ export class ScheduleManagementComponent implements OnInit {
       lunchBreak: true
     };
     
-    // Если пользователь - администратор, добавляем ID больницы
-    if (this.userRole === 'Administrator') {
-      settings.hospitalId = this.selectedHospitalId;
-    }
-    
     console.log('Генерация расписания с настройками:', settings);
     console.log('Период:', this.startDate, 'по', this.endDate);
     
@@ -500,8 +481,15 @@ export class ScheduleManagementComponent implements OnInit {
       ? this.scheduleService.generateAutomaticSchedule.bind(this.scheduleService)
       : this.scheduleService.generateSchedule.bind(this.scheduleService);
     
+    this.errorMessage = '';
+    this.saveSuccess = false;
+    
+    // Показываем индикатор загрузки и очищаем расписание
+    this.isLoading = true;
+    this.currentSchedule = null;
+    
     generateMethod(
-      this.selectedDoctorId,
+      5, // Заглушка для doctorId
       this.startDate,
       this.endDate,
       settings
@@ -519,7 +507,7 @@ export class ScheduleManagementComponent implements OnInit {
         }
         
         this.isLoading = false;
-        this.errorMessage = '';
+        this.saveSuccess = true;
         
         // Создаем календарное представление расписания
         this.buildCalendar();
@@ -529,10 +517,15 @@ export class ScheduleManagementComponent implements OnInit {
         this.selectedDaySlots = [];
         
         console.log('Сгенерированное расписание:', schedule);
+        
+        // Скрываем сообщение об успехе через 3 секунды
+        setTimeout(() => {
+          this.saveSuccess = false;
+        }, 3000);
       },
       error: (error: any) => {
         this.isLoading = false;
-        this.errorMessage = 'Ошибка при генерации расписания';
+        this.errorMessage = "Ошибка генерации расписания: " + (error.error || error.message || JSON.stringify(error));
         console.error('Ошибка генерации расписания:', error);
       }
     });
