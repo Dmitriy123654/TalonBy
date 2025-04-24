@@ -1,0 +1,180 @@
+<div class="schedule-management">
+  <!-- Сообщения об ошибках и успехе -->
+  <div class="alerts">
+    <div *ngIf="errorMessage" class="alert alert-error">
+      <i class="icon-error"></i>
+      <span>{{ errorMessage }}</span>
+      <button (click)="errorMessage = ''" class="close-btn">×</button>
+    </div>
+    <div *ngIf="saveSuccess" class="alert alert-success">
+      <i class="icon-success"></i>
+      <span>Настройки успешно сохранены</span>
+    </div>
+  </div>
+
+  <!-- Выбор врача и периода -->
+  <div class="selection-row">
+    <div class="doctor-selection">
+      <h3>Выберите врача</h3>
+      <select [(ngModel)]="selectedDoctorId" (change)="onDoctorChange(selectedDoctorId)">
+        <option *ngFor="let doctor of doctors" [value]="doctor.id">
+          {{ doctor.name }} ({{ doctor.specialization }})
+        </option>
+      </select>
+    </div>
+
+    <div class="period-selection">
+      <h3>Выберите период</h3>
+      <div class="date-range">
+        <div class="date-input">
+          <label for="startDate">С:</label>
+          <input 
+            type="date" 
+            id="startDate" 
+            [(ngModel)]="startDate" 
+            (change)="onPeriodChange()"
+          >
+        </div>
+        <div class="date-input">
+          <label for="endDate">По:</label>
+          <input 
+            type="date" 
+            id="endDate" 
+            [(ngModel)]="endDate" 
+            (change)="onPeriodChange()"
+          >
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Настройки расписания -->
+  <div class="settings-section">
+    <h3>Настройки расписания</h3>
+    <form [formGroup]="settingsForm" (ngSubmit)="saveSettings()">
+      <div class="settings-grid">
+        <div class="form-group">
+          <label for="workdayStart">Начало рабочего дня:</label>
+          <input 
+            type="time" 
+            id="workdayStart" 
+            formControlName="workdayStart"
+          >
+          <div *ngIf="settingsForm.controls['workdayStart'].invalid && settingsForm.controls['workdayStart'].touched" class="error">
+            Укажите корректное время
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="workdayEnd">Конец рабочего дня:</label>
+          <input 
+            type="time" 
+            id="workdayEnd" 
+            formControlName="workdayEnd"
+          >
+          <div *ngIf="settingsForm.controls['workdayEnd'].invalid && settingsForm.controls['workdayEnd'].touched" class="error">
+            Укажите корректное время
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="slotDuration">Длительность приема (мин):</label>
+          <input 
+            type="number" 
+            id="slotDuration" 
+            formControlName="slotDuration"
+            min="5" 
+            max="120"
+          >
+          <div *ngIf="settingsForm.controls['slotDuration'].invalid && settingsForm.controls['slotDuration'].touched" class="error">
+            Длительность должна быть от 5 до 120 минут
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="breakDuration">Перерыв между приемами (мин):</label>
+          <input 
+            type="number" 
+            id="breakDuration" 
+            formControlName="breakDuration"
+            min="0" 
+            max="60"
+          >
+          <div *ngIf="settingsForm.controls['breakDuration'].invalid && settingsForm.controls['breakDuration'].touched" class="error">
+            Перерыв должен быть от 0 до 60 минут
+          </div>
+        </div>
+      </div>
+
+      <div class="workdays-section">
+        <label>Рабочие дни:</label>
+        <div class="workdays-grid">
+          <div *ngFor="let day of weekdays" 
+               class="day-checkbox" 
+               [class.selected]="isDaySelected(day.id)"
+               (click)="toggleDay(day.id)">
+            {{ day.name }}
+          </div>
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button type="submit" class="btn btn-primary" [disabled]="settingsForm.invalid || isLoading">
+          <i class="icon-save"></i> Сохранить настройки
+        </button>
+        <button type="button" class="btn btn-accent" (click)="generateSchedule()" [disabled]="settingsForm.invalid || isLoading">
+          <i class="icon-calendar"></i> Сгенерировать расписание
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Отображение текущего расписания -->
+  <div class="schedule-display" *ngIf="currentSchedule">
+    <h3>Расписание: {{ currentSchedule.doctorName }} ({{ currentSchedule.specialization }})</h3>
+
+    <div class="schedule-container">
+      <div *ngIf="getSortedDates().length === 0" class="empty-schedule">
+        <p>Нет доступных дат для выбранного периода.</p>
+      </div>
+
+      <div *ngFor="let date of getSortedDates()" class="schedule-day">
+        <div class="day-header">
+          <h4>{{ formatDisplayDate(date) }}</h4>
+          <span class="day-of-week">{{ getDayOfWeek(date) }}</span>
+        </div>
+
+        <div class="time-slots">
+          <div *ngFor="let slot of currentSchedule.schedule[date]" 
+               class="time-slot" 
+               [class.available]="slot.isAvailable"
+               [class.unavailable]="!slot.isAvailable">
+            <span class="time">{{ slot.time }}</span>
+            <div class="status-controls">
+              <button 
+                [class.active]="slot.isAvailable" 
+                (click)="updateSlotAvailability(slot, true)"
+                title="Сделать доступным"
+                [disabled]="isLoading || slot.isAvailable">
+                <i class="icon-check"></i>
+              </button>
+              <button 
+                [class.active]="!slot.isAvailable" 
+                (click)="updateSlotAvailability(slot, false)"
+                title="Сделать недоступным"
+                [disabled]="isLoading || !slot.isAvailable">
+                <i class="icon-close"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Индикатор загрузки -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <p>Загрузка данных...</p>
+  </div>
+</div> 

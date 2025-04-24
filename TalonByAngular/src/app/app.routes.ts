@@ -7,6 +7,8 @@ import { AnalysesComponent } from './modules/analyses/analyses.component';
 import { MedicinesComponent } from './modules/medicines/medicines.component';
 import { BlogComponent } from './modules/blog/blog.component';
 import { authGuard } from './core/guards/auth.guard';
+import { roleGuard, adminGuard } from './core/guards/role.guard';
+import { RoleOfUser } from './shared/interfaces/user.interface';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/main', pathMatch: 'full' },
@@ -21,6 +23,11 @@ export const routes: Routes = [
     path: 'profile', 
     loadChildren: () => import('./modules/profile/profile.module').then(m => m.ProfileModule),
     canActivate: [authGuard]
+  },
+  { 
+    path: 'admin', 
+    loadChildren: () => import('./modules/admin/admin.module').then(m => m.AdminModule),
+    canActivate: [authGuard, adminGuard]
   },
   { 
     path: 'paid-services', 
