@@ -28,6 +28,12 @@ namespace BLL.Services
         Task DeleteUserAsync(int userId);
         Task<bool> UserExistsAsync(int userId);
         Task<User> UpdateUserProfileAsync(int userId, UpdateUserModel updateModel);
+        
+        // Новые методы для работы с refresh токенами
+        Task<string> GenerateRefreshTokenAsync(int userId);
+        Task<(string token, string refreshToken)> RefreshTokenAsync(string refreshToken);
+        Task RevokeRefreshTokenAsync(string refreshToken);
+        Task<int> CleanupExpiredRefreshTokensAsync();
     }
 
     public class AuthService : IAuthService
@@ -37,14 +43,22 @@ namespace BLL.Services
         private readonly ILogger<AuthService> _logger;
         private readonly IEmailService _emailService;
         private readonly IVerificationCodeRepository _verificationRepository;
+        private readonly IRefreshTokenRepository _refreshTokenRepository;
 
-        public AuthService(IUserRepository userRepository, IConfiguration configuration, ILogger<AuthService> logger, IEmailService emailService, IVerificationCodeRepository verificationRepository)
+        public AuthService(
+            IUserRepository userRepository, 
+            IConfiguration configuration, 
+            ILogger<AuthService> logger, 
+            IEmailService emailService, 
+            IVerificationCodeRepository verificationRepository,
+            IRefreshTokenRepository refreshTokenRepository)
         {
             _userRepository = userRepository;
             _configuration = configuration;
             _logger = logger;
             _emailService = emailService;
             _verificationRepository = verificationRepository;
+            _refreshTokenRepository = refreshTokenRepository;
         }
 
         public async Task<Result> Register(RegisterModel model)
@@ -91,21 +105,12 @@ namespace BLL.Services
                 return new LoginResult { Succeeded = false, Message = "Неверный email или пароль" };
             }
 
-            // Создаем claims для JWT
-            var claims = new[]
-            {
-                new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, user.Role.ToString())
-            };
-
-            // Генерируем JWT токен
-            var token = GenerateJwtToken(claims);
+            _logger.LogInformation($"UserId: {user.UserId}, Email: {user.Email}, Role: {user.Role}");
 
             return new LoginResult
             {
                 Succeeded = true,
-                Token = token,
+                UserId = user.UserId,
             };
         }
 
@@ -292,6 +297,106 @@ namespace BLL.Services
             }
             
             return await _userRepository.UpdateUserProfileAsync(userId, updateModel);
+        }
+
+        public async Task<string> GenerateRefreshTokenAsync(int userId)
+        {
+            // Проверяем существование пользователя
+            var userExists = await _userRepository.UserExistsAsync(userId);
+            if (!userExists)
+            {
+                throw new Exception($"Пользователь с ID {userId} не найден");
+            }
+            
+            // Отзываем старые токены для безопасности
+            await _refreshTokenRepository.RevokeTokensForUserAsync(userId);
+            
+            // Создаем новый refresh токен
+            var refreshToken = new RefreshToken
+            {
+                Token = GenerateUniqueToken(),
+                ExpiryDate = DateTime.UtcNow.AddDays(30), // Срок действия 30 дней
+                IsUsed = false,
+                IsRevoked = false,
+                UserId = userId
+            };
+            
+            await _refreshTokenRepository.CreateTokenAsync(refreshToken);
+            
+            return refreshToken.Token;
+        }
+        
+        private string GenerateUniqueToken()
+        {
+            // Генерация криптографически стойкого токена
+            var randomBytes = new byte[32];
+            using (var rng = RandomNumberGenerator.Create())
+            {
+                rng.GetBytes(randomBytes);
+            }
+            return Convert.ToBase64String(randomBytes);
+        }
+
+        public async Task<(string token, string refreshToken)> RefreshTokenAsync(string refreshToken)
+        {
+            // Получаем информацию о токене
+            var storedToken = await _refreshTokenRepository.GetByTokenAsync(refreshToken);
+            if (storedToken == null)
+            {
+                throw new Exception("Refresh токен не найден");
+            }
+            
+            // Проверяем валидность токена
+            if (storedToken.IsUsed || storedToken.IsRevoked || storedToken.ExpiryDate <= DateTime.UtcNow)
+            {
+                // Помечаем токен как использованный
+                storedToken.IsUsed = true;
+                await _refreshTokenRepository.UpdateTokenAsync(storedToken);
+                
+                throw new Exception("Refresh токен недействителен");
+            }
+            
+            // Получаем пользователя
+            var user = await _userRepository.GetUserByIdAsync(storedToken.UserId);
+            if (user == null)
+            {
+                throw new Exception("Пользователь не найден");
+            }
+            
+            // Помечаем текущий токен как использованный
+            storedToken.IsUsed = true;
+            await _refreshTokenRepository.UpdateTokenAsync(storedToken);
+            
+            // Создаем новый refresh токен
+            var newRefreshToken = await GenerateRefreshTokenAsync(user.UserId);
+            
+            // Создаем новый JWT токен
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Role, user.Role.ToString()),
+                new Claim("Phone", user.Phone ?? "")
+            };
+            
+            var newJwtToken = GenerateJwtToken(claims);
+            
+            return (newJwtToken, newRefreshToken);
+        }
+
+        public async Task RevokeRefreshTokenAsync(string refreshToken)
+        {
+            var storedToken = await _refreshTokenRepository.GetByTokenAsync(refreshToken);
+            if (storedToken != null)
+            {
+                storedToken.IsRevoked = true;
+                await _refreshTokenRepository.UpdateTokenAsync(storedToken);
+            }
+        }
+
+        public async Task<int> CleanupExpiredRefreshTokensAsync()
+        {
+            return await _refreshTokenRepository.CleanupExpiredTokensAsync();
         }
     }
 }
