@@ -17,12 +17,6 @@ namespace Domain.ViewModels
         }
     }
 
-    public class LoginResult : Result
-    {
-        public bool Succeeded { get; set; }
-        public string Token { get; set; }  // Используется только внутри сервера
-    }
-
     public class UserInfo
     {
         public string Email { get; set; }
