@@ -16,6 +16,9 @@ namespace DAL
         public DbSet<DoctorsSpeciality> DoctorsSpecialities { get; set; }
         public DbSet<Doctor> Doctors { get; set; }
         public DbSet<VerificationCode> VerificationCodes { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
+        public DbSet<TimeSlot> TimeSlots { get; set; }
+        public DbSet<DoctorScheduleSettings> DoctorScheduleSettings { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -55,6 +58,16 @@ namespace DAL
                 .WithMany(h => h.Doctors)
                 .HasForeignKey(d => d.HospitalId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<TimeSlot>()
+                .HasOne(ts => ts.Doctor)
+                .WithMany()
+                .HasForeignKey(ts => ts.DoctorId);
+
+            modelBuilder.Entity<DoctorScheduleSettings>()
+                .HasOne(dss => dss.Doctor)
+                .WithMany()
+                .HasForeignKey(dss => dss.DoctorId);
         }
     }
 }

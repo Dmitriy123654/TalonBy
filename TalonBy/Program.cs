@@ -8,7 +8,6 @@ using Microsoft.OpenApi.Models;
 using System.Security.Claims;
 using System.Text;
 
-
 namespace TalonBy
 {
     public class Program
@@ -128,6 +127,7 @@ namespace TalonBy
             builder.Services.AddTransient<IPatientService, PatientService>();
             builder.Services.AddTransient<IReceptionStatusService, ReceptionStatusService>();
             builder.Services.AddScoped<IEmailService, EmailService>();
+            builder.Services.AddScoped<IScheduleService,ScheduleService>();
 
 
             //dal
@@ -139,8 +139,12 @@ namespace TalonBy
             builder.Services.AddTransient<IReceptionStatusRepository, ReceptionStatusRepository>();
             builder.Services.AddTransient<IPatientRepository, PatientRepository>();
             builder.Services.AddScoped<IVerificationCodeRepository, VerificationCodeRepository>();
+            builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+            builder.Services.AddScoped<ITimeSlotRepository, TimeSlotRepository>();
+            builder.Services.AddScoped<IDoctorScheduleSettingsRepository, DoctorScheduleSettingsRepository>();
 
-          
+            // Создадим новый класс для запланированной очистки refresh токенов
+            builder.Services.AddHostedService<BLL.Services.TokenCleanupService>();
 
 
             var app = builder.Build();
