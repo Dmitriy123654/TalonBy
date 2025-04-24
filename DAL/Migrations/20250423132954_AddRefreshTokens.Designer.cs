@@ -4,6 +4,7 @@ using DAL;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DAL.Migrations
 {
     [DbContext(typeof(ApplicationContext))]
-    partial class ApplicationContextModelSnapshot : ModelSnapshot
+    [Migration("20250423132954_AddRefreshTokens")]
+    partial class AddRefreshTokens
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -65,40 +67,6 @@ namespace DAL.Migrations
                     b.HasIndex("HospitalId");
 
                     b.ToTable("Doctors");
-                });
-
-            modelBuilder.Entity("Domain.Models.DoctorScheduleSettings", b =>
-                {
-                    b.Property<int>("DoctorScheduleSettingsId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DoctorScheduleSettingsId"), 1L, 1);
-
-                    b.Property<int>("BreakDuration")
-                        .HasColumnType("int");
-
-                    b.Property<int>("DoctorId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("SlotDuration")
-                        .HasColumnType("int");
-
-                    b.Property<string>("WorkDays")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<TimeSpan>("WorkdayEnd")
-                        .HasColumnType("time");
-
-                    b.Property<TimeSpan>("WorkdayStart")
-                        .HasColumnType("time");
-
-                    b.HasKey("DoctorScheduleSettingsId");
-
-                    b.HasIndex("DoctorId");
-
-                    b.ToTable("DoctorScheduleSettings");
                 });
 
             modelBuilder.Entity("Domain.Models.DoctorsSpeciality", b =>
@@ -293,36 +261,6 @@ namespace DAL.Migrations
                     b.ToTable("RefreshTokens");
                 });
 
-            modelBuilder.Entity("Domain.Models.TimeSlot", b =>
-                {
-                    b.Property<int>("TimeSlotId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TimeSlotId"), 1L, 1);
-
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("date");
-
-                    b.Property<int>("DoctorId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Duration")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsAvailable")
-                        .HasColumnType("bit");
-
-                    b.Property<TimeSpan>("Time")
-                        .HasColumnType("time");
-
-                    b.HasKey("TimeSlotId");
-
-                    b.HasIndex("DoctorId");
-
-                    b.ToTable("TimeSlots");
-                });
-
             modelBuilder.Entity("Domain.Models.User", b =>
                 {
                     b.Property<int>("UserId")
@@ -411,17 +349,6 @@ namespace DAL.Migrations
                     b.Navigation("Hospital");
                 });
 
-            modelBuilder.Entity("Domain.Models.DoctorScheduleSettings", b =>
-                {
-                    b.HasOne("Domain.Models.Doctor", "Doctor")
-                        .WithMany()
-                        .HasForeignKey("DoctorId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Doctor");
-                });
-
             modelBuilder.Entity("Domain.Models.MedicalAppointment", b =>
                 {
                     b.HasOne("Domain.Models.Doctor", "Doctor")
@@ -477,17 +404,6 @@ namespace DAL.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Domain.Models.TimeSlot", b =>
-                {
-                    b.HasOne("Domain.Models.Doctor", "Doctor")
-                        .WithMany()
-                        .HasForeignKey("DoctorId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Doctor");
                 });
 
             modelBuilder.Entity("Domain.Models.Doctor", b =>
