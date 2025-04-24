@@ -4,6 +4,7 @@ using Domain.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace TalonBy.Controllers
 {
@@ -37,17 +38,25 @@ namespace TalonBy.Controllers
                 // Получаем пациентов пользователя
                 var patients = await _patientService.GetPatientsByUserIdAsync(userId);
                 
-                Console.WriteLine($"Fetched {patients.Count} patients for user {userId}");
+                // Проекция данных пациентов на упрощенную модель для клиента
+                var simplifiedPatients = patients.Select(p => new {
+                    patientId = p.PatientId,
+                    name = p.Name,
+                    gender = p.Gender,
+                    dateOfBirth = p.DateOfBirth.Date, // Только дата без времени
+                    address = p.Address,
+                }).ToList();
                 
-                // Формируем объект для ответа
-                var response = new
-                {
-                    userId = user.UserId,
-                    email = user.Email,
-                    phone = user.Phone,
-                    patients = patients
+                // Отправляем только необходимые данные для работы без идентифицирующей информации
+                // Уникальные идентификаторы передавать не будем
+                var response = new {
+                    items = simplifiedPatients.Count,
+                    patients = simplifiedPatients
                 };
 
+                // Информацию о пользователе устанавливаем в заголовки
+                Response.Headers.Add("X-User-Role", user.Role.ToString());
+                
                 return Ok(response);
             }
             catch (Exception ex)
@@ -79,15 +88,26 @@ namespace TalonBy.Controllers
                 // Получаем обновленных пациентов пользователя
                 var patients = await _patientService.GetPatientsByUserIdAsync(userId);
                 
-                // Формируем объект для ответа
-                var response = new
-                {
-                    userId = user.UserId,
-                    email = user.Email,
-                    phone = user.Phone,
-                    patients = patients
+                // Проекция данных пациентов на упрощенную модель для клиента
+                var simplifiedPatients = patients.Select(p => new {
+                    patientId = p.PatientId,
+                    name = p.Name,
+                    gender = p.Gender,
+                    dateOfBirth = p.DateOfBirth.Date, // Только дата без времени
+                    address = p.Address,
+                }).ToList();
+                
+                // Отправляем только необходимые данные для работы без идентифицирующей информации
+                var response = new {
+                    updated = true,
+                    items = simplifiedPatients.Count,
+                    patients = simplifiedPatients
                 };
 
+                // Информацию о пользователе устанавливаем в заголовки
+                Response.Headers.Add("X-User-Role", user.Role.ToString());
+                Response.Headers.Add("X-User-Updated", "true");
+                
                 return Ok(response);
             }
             catch (Exception ex)
