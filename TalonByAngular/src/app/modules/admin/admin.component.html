@@ -1,0 +1,69 @@
+<div class="admin-page" *ngIf="currentUser">
+  <div class="container">
+    <div class="admin-header">
+      <h1>Административная панель</h1>
+      <p class="user-email">{{ currentUser.email }}</p>
+    </div>
+
+    <div class="admin-tabs">
+      <ul class="tabs">
+        <li *ngIf="isTabVisible('appointments')" class="tab" [class.active]="activeTab === 'appointments'" (click)="setActiveTab('appointments')">
+          Талоны
+        </li>
+        <li *ngIf="isTabVisible('schedule')" class="tab" [class.active]="activeTab === 'schedule'" (click)="setActiveTab('schedule')">
+          Управление расписанием
+        </li>
+        <li *ngIf="isTabVisible('personalData')" class="tab" [class.active]="activeTab === 'personalData'" (click)="setActiveTab('personalData')">
+          Личные данные
+        </li>
+      </ul>
+    </div>
+
+    <div class="admin-content">
+      <!-- Appointments tab content -->
+      <div class="appointments-section" *ngIf="activeTab === 'appointments'">
+        <h2>Управление талонами</h2>
+        <p class="empty-state">
+          Здесь будет размещена информация для управления талонами и записями пациентов.
+          <br>
+          Функциональность находится в разработке.
+        </p>
+      </div>
+
+      <!-- Schedule Management tab content -->
+      <div class="schedule-section" *ngIf="activeTab === 'schedule'">
+        <h2>Управление расписанием</h2>
+        <app-schedule-management *ngIf="!isLoading"></app-schedule-management>
+      </div>
+
+      <!-- Personal Data tab content -->
+      <div class="personal-data-section" *ngIf="activeTab === 'personalData'">
+        <h2>Управление личными данными</h2>
+        <p class="empty-state">
+          Здесь будет размещена информация для управления личными данными пользователей.
+          <br>
+          Функциональность находится в разработке.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading state -->
+<div class="loading" *ngIf="isLoading">
+  <div class="spinner-container">
+    <div class="spinner"></div>
+    <p>Загрузка данных...</p>
+  </div>
+</div>
+
+<!-- Error state -->
+<div class="error-state" *ngIf="!isLoading && !currentUser">
+  <p>Не удалось загрузить данные. Пожалуйста, проверьте подключение и обновите страницу.</p>
+  <button (click)="loadUserProfile()" class="btn btn-primary">Повторить</button>
+</div>
+
+<!-- Debug state -->
+<div class="debug-info" *ngIf="!isLoading && !currentUser" style="display: none;">
+  <p>Debug info: isLoading = {{isLoading}}, currentUser = {{currentUser | json}}</p>
+</div> 

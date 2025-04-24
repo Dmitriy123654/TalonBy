@@ -20,6 +20,11 @@
       <!-- Show profile link if logged in -->
       <a *ngIf="isLoggedIn" routerLink="/profile" class="login-link">Профиль</a>
       
+      <!-- Add admin settings icon when logged in and no burger menu is visible and has admin access -->
+      <a *ngIf="isLoggedIn && hasAdminAccess" routerLink="/admin" class="admin-link hide-on-mobile">
+        <i class="fas fa-cog"></i>
+      </a>
+      
       <div class="theme-selector desktop-theme-selector">
         <button class="theme-toggle" (click)="toggleTheme()" [title]="getNextTheme().name">
           <span>{{ getCurrentThemeIcon() }}</span>
@@ -43,6 +48,8 @@
   <div class="mobile-menu" [class.active]="isMenuOpen">
     <nav>
       <ul>
+        <!-- Add admin settings as first item when logged in and has admin access -->
+        <li *ngIf="isLoggedIn && hasAdminAccess"><a routerLink="/admin">Настройки</a></li>
         <li><a routerLink="/order">Талоны</a></li>
         <li><a routerLink="/paid-services">Платные услуги</a></li>
         <li><a routerLink="/medical-institutions">Медучреждения</a></li>

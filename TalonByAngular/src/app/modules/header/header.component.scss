@@ -121,6 +121,21 @@ header {
         background-color: rgba(var(--primary-color-rgb), 0.1);
       }
     }
+    
+    .admin-link {
+      color: var(--text-color);
+      font-size: 20px;
+      margin-left: -12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.3s ease, transform 0.3s ease;
+      
+      &:hover {
+        color: var(--primary-color);
+        transform: rotate(30deg);
+      }
+    }
   }
 
   // Бургер-меню
@@ -364,5 +379,12 @@ header {
   .right {
     position: relative;
     gap: 20px;
+  }
+}
+
+// Hide admin settings icon on mobile
+@media (max-width: 950px) {
+  .hide-on-mobile {
+    display: none !important;
   }
 }
