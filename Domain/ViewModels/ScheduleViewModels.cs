@@ -11,7 +11,11 @@ namespace Domain.ViewModels
         public string WorkdayEnd { get; set; } // в формате "HH:MM"
         public int SlotDuration { get; set; } // длительность в минутах
         public int BreakDuration { get; set; } // перерыв в минутах
-        public List<int> WorkDays { get; set; } // дни недели (0-6)
+        public string WorkDays { get; set; } // дни недели в строке (например "1,2,3,4,5")
+        public bool LunchBreak { get; set; } = true; // наличие обеденного перерыва
+        public string LunchStart { get; set; } // время начала обеда в формате "HH:MM"
+        public string LunchEnd { get; set; } // время окончания обеда в формате "HH:MM"
+        public int? HospitalId { get; set; } // ID больницы (для администраторов)
     }
 
     // DTO для временного слота
@@ -23,11 +27,13 @@ namespace Domain.ViewModels
         public string Time { get; set; } // в формате "HH:MM"
         public int Duration { get; set; } // в минутах
         public bool IsAvailable { get; set; }
+        public int? HospitalId { get; set; }
     }
 
     // DTO для обновления доступности слота
     public class UpdateSlotViewModel
     {
+        public int SlotId { get; set; }
         public bool IsAvailable { get; set; }
     }
 

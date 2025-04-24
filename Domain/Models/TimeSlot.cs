@@ -24,7 +24,12 @@ namespace Domain.Models
         [Required]
         public bool IsAvailable { get; set; } = true;
 
+        public int? HospitalId { get; set; }
+
         [ForeignKey("DoctorId")]
         public virtual Doctor Doctor { get; set; }
+
+        [ForeignKey("HospitalId")]
+        public virtual Hospital Hospital { get; set; }
     }
 } 

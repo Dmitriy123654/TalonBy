@@ -64,6 +64,13 @@ namespace DAL
                 .WithMany()
                 .HasForeignKey(ts => ts.DoctorId);
 
+            modelBuilder.Entity<TimeSlot>()
+                .HasOne(ts => ts.Hospital)
+                .WithMany()
+                .HasForeignKey(ts => ts.HospitalId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
+
             modelBuilder.Entity<DoctorScheduleSettings>()
                 .HasOne(dss => dss.Doctor)
                 .WithMany()
