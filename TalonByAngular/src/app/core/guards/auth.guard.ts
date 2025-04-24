@@ -4,15 +4,16 @@ import { AuthService } from '../services/auth.service';
 import { map, take, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
 
+const STORAGE_KEY_PREFIX = 'talonby_';
+
 export const authGuard: CanActivateFn = (route, state) => {
   const router = inject(Router);
   const authService = inject(AuthService);
   
   // Check localStorage first for immediate decision
-  const persistedAuth = localStorage.getItem('auth_state');
+  const persistedAuth = localStorage.getItem(`${STORAGE_KEY_PREFIX}auth_state`);
   if (persistedAuth === 'true') {
-    // Allow navigation while verifying with server in the background
-    authService.getCurrentUser().subscribe(); // Refresh auth state in background
+    // Просто разрешаем доступ без вызова API
     return true;
   }
   

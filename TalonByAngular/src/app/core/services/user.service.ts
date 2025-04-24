@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, BehaviorSubject, of } from 'rxjs';
-import { tap, catchError, map } from 'rxjs/operators';
+import { tap, catchError, map, switchMap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { User, Patient } from '../../shared/interfaces/user.interface';
+import { AuthService, UserInfo } from './auth.service';
 
 @Injectable({
   providedIn: 'root',
@@ -12,72 +13,143 @@ export class UserService {
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser = this.currentUserSubject.asObservable();
   
-  constructor(private http: HttpClient) {
-    // При инициализации попробуем получить данные пользователя
-    this.getUserProfile().subscribe({
-      error: (err) => console.error('Error loading initial user profile:', err)
-    });
+  // Добавляем кеширование для профиля
+  private lastProfileFetch = 0;
+  private cacheLifetime = 5 * 60 * 1000; // 5 минут
+  
+  constructor(
+    private http: HttpClient,
+    private authService: AuthService
+  ) {
+    // Инициализируем только при первом запуске, не делаем запрос сразу
+    const cachedUser = localStorage.getItem('user_profile_cache');
+    if (cachedUser) {
+      try {
+        const userData = JSON.parse(cachedUser);
+        this.currentUserSubject.next(userData);
+        this.lastProfileFetch = parseInt(localStorage.getItem('user_profile_timestamp') || '0', 10);
+      } catch (e) {
+        // Ошибка загрузки кеша
+      }
+    }
   }
 
-  getUserProfile(): Observable<User> {
-    return this.http.get<any>(
-      `${environment.apiUrl}/users/profile`,
-      { withCredentials: true }
-    ).pipe(
-      map(response => {
-        // Преобразуем данные в формат фронтенда
-        const user: User = {
-          userId: response.userId,
-          email: response.email,
-          fullName: response.fullName || '',
-          phone: response.phone,
-          patients: Array.isArray(response.patients) ? response.patients.map((p: any) => ({
-            patientId: p.patientId,
-            fullName: p.name,
-            relationship: p.gender === 0 ? 'male' : 'female',
-            birthDate: new Date(p.dateOfBirth).toISOString().split('T')[0],
-            isAdult: true,
-            address: p.address
-          })) : []
-        };
-        this.currentUserSubject.next(user);
-        return user;
-      }),
-      catchError(error => {
-        console.error('Error fetching user profile:', error);
-        return of(this.currentUserSubject.value || {} as User);
-      })
-    );
+  getUserProfile(forceRefresh: boolean = false): Observable<User> {
+    // Always force refresh on first load or if specifically requested
+    const now = Date.now();
+    const cacheExpired = now - this.lastProfileFetch > this.cacheLifetime;
+    const cachedUser = this.currentUserSubject.value;
+    
+    if (forceRefresh || cacheExpired || !cachedUser) {
+      // Clear any cached data first
+      if (forceRefresh) {
+        localStorage.removeItem('user_profile_cache');
+        localStorage.removeItem('user_profile_timestamp');
+        this.lastProfileFetch = 0;
+      }
+      
+      // First refresh auth data to ensure we have the latest token info
+      return this.authService.refreshUserData().pipe(
+        switchMap(authUserInfo => {
+          // Get user info from auth service
+          const userInfo = this.authService.getUserInfo();
+          
+          // Then get detailed profile data
+          return this.http.get<any>(
+            `${environment.apiUrl}/users/profile`,
+            { withCredentials: true }
+          ).pipe(
+            map(profileData => {
+              // Create user object using auth data + profile data
+              const user: User = {
+                userId: userInfo?.userId ? parseInt(userInfo.userId.toString(), 10) : 0,
+                email: userInfo?.email || '',
+                fullName: profileData?.fullName || '',
+                phone: userInfo?.phone || profileData?.phone || '',
+                role: userInfo?.role || profileData?.role || 'Patient',
+                patients: Array.isArray(profileData?.patients) ? profileData.patients.map((p: any) => ({
+                  patientId: p.patientId,
+                  fullName: p.name,
+                  relationship: p.gender === 0 ? 'male' : 'female',
+                  birthDate: new Date(p.dateOfBirth).toISOString().split('T')[0],
+                  isAdult: true,
+                  address: p.address
+                })) : []
+              };
+              
+              // Update cache
+              this.lastProfileFetch = Date.now();
+              localStorage.setItem('user_profile_cache', JSON.stringify(user));
+              localStorage.setItem('user_profile_timestamp', this.lastProfileFetch.toString());
+              
+              this.currentUserSubject.next(user);
+              return user;
+            }),
+            catchError(error => {
+              // Use auth data if profile fetch fails
+              if (userInfo) {
+                const minimalUser: User = {
+                  userId: parseInt(userInfo.userId.toString(), 10),
+                  email: userInfo.email,
+                  fullName: '',
+                  role: userInfo.role,
+                  phone: userInfo.phone || '',
+                  patients: []
+                };
+                this.currentUserSubject.next(minimalUser);
+                return of(minimalUser);
+              }
+              
+              return of(this.currentUserSubject.value || {} as User);
+            })
+          );
+        })
+      );
+    }
+    
+    // Return cached data if available and not expired
+    return of(cachedUser);
   }
   
   updateUserProfile(userData: Partial<User>): Observable<User> {
+    // Clear all caches before making the update
+    localStorage.removeItem('user_profile_cache');
+    localStorage.removeItem('user_profile_timestamp');
+    this.lastProfileFetch = 0;
+    
+    // Send the profile update request
     return this.http.put<any>(
       `${environment.apiUrl}/users/profile`,
       userData,
       { withCredentials: true }
     ).pipe(
-      map(response => {
-        // Преобразуем данные в формат фронтенда
-        const user: User = {
-          userId: response.userId,
-          email: response.email,
-          fullName: response.fullName || '',
-          phone: response.phone,
-          patients: Array.isArray(response.patients) ? response.patients.map((p: any) => ({
-            patientId: p.patientId,
-            fullName: p.name,
-            relationship: p.gender === 0 ? 'male' : 'female',
-            birthDate: new Date(p.dateOfBirth).toISOString().split('T')[0],
-            isAdult: true,
-            address: p.address
-          })) : []
-        };
-        
-        this.currentUserSubject.next(user);
-        return user;
+      switchMap(response => {
+        // After profile update, we need to get a fresh token from the server
+        // This is important because we need the token to match the updated user data
+        return this.http.post<any>(
+          `${environment.apiUrl}/auth/refresh-token`,
+          { refreshToken: this.authService.getRefreshToken() },
+          { withCredentials: true }
+        ).pipe(
+          switchMap(refreshResponse => {
+            // Update token storage
+            if (refreshResponse.token) {
+              this.authService.handleAuthentication(refreshResponse.token);
+              if (refreshResponse.refreshToken) {
+                localStorage.setItem('talonby_refreshToken', refreshResponse.refreshToken);
+              }
+            }
+            
+            // Now force refresh the user profile with new token data
+            return this.getUserProfile(true);
+          }),
+          catchError(() => {
+            // Even if token refresh fails, try to get updated profile
+            return this.getUserProfile(true);
+          })
+        );
       }),
-      catchError(error => {
-        console.error('Error updating user profile:', error);
+      catchError(() => {
         return of(this.currentUserSubject.value || {} as User);
       })
     );
@@ -117,7 +189,12 @@ export class UserService {
           address: response.address
         };
         
-        // Обновляем состояние
+        // Сбрасываем кеш, чтобы при следующем запросе получить актуальные данные
+        this.lastProfileFetch = 0;
+        localStorage.removeItem('user_profile_cache');
+        localStorage.removeItem('user_profile_timestamp');
+        
+        // Обновляем состояние - если есть текущие данные
         const currentUser = this.currentUserSubject.value;
         if (currentUser) {
           const updatedPatients = [...(currentUser.patients || []), newPatient];
@@ -128,6 +205,9 @@ export class UserService {
         }
         
         return newPatient;
+      }),
+      catchError(error => {
+        throw error;
       })
     );
   }
@@ -158,6 +238,11 @@ export class UserService {
           address: response.address
         };
         
+        // Сбрасываем кеш, чтобы при следующем запросе получить актуальные данные
+        this.lastProfileFetch = 0;
+        localStorage.removeItem('user_profile_cache');
+        localStorage.removeItem('user_profile_timestamp');
+        
         // Обновляем состояние
         const currentUser = this.currentUserSubject.value;
         if (currentUser && currentUser.patients) {
@@ -171,6 +256,9 @@ export class UserService {
         }
         
         return updatedPatient;
+      }),
+      catchError(error => {
+        throw error;
       })
     );
   }
@@ -181,6 +269,12 @@ export class UserService {
       { withCredentials: true }
     ).pipe(
       map(() => {
+        // Сбрасываем кеш, чтобы при следующем запросе получить актуальные данные
+        this.lastProfileFetch = 0;
+        localStorage.removeItem('user_profile_cache');
+        localStorage.removeItem('user_profile_timestamp');
+        
+        // Обновляем локальное состояние
         const currentUser = this.currentUserSubject.value;
         if (currentUser && currentUser.patients) {
           const updatedPatients = currentUser.patients.filter(p => p.patientId !== patientId);
@@ -191,7 +285,25 @@ export class UserService {
         }
         return true;
       }),
-      catchError(() => of(false))
+      catchError(() => {
+        return of(false);
+      })
+    );
+  }
+  
+  // Метод для принудительного обновления всех данных пользователя
+  refreshAllUserData(): Observable<User> {
+    // Clear all caches
+    this.lastProfileFetch = 0;
+    localStorage.removeItem('user_profile_cache');
+    localStorage.removeItem('user_profile_timestamp');
+    
+    // Force refresh from auth service first
+    return this.authService.refreshUserData().pipe(
+      switchMap(() => this.getUserProfile(true)),
+      tap(() => {
+        // Данные профиля обновлены
+      })
     );
   }
 } 

@@ -11,11 +11,13 @@ import { provideNgxMask } from 'ngx-mask';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { AuthService } from './core/services/auth.service';
 
+const STORAGE_KEY_PREFIX = 'talonby_';
+
 // Create an initializer function that checks auth state on app startup
 export function initializeAuth(authService: AuthService) {
   return () => {
     // Return the persisted auth state immediately for fast initial load
-    const persistedAuth = localStorage.getItem('auth_state');
+    const persistedAuth = localStorage.getItem(`${STORAGE_KEY_PREFIX}auth_state`);
     if (persistedAuth === 'true') {
       return Promise.resolve(true);
     }

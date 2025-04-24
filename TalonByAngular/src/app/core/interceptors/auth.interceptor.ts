@@ -1,44 +1,47 @@
-import { HttpInterceptorFn, HttpResponse, HttpErrorResponse } from '@angular/common/http';
+import { HttpInterceptorFn, HttpResponse, HttpErrorResponse, HttpRequest } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { AuthService } from '../services/auth.service';
 import { Router } from '@angular/router';
-import { catchError, tap } from 'rxjs/operators';
-import { Observable, throwError } from 'rxjs';
+import { catchError, tap, switchMap } from 'rxjs/operators';
+import { Observable, throwError, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
+  // Skip token for auth endpoints except for refresh and me endpoints
+  const isAuthEndpoint = req.url.includes('/auth/');
+  const isLoginOrRegister = req.url.includes('/auth/login') || req.url.includes('/auth/register');
+  
   // Clone the request to ensure it's immutable
   let modifiedReq = req;
 
-  // Add withCredentials for all API requests
-  if (req.url.startsWith(environment.apiUrl)) {
+  // Add Bearer token for API requests that need authentication
+  if (req.url.startsWith(environment.apiUrl) && (!isAuthEndpoint || !isLoginOrRegister)) {
+    const token = authService.getToken();
+    
+    if (token) {
+      modifiedReq = req.clone({
+        withCredentials: true,
+        setHeaders: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+    } else {
+      // If no token but endpoint requires it, add withCredentials only
+      modifiedReq = req.clone({
+        withCredentials: true
+      });
+    }
+  } else if (req.url.startsWith(environment.apiUrl)) {
+    // Always use withCredentials for API requests even without token
     modifiedReq = req.clone({
       withCredentials: true
     });
   }
 
-  // Add header to prevent sensitive data in responses for auth endpoints
-  if (req.url.includes('/auth/')) {
-    modifiedReq = modifiedReq.clone({
-      headers: modifiedReq.headers.set('X-No-Response-Body', 'true')
-    });
-  }
-
   return next(modifiedReq).pipe(
-    // Remove any sensitive data from response if needed
-    tap(event => {
-      // Check if the event is an HttpResponse and has a body property
-      if (event instanceof HttpResponse && event.body) {
-        const body = event.body as any;
-        // Delete token from response body if it somehow gets returned
-        if (body && body.token) {
-          delete body.token;
-        }
-      }
-    }),
     catchError((error: HttpErrorResponse) => {
       // Handle 401 Unauthorized errors except for auth endpoints
       if (error.status === 401) {
@@ -49,8 +52,13 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         // Don't redirect for logout requests or if we're already at the login page
         if (!isLogoutRequest && !isAuthEndpoint && router.url !== '/login') {
           // If we get a 401, we need to logout and redirect to login
-          authService.logout().subscribe(() => {
-            router.navigate(['/login']);
+          authService.logout().subscribe({
+            next: () => {
+              router.navigate(['/login']);
+            },
+            error: () => {
+              router.navigate(['/login']);
+            }
           });
         }
       }

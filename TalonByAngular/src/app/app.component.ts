@@ -1,37 +1,24 @@
-import { Component } from '@angular/core';
-import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
-
-import { LoginComponent } from './modules/login/login.component';
-import { HeaderComponent } from './modules/header/header.component';
+import { Component, OnInit } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { filter } from 'rxjs';
+import { HttpClientModule } from '@angular/common/http';
+import { AuthService } from './core/services/auth.service';
+import { HeaderComponent } from './modules/header/header.component';
 import { FooterComponent } from './modules/footer/footer.component';
-import { ThemeService } from './core/services/theme.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [
-    RouterOutlet,
-    LoginComponent,
-    HeaderComponent,
-    FooterComponent,
-    CommonModule
-  ],
+  imports: [RouterOutlet, CommonModule, HttpClientModule, HeaderComponent, FooterComponent],
   templateUrl: './app.component.html',
-  styleUrls: ['./app.component.scss'],
+  styleUrl: './app.component.scss'
 })
-export class AppComponent {
-  title = 'TalonByAngular';
-  private readonly excludedRoutes = ['/login', '/register'];
-
-  constructor(private router: Router, private themeService: ThemeService) {}
-
-  ngOnInit() {
-    this.router.events
-      .pipe(filter((event) => event instanceof NavigationEnd))
-      .subscribe(() => {
-        // Дополнительная логика, если необходимо
-      });
+export class AppComponent implements OnInit {
+  title = 'TalonBy';
+  
+  constructor(private authService: AuthService) {}
+  
+  ngOnInit(): void {
+    // AuthService will handle autoLogin in its constructor
   }
 }
