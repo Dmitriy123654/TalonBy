@@ -251,7 +251,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
       });
     }
   }
-
+  
   // Валидация формы пациента
   validatePatientForm(): boolean {
     return !this.patientFullNameInvalid && 
@@ -271,8 +271,8 @@ export class ProfileComponent implements OnInit, OnDestroy {
     if (!this.editingPatient?.birthDate) return true;
     
     try {
-      const birthDate = new Date(this.editingPatient.birthDate);
-      const today = new Date();
+    const birthDate = new Date(this.editingPatient.birthDate);
+    const today = new Date();
       return isNaN(birthDate.getTime()) || birthDate > today;
     } catch (e) {
       return true;
@@ -288,34 +288,34 @@ export class ProfileComponent implements OnInit, OnDestroy {
     }
     
     // Показываем индикатор загрузки
-    this.isLoading = true;
-    
+      this.isLoading = true;
+      
     const updatedUserData = {
-      email: this.userSettings.email,
-      phone: this.userSettings.phone
-    };
-    
+        email: this.userSettings.email,
+        phone: this.userSettings.phone
+      };
+      
     this.userService.updateUserProfile(updatedUserData).subscribe({
       next: (user) => {
         this.currentUser = user;
-        
+          
         // Обновляем информацию о пользователе в сервисе и в компоненте
         this.userInfo = this.authService.getUserInfo();
         
         this.userSettings.email = user.email;
         this.userSettings.phone = user.phone || '';
         
-        this.isLoading = false;
-        this.isUserFormSubmitted = false;
+              this.isLoading = false;
+              this.isUserFormSubmitted = false;
         
         // Показываем сообщение об успешном обновлении
         alert('Настройки успешно обновлены!');
-      },
+        },
       error: () => {
-        this.isLoading = false;
+          this.isLoading = false;
         alert('Ошибка при обновлении настроек. Пожалуйста, попробуйте еще раз.');
-      }
-    });
+        }
+      });
   }
   
   // Смена пароля
@@ -394,7 +394,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
     // Пароль должен содержать минимум 6 символов, хотя бы одну заглавную букву и цифру
     const passwordPattern = /^(?=.*[A-Z])(?=.*[0-9]).*$/;
     return !this.passwordChange.newPassword || 
-           this.passwordChange.newPassword.length < 6 || 
+           this.passwordChange.newPassword.length < 6 ||
            !passwordPattern.test(this.passwordChange.newPassword);
   }
   
@@ -412,7 +412,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
     // Возвращаем массив индексов для добавления новых пациентов
     return Array(remainingSlots).fill(0).map((_, i) => i);
   }
-  
+
   // Выход из системы
   logout(): void {
     this.authService.logout().subscribe();

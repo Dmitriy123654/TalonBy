@@ -108,14 +108,13 @@ export class ScheduleManagementComponent implements OnInit {
     const today = new Date();
     this.startDate = this.formatDate(today);
     
-    const nextWeek = new Date();
-    nextWeek.setDate(today.getDate() + 7);
-    this.endDate = this.formatDate(nextWeek);
-    
     // Установка максимального периода (сегодня + 3 месяца)
     const maxDate = new Date();
     maxDate.setMonth(maxDate.getMonth() + 3);
     this.maxEndDate = this.formatDate(maxDate);
+    
+    // Устанавливаем конечную дату по умолчанию на максимальную
+    this.endDate = this.maxEndDate;
     
     // Получение роли пользователя
     this.getUserRole();
@@ -188,17 +187,69 @@ export class ScheduleManagementComponent implements OnInit {
   
   // Инициализация компонента в зависимости от роли пользователя
   initializeByRole(): void {
-    // Проверка административного доступа
-    if (this.authService.hasAdminAccess()) {
-      // Для администраторов загружаем список всех больниц
+    // Get user role from the auth service
+    const userInfo = this.authService.getUserInfo();
+    if (!userInfo) {
+      this.errorMessage = 'User information not found';
+      return;
+    }
+    
+    this.userRole = userInfo.role;
+    
+    if (this.userRole === 'Administrator') {
       this.loadHospitals();
+    } else if (this.userRole === 'ChiefDoctor') {
+      // Для главного врача загрузим информацию о всех больницах и выберем нужную
+      this.isLoading = true;
+      
+      // Сначала загружаем все больницы
+      this.loadHospitals();
+      
+      // Получаем информацию о главвраче по ID пользователя
+      this.scheduleService.getChiefDoctorInfo(userInfo.userId).subscribe({
+        next: (doctorInfo: any) => {
+          if (doctorInfo && doctorInfo.hospitalId) {
+            this.selectedHospitalId = doctorInfo.hospitalId;
+            // Загружаем специальности этой больницы
+            this.loadSpecialities(this.selectedHospitalId);
+            console.log(`ChiefDoctor: автоматически выбрана больница с ID=${this.selectedHospitalId}`);
+          } else {
+            this.errorMessage = 'Не удалось получить информацию о больнице главного врача';
+          }
+          this.isLoading = false;
+        },
+        error: (error: any) => {
+          this.errorMessage = 'Ошибка при получении информации о главном враче';
+          this.isLoading = false;
+          console.error('Ошибка получения данных главврача:', error);
+        }
+      });
     } else if (this.userRole === 'Doctor') {
-      // Если пользователь - врач, загружаем только его расписание
-      const userInfo = this.authService.getUserInfo();
-      // Преобразуем строковый id в число
-      const doctorId = userInfo ? parseInt(userInfo.userId, 10) : 1;
-      this.selectedDoctorId = doctorId || 1; // Если не получилось преобразовать, используем 1
-      this.loadDoctorSettings(this.selectedDoctorId);
+      // Для врача загрузим ID врача и больницы из информации о пользователе
+      this.isLoading = true;
+      
+      // Загружаем список больниц для отображения имени больницы
+      this.loadHospitals();
+      
+      // Получаем информацию о враче по ID пользователя
+      this.scheduleService.getDoctorInfoByUserId(userInfo.userId).subscribe({
+        next: (doctorInfo: any) => {
+          if (doctorInfo && doctorInfo.doctorId && doctorInfo.hospitalId) {
+            this.selectedHospitalId = doctorInfo.hospitalId;
+            this.selectedDoctorId = doctorInfo.doctorId;
+            this.loadSchedule();
+            console.log(`Doctor: автоматически выбран врач с ID=${this.selectedDoctorId} в больнице с ID=${this.selectedHospitalId}`);
+          } else {
+            this.errorMessage = 'Не удалось получить информацию о враче';
+          }
+          this.isLoading = false;
+        },
+        error: (error: any) => {
+          this.errorMessage = 'Ошибка при получении информации о враче';
+          this.isLoading = false;
+          console.error('Ошибка получения данных врача:', error);
+        }
+      });
     } else if (this.userRole === 'Registrar') {
       // Если пользователь - регистратор, загружаем доступных врачей его больницы
       this.loadHospitalDoctors(this.selectedHospitalId);
@@ -215,6 +266,18 @@ export class ScheduleManagementComponent implements OnInit {
       next: (data) => {
         this.allHospitals = data;
         this.hospitals = [...data];
+        
+        // Если у нас роль ChiefDoctor и мы уже получили ID больницы
+        if (this.userRole === 'ChiefDoctor' && this.selectedHospitalId > 0) {
+          // Выбираем соответствующую больницу в списке
+          const selectedHospital = this.hospitals.find(h => h.hospitalId === this.selectedHospitalId);
+          if (selectedHospital) {
+            console.log(`Найдена больница: ${selectedHospital.name} (ID: ${selectedHospital.hospitalId})`);
+          } else {
+            console.warn(`Больница с ID=${this.selectedHospitalId} не найдена в списке`);
+          }
+        }
+        
         this.isLoading = false;
       },
       error: (error) => {
@@ -367,7 +430,7 @@ export class ScheduleManagementComponent implements OnInit {
     });
   }
 
-  // Загрузка текущего расписания
+  // Загрузка расписания
   loadSchedule(): void {
     if (this.selectedDoctorId <= 0) {
       this.currentSchedule = null;
@@ -389,19 +452,18 @@ export class ScheduleManagementComponent implements OnInit {
       next: (schedule) => {
         this.currentSchedule = schedule;
         
-        // Устанавливаем текущий месяц на первый день из расписания, если он есть
-        if (schedule && schedule.schedule) {
-          const scheduleDates = Object.keys(schedule.schedule).sort();
+        if (schedule && schedule.schedule && typeof schedule.schedule === 'object') {
+          const scheduleDates = Object.keys(schedule.schedule);
           if (scheduleDates.length > 0) {
-            const firstScheduleDate = new Date(scheduleDates[0]);
-            this.currentMonth = new Date(firstScheduleDate.getFullYear(), firstScheduleDate.getMonth(), 1);
+            this.buildCalendar();
+          } else {
+            this.buildEmptyCalendar();
           }
+        } else {
+          this.buildEmptyCalendar();
         }
         
         this.isLoading = false;
-        
-        // Создаем календарное представление расписания
-        this.buildCalendar();
         
         // Сбрасываем выбранную дату
         this.selectedCalendarDate = null;
@@ -1129,6 +1191,58 @@ export class ScheduleManagementComponent implements OnInit {
     return this.weekdays[dayIndex].name;
   }
 
+  // Обновление расписания после удаления
+  refreshSchedule(): void {
+    // Очистка текущих данных
+    this.currentSchedule = null;
+    this.selectedCalendarDate = null;
+    this.selectedDaySlots = [];
+    
+    // Если доктор не выбран, просто показываем пустой календарь
+    if (this.selectedDoctorId <= 0) {
+      this.buildEmptyCalendar();
+      return;
+    }
+    
+    console.log('Обновление расписания после удаления для врача:', this.selectedDoctorId);
+    console.log('Период:', this.startDate, 'по', this.endDate);
+    
+    // Запрашиваем актуальное расписание
+    this.isLoading = true;
+    this.scheduleService.getDoctorSchedule(
+      this.selectedDoctorId, 
+      this.startDate, 
+      this.endDate
+    ).subscribe({
+      next: (schedule) => {
+        this.currentSchedule = schedule;
+        
+        // Устанавливаем текущий месяц на первый день из расписания, если он есть
+        if (schedule && schedule.schedule && Object.keys(schedule.schedule).length > 0) {
+          const scheduleDates = Object.keys(schedule.schedule).sort();
+          if (scheduleDates.length > 0) {
+            const firstScheduleDate = new Date(scheduleDates[0]);
+            this.currentMonth = new Date(firstScheduleDate.getFullYear(), firstScheduleDate.getMonth(), 1);
+            this.buildCalendar();
+          } else {
+            this.buildEmptyCalendar();
+          }
+        } else {
+          this.buildEmptyCalendar();
+        }
+        
+        this.isLoading = false;
+        
+        console.log('Расписание после удаления:', schedule);
+      },
+      error: (error) => {
+        console.error('Ошибка при обновлении расписания:', error);
+        this.buildEmptyCalendar();
+        this.isLoading = false;
+      }
+    });
+  }
+  
   // Удаление расписания
   deleteSchedule(): void {
     if (!this.currentSchedule) {
@@ -1141,33 +1255,66 @@ export class ScheduleManagementComponent implements OnInit {
       return;
     }
     
+    // Отладочная информация по датам
+    console.log('Удаление расписания для периода:');
+    console.log('Начальная дата:', this.startDate);
+    console.log('Конечная дата:', this.endDate);
+    
+    const startDateObj = new Date(this.startDate);
+    const endDateObj = new Date(this.endDate);
+    
+    console.log('Начальная дата (объект):', startDateObj);
+    console.log('Конечная дата (объект):', endDateObj);
+    console.log('Месяц начальной даты (0-11):', startDateObj.getMonth());
+    console.log('Месяц конечной даты (0-11):', endDateObj.getMonth());
+    
     // Запрашиваем подтверждение у пользователя
     if (confirm('Вы уверены, что хотите удалить расписание? Это действие нельзя отменить.')) {
       this.isLoading = true;
       
-      // Здесь в будущем будет реальный запрос к API для удаления расписания
-      // this.scheduleService.deleteSchedule(this.selectedDoctorId, this.startDate, this.endDate)
-      //   .subscribe({
-      //     ...
-      //   });
-      
-      // Пока используем заглушку - просто очищаем локальное расписание после задержки
-      setTimeout(() => {
-        this.currentSchedule = null;
-        this.selectedCalendarDate = null;
-        this.selectedDaySlots = [];
-        
-        // Перестраиваем пустой календарь
-        this.buildEmptyCalendar();
-        
-        this.isLoading = false;
-        this.saveSuccess = true;
-        
-        // Скрываем сообщение об успехе через 3 секунды
-        setTimeout(() => {
-          this.saveSuccess = false;
-        }, 3000);
-      }, 1000);
+      // Вызываем реальный API для удаления расписания
+      this.scheduleService.deleteSchedule(this.selectedDoctorId, this.startDate, this.endDate)
+        .subscribe({
+          next: (success) => {
+            if (success) {
+              // Вместо ручного очищения, загружаем актуальное расписание
+              this.refreshSchedule();
+              this.saveSuccess = true;
+              
+              // Скрываем сообщение об успехе через 3 секунды
+              setTimeout(() => {
+                this.saveSuccess = false;
+              }, 3000);
+            } else {
+              this.errorMessage = 'Не удалось удалить расписание';
+              this.isLoading = false;
+            }
+          },
+          error: (error) => {
+            this.errorMessage = 'Ошибка при удалении расписания: ' + (error.error || error.message);
+            this.isLoading = false;
+            console.error('Ошибка удаления расписания:', error);
+          }
+        });
     }
+  }
+
+  // Вспомогательные методы для шаблона
+  findHospitalName(hospitalId: number): string {
+    return this.hospitals.find(h => h.hospitalId === hospitalId)?.name || '';
+  }
+
+  findDoctorName(doctorId: number): string {
+    return this.doctors.find(d => d.id === doctorId)?.name || '';
+  }
+
+  hasHospital(hospitalId: number): boolean {
+    return this.hospitals && this.hospitals.length > 0 && 
+           this.hospitals.some(h => h.hospitalId === hospitalId);
+  }
+
+  hasDoctor(doctorId: number): boolean {
+    return this.doctors && this.doctors.length > 0 && 
+           this.doctors.some(d => d.id === doctorId);
   }
 } 

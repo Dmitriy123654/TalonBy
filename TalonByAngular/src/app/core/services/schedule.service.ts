@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { TimeSlot, ScheduleSettings, DoctorScheduleView } from '../../shared/interfaces/schedule.interface';
-import { delay } from 'rxjs/operators';
+import { delay, catchError } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
@@ -176,5 +176,46 @@ export class ScheduleService {
     
     // Реализация для бэкенда
     return this.http.patch<void>(`${this.apiUrl}/schedule/${doctorId}/day/${date}`, formattedSlots);
+  }
+
+  /**
+   * Получение информации о главном враче по ID пользователя
+   * @param userId ID пользователя
+   */
+  getChiefDoctorInfo(userId: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/doctor/chief/${userId}`).pipe(
+      catchError(error => {
+        console.error('Ошибка при получении информации о главном враче:', error);
+        return throwError(() => new Error('Не удалось получить информацию о главном враче'));
+      })
+    );
+  }
+
+  /**
+   * Получение информации о враче по ID пользователя
+   * @param userId ID пользователя
+   */
+  getDoctorInfoByUserId(userId: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/doctor/user/${userId}`).pipe(
+      catchError(error => {
+        console.error('Ошибка при получении информации о враче:', error);
+        return throwError(() => new Error('Не удалось получить информацию о враче'));
+      })
+    );
+  }
+
+  /**
+   * Удаление расписания врача на указанный период
+   * @param doctorId ID врача
+   * @param startDate Начальная дата периода
+   * @param endDate Конечная дата периода
+   */
+  deleteSchedule(doctorId: number, startDate: string, endDate: string): Observable<boolean> {
+    return this.http.delete<boolean>(`${this.apiUrl}/schedule/${doctorId}?startDate=${startDate}&endDate=${endDate}`).pipe(
+      catchError(error => {
+        console.error('Ошибка при удалении расписания:', error);
+        return throwError(() => new Error('Не удалось удалить расписание'));
+      })
+    );
   }
 } 

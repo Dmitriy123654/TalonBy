@@ -295,7 +295,7 @@ export class DatetimeSelectionComponent implements OnInit, OnDestroy {
   }
 
   getDayOfWeek(date: Date): string {
-    const days = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
+    const days = ['понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота', 'воскресенье'];
     return days[date.getDay()];
   }
 

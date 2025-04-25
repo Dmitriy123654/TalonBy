@@ -35,8 +35,8 @@
     </div>
   </div>
 
-  <!-- Выбор специальности (только когда выбрана больница) -->
-  <div class="selection-row" *ngIf="userRole === 'Administrator' && selectedHospitalId && specialities.length > 0">
+  <!-- Выбор специальности (для администраторов и главврачей) -->
+  <div class="selection-row" *ngIf="(userRole === 'Administrator' && selectedHospitalId && specialities.length > 0) || (userRole === 'ChiefDoctor' && specialities.length > 0)">
     <div class="speciality-selection">
       <h3>Выберите специальность</h3>
       <div class="search-input">
@@ -60,8 +60,8 @@
 
   <!-- Выбор врача и периода -->
   <div class="selection-row">
-    <!-- Выбор врача (только для администраторов и главврачей) -->
-    <div class="doctor-selection" *ngIf="(userRole === 'Administrator' && selectedSpecialityId) || userRole === 'ChiefDoctor'">
+    <!-- Выбор врача (для администраторов и главврачей) -->
+    <div class="doctor-selection" *ngIf="(userRole === 'Administrator' && selectedSpecialityId) || (userRole === 'ChiefDoctor' && selectedSpecialityId)">
       <h3>Выберите врача</h3>
       <div class="search-input">
         <input 
@@ -81,7 +81,8 @@
       </select>
     </div>
 
-    <div class="period-selection">
+    <!-- Выбор периода (для всех) -->
+    <div class="period-selection" [ngClass]="{'full-width': userRole === 'Doctor' || userRole === 'ChiefDoctor'}">
       <h3>Выберите период</h3>
       <div class="date-range">
         <div class="date-input">
