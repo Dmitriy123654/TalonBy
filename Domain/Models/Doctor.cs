@@ -14,6 +14,8 @@ namespace Domain.Models
         public int HospitalId { get; set; }
         public int DoctorsSpecialityId { get; set; }
 
+        public int? UserId { get; set; }
+
         [Required]
         [StringLength(200)]
         public string FullName { get; set; }
@@ -34,6 +36,9 @@ namespace Domain.Models
 
         [ForeignKey("HospitalId")]
         public virtual Hospital Hospital { get; set; }
+
+        [ForeignKey("UserId")]
+        public virtual User User { get; set; }
 
         public virtual ICollection<MedicalAppointment> MedicalAppointments { get; set; }
     }
