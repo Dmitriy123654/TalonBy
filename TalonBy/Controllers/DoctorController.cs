@@ -10,6 +10,7 @@ namespace TalonBy.Controllers
     // [Authorize]
     [ApiController]
     [Route("api/[controller]")]
+    [Route("api/doctors")]
     public class DoctorController : ControllerBase
     {
         private readonly IDoctorService _doctorService;
@@ -69,7 +70,23 @@ namespace TalonBy.Controllers
             try
             {
                 var doctors = _doctorService.GetDoctorsBySpecialtyAndHospital(hospitalId, specialtyId);
-                return Ok(doctors);
+                
+                // Преобразуем результат в упрощенный формат без циклических ссылок
+                var simplifiedDoctors = doctors.Select(d => new {
+                    doctorId = d.DoctorId,
+                    fullName = d.FullName,
+                    doctorsSpeciality = new {
+                        name = d.DoctorsSpeciality?.Name,
+                        doctorsSpecialityId = d.DoctorsSpeciality?.DoctorsSpecialityId
+                    },
+                    photo = d.Photo,
+                    hospitalId = d.HospitalId,
+                    workingHours = d.WorkingHours,
+                    office = d.Office,
+                    additionalInfo = d.AdditionalInfo
+                });
+                
+                return Ok(simplifiedDoctors);
             }
             catch (Exception ex)
             {
@@ -96,6 +113,50 @@ namespace TalonBy.Controllers
         {
             await _doctorService.DeleteDoctorAsync(id);
             return Ok();
+        }
+
+        /// <summary>
+        /// Получение информации о главном враче по ID пользователя
+        /// </summary>
+        [HttpGet("chief/{userId}")]
+        public async Task<IActionResult> GetChiefDoctorByUserId(string userId)
+        {
+            try
+            {
+                var doctorInfo = await _doctorService.GetChiefDoctorByUserIdAsync(userId);
+                if (doctorInfo == null)
+                {
+                    return NotFound(new { message = "Информация о главном враче не найдена" });
+                }
+                
+                return Ok(doctorInfo);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Получение информации о враче по ID пользователя
+        /// </summary>
+        [HttpGet("user/{userId}")]
+        public async Task<IActionResult> GetDoctorByUserId(string userId)
+        {
+            try
+            {
+                var doctorInfo = await _doctorService.GetDoctorByUserIdAsync(userId);
+                if (doctorInfo == null)
+                {
+                    return NotFound(new { message = "Информация о враче не найдена" });
+                }
+                
+                return Ok(doctorInfo);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
     }
 }

@@ -66,15 +66,38 @@ namespace DAL
         public IEnumerable<Doctor> GetBySpecialtyAndHospitalId(int hospitalId, int specialtyId)
         {
             return _context.Doctors
+                .Include(d => d.DoctorsSpeciality)
                 .Where(d => d.HospitalId == hospitalId && d.DoctorsSpecialityId == specialtyId)
+                .OrderBy(d => d.FullName)
                 .ToList();
         }
 
         public async Task<IEnumerable<Doctor>> GetBySpecialityAsync(int specialityId)
         {
             return await _context.Doctors
+                .Include(d => d.DoctorsSpeciality)
+                .Include(d => d.Hospital)
                 .Where(d => d.DoctorsSpecialityId == specialityId)
+                .OrderBy(d => d.FullName)
                 .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Doctor>> GetDoctorsBySpecialityIdAsync(int specialityId)
+        {
+            return await _context.Doctors
+                .Include(d => d.DoctorsSpeciality)
+                .Include(d => d.Hospital)
+                .Where(d => d.DoctorsSpecialityId == specialityId)
+                .OrderBy(d => d.FullName)
+                .ToListAsync();
+        }
+
+        public async Task<Doctor> GetByUserIdAsync(int userId)
+        {
+            return await _context.Doctors
+                .Include(d => d.DoctorsSpeciality)
+                .Include(d => d.Hospital)
+                .FirstOrDefaultAsync(d => d.UserId == userId);
         }
     }
 }

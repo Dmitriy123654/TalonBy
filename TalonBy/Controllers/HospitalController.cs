@@ -62,14 +62,46 @@ namespace TalonBy.Controllers
         public IActionResult GetDoctorsByHospital(int hospitalId)
         {
             var doctors = doctorService.GetDoctorsByHospital(hospitalId);
-            return Ok(doctors);
+            
+            // Преобразуем результат в упрощенный формат без циклических ссылок
+            var simplifiedDoctors = doctors.Select(d => new {
+                doctorId = d.DoctorId,
+                fullName = d.FullName,
+                doctorsSpeciality = new {
+                    name = d.DoctorsSpeciality?.Name,
+                    doctorsSpecialityId = d.DoctorsSpeciality?.DoctorsSpecialityId
+                },
+                photo = d.Photo,
+                hospitalId = d.HospitalId,
+                workingHours = d.WorkingHours,
+                office = d.Office,
+                additionalInfo = d.AdditionalInfo
+            });
+            
+            return Ok(simplifiedDoctors);
         }
 
         [HttpGet("GetDoctorsBySpecialty/{hospitalId}/{specialtyId}")]
         public IActionResult GetDoctorsBySpecialty(int hospitalId, int specialtyId)
         {
             var doctors = doctorService.GetDoctorsBySpecialtyAndHospital(hospitalId, specialtyId);
-            return Ok(doctors);
+            
+            // Преобразуем результат в упрощенный формат без циклических ссылок
+            var simplifiedDoctors = doctors.Select(d => new {
+                doctorId = d.DoctorId,
+                fullName = d.FullName,
+                doctorsSpeciality = new {
+                    name = d.DoctorsSpeciality?.Name,
+                    doctorsSpecialityId = d.DoctorsSpeciality?.DoctorsSpecialityId
+                },
+                photo = d.Photo,
+                hospitalId = d.HospitalId,
+                workingHours = d.WorkingHours,
+                office = d.Office,
+                additionalInfo = d.AdditionalInfo
+            });
+            
+            return Ok(simplifiedDoctors);
         }
 
         [HttpGet("SearchHospitals")]

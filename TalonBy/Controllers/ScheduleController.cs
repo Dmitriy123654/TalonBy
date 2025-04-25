@@ -215,6 +215,26 @@ namespace TalonBy.Controllers
                 return StatusCode(500, $"Ошибка при автоматической генерации расписания: {ex.Message}");
             }
         }
+
+        // Удаление расписания для указанного врача и периода
+        [HttpDelete("{doctorId}")]
+        [Authorize(Roles = "Doctor,ChiefDoctor,MedicalStaff,Administrator")]
+        public async Task<IActionResult> DeleteSchedule(int doctorId, [FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
+        {
+            try
+            {
+                var success = await _scheduleService.DeleteScheduleAsync(doctorId, startDate, endDate);
+                if (success)
+                {
+                    return Ok(true);
+                }
+                return BadRequest("Не удалось удалить расписание");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Ошибка при удалении расписания: {ex.Message}");
+            }
+        }
     }
 
     // DTO для запроса автоматической генерации

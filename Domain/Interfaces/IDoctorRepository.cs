@@ -17,5 +17,7 @@ namespace Domain.Interfaces
         IEnumerable<Doctor> GetByHospitalId(int hospitalId);
         IEnumerable<Doctor> GetBySpecialtyAndHospitalId(int hospitalId, int specialtyId);
         Task<IEnumerable<Doctor>> GetBySpecialityAsync(int specialityId);
+        Task<IEnumerable<Doctor>> GetDoctorsBySpecialityIdAsync(int specialityId);
+        Task<Doctor> GetByUserIdAsync(int userId);
     }
 }

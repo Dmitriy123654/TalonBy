@@ -39,6 +39,9 @@ namespace BLL.Services
 
         // Автоматическая генерация расписания по шаблону
         Task<DoctorScheduleViewModel> GenerateAutomaticScheduleAsync(int doctorId, DateTime startDate, DateTime endDate, ScheduleSettingsViewModel settings);
+        
+        // Удаление расписания для указанного врача и периода
+        Task<bool> DeleteScheduleAsync(int doctorId, DateTime startDate, DateTime endDate);
     }
 
     public class ScheduleService : IScheduleService
@@ -482,6 +485,12 @@ namespace BLL.Services
 
             // Возвращаем сгенерированное расписание
             return await GetDoctorScheduleWithTimeSlotsAsync(doctorId, startDate, endDate);
+        }
+
+        public async Task<bool> DeleteScheduleAsync(int doctorId, DateTime startDate, DateTime endDate)
+        {
+            // Вызываем метод репозитория для удаления слотов за указанный период
+            return await _timeSlotRepository.DeleteTimeSlotsForPeriodAsync(doctorId, startDate, endDate);
         }
     }
 } 

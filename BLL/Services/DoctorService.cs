@@ -19,7 +19,8 @@ namespace BLL.Services
         IEnumerable<Doctor> GetDoctorsByHospital(int hospitalId);
         IEnumerable<Doctor> GetDoctorsBySpecialtyAndHospital(int hospitalId, int specialtyId);
         Task<IEnumerable<Doctor>> GetDoctorsBySpecialityAsync(int specialityId);
-        
+        Task<object> GetDoctorByUserIdAsync(string userId);
+        Task<object> GetChiefDoctorByUserIdAsync(string userId);
     }
     public class DoctorService : IDoctorService
     {
@@ -92,9 +93,77 @@ namespace BLL.Services
 
         public async Task<IEnumerable<Doctor>> GetDoctorsBySpecialityAsync(int specialityId)
         {
-            return await _doctorRepository.GetBySpecialityAsync(specialityId);
+            return await _doctorRepository.GetDoctorsBySpecialityIdAsync(specialityId);
         }
 
-       
+        public async Task<object> GetDoctorByUserIdAsync(string userId)
+        {
+            // Преобразуем строковый ID в числовой
+            if (!int.TryParse(userId, out int userIdInt))
+            {
+                throw new ArgumentException("Некорректный ID пользователя");
+            }
+            
+            try
+            {
+                // Ищем доктора по ID пользователя
+                var doctor = await _doctorRepository.GetByUserIdAsync(userIdInt);
+                if (doctor == null)
+                {
+                    return null;
+                }
+                
+                // Возвращаем данные в формате, ожидаемом клиентским приложением
+                return new 
+                {
+                    doctorId = doctor.DoctorId,
+                    hospitalId = doctor.HospitalId,
+                    fullName = doctor.FullName,
+                    specialization = doctor.DoctorsSpeciality?.Name
+                };
+            }
+            catch (Exception ex)
+            {
+                // Логируем ошибку и возвращаем null для обработки на более высоком уровне
+                Console.WriteLine($"Ошибка при получении врача по UserId {userId}: {ex.Message}");
+                return null;
+            }
+        }
+
+        public async Task<object> GetChiefDoctorByUserIdAsync(string userId)
+        {
+            // Преобразуем строковый ID в числовой
+            if (!int.TryParse(userId, out int userIdInt))
+            {
+                throw new ArgumentException("Некорректный ID пользователя");
+            }
+            
+            try
+            {
+                // Ищем доктора по ID пользователя
+                var doctor = await _doctorRepository.GetByUserIdAsync(userIdInt);
+                if (doctor == null)
+                {
+                    return null;
+                }
+                
+                // Проверяем, является ли врач главврачом 
+                // В данном случае просто возвращаем найденные данные, но в будущем тут можно добавить проверку роли
+                
+                return new 
+                {
+                    doctorId = doctor.DoctorId,
+                    hospitalId = doctor.HospitalId,
+                    fullName = doctor.FullName,
+                    specialization = doctor.DoctorsSpeciality?.Name
+                };
+            }
+            catch (Exception ex)
+            {
+                // Логируем ошибку и возвращаем null для обработки на более высоком уровне
+                Console.WriteLine($"Ошибка при получении главврача по UserId {userId}: {ex.Message}");
+                return null;
+            }
+        }
     }
 }
