@@ -3,6 +3,8 @@ import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors }
 import { ScheduleService } from '../../../core/services/schedule.service';
 import { DoctorScheduleView, ScheduleSettings, TimeSlot, Hospital } from '../../../shared/interfaces/schedule.interface';
 import { AuthService } from '../../../core/services/auth.service';
+import { OrderService } from '../../../core/services/order.service';
+import { Hospital as OrderHospital, DoctorDetails } from '../../../shared/interfaces/order.interface';
 
 @Component({
   selector: 'app-schedule-management',
@@ -13,9 +15,9 @@ export class ScheduleManagementComponent implements OnInit {
   // Настройки расписания
   settingsForm: FormGroup;
   // Выбранный доктор
-  selectedDoctorId: number = 5;
+  selectedDoctorId: number = 0;
   // Выбранная больница (для администраторов)
-  selectedHospitalId: number = 1;
+  selectedHospitalId: number = 0;
   // Текущее расписание
   currentSchedule: DoctorScheduleView | null = null;
   // Последние сохраненные настройки
@@ -45,11 +47,22 @@ export class ScheduleManagementComponent implements OnInit {
     { id: 3, name: 'Сидорова С.С.', specialization: 'Кардиолог' }
   ];
   // Список больниц (для администраторов)
-  hospitals: Hospital[] = [
-    { id: 1, name: 'Городская больница №1' },
-    { id: 2, name: 'Областная клиническая больница' },
-    { id: 3, name: 'Детская поликлиника №2' }
-  ];
+  hospitals: OrderHospital[] = [];
+  // Список специальностей выбранной больницы
+  specialities: any[] = [];
+  // Выбранная специальность
+  selectedSpecialityId: number = 0;
+  
+  // Фильтры для поиска
+  hospitalFilter: string = '';
+  specialityFilter: string = '';
+  doctorFilter: string = '';
+  
+  // Исходные списки (до фильтрации)
+  allHospitals: OrderHospital[] = [];
+  allSpecialities: any[] = [];
+  allDoctors: DoctorDetails[] = [];
+  
   // Дни недели для отображения
   weekdays = [
     { id: 1, name: 'Понедельник' },
@@ -75,7 +88,8 @@ export class ScheduleManagementComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private scheduleService: ScheduleService,
-    private authService: AuthService
+    private authService: AuthService,
+    private orderService: OrderService
   ) {
     // Инициализируем форму с дефолтными значениями для решения ошибки линтера
     this.settingsForm = this.fb.group({
@@ -86,8 +100,8 @@ export class ScheduleManagementComponent implements OnInit {
       lunchStart: ['13:00', [Validators.required, Validators.pattern('^([01]?[0-9]|2[0-3]):[0-5][0-9]$')]],
       lunchEnd: ['14:00', [Validators.required, Validators.pattern('^([01]?[0-9]|2[0-3]):[0-5][0-9]$')]],
       workDays: [[1, 2, 3, 4, 5, 6], Validators.required], // По умолчанию ПН-СБ
-      doctorId: [5], // Заглушка для doctorId
-      hospitalId: [1] // Заглушка для hospitalId
+      doctorId: [this.selectedDoctorId], // Используем выбранный
+      hospitalId: [this.selectedHospitalId] // Используем выбранный
     }, { validators: [this.validateLunchBreak, this.validateWorkHours] });
     
     // Инициализация дат
@@ -176,9 +190,8 @@ export class ScheduleManagementComponent implements OnInit {
   initializeByRole(): void {
     // Проверка административного доступа
     if (this.authService.hasAdminAccess()) {
-      // Для администраторов загружаем список всех больниц и врачей
+      // Для администраторов загружаем список всех больниц
       this.loadHospitals();
-      this.loadAllDoctors();
     } else if (this.userRole === 'Doctor') {
       // Если пользователь - врач, загружаем только его расписание
       const userInfo = this.authService.getUserInfo();
@@ -197,46 +210,58 @@ export class ScheduleManagementComponent implements OnInit {
   
   // Загрузка списка больниц
   loadHospitals(): void {
-    // Здесь должен быть реальный запрос к API
     this.isLoading = true;
-    // Пример:
-    // this.scheduleService.getHospitals().subscribe(
-    //   (data) => {
-    //     this.hospitals = data;
-    //     this.isLoading = false;
-    //   },
-    //   (error) => {
-    //     this.errorMessage = 'Ошибка при загрузке списка больниц';
-    //     this.isLoading = false;
-    //   }
-    // );
-    
-    // Заглушка
-    setTimeout(() => {
-      this.isLoading = false;
-    }, 500);
+    this.orderService.getHospitals().subscribe({
+      next: (data) => {
+        this.allHospitals = data;
+        this.hospitals = [...data];
+        this.isLoading = false;
+      },
+      error: (error) => {
+        this.errorMessage = 'Ошибка при загрузке списка больниц';
+        this.isLoading = false;
+        console.error('Ошибка загрузки больниц:', error);
+      }
+    });
   }
   
-  // Загрузка всех врачей (для администраторов)
-  loadAllDoctors(): void {
-    // Здесь должен быть реальный запрос к API
+  // Загрузка специальностей по ID больницы
+  loadSpecialities(hospitalId: number): void {
     this.isLoading = true;
-    // Пример:
-    // this.scheduleService.getAllDoctors().subscribe(
-    //   (data) => {
-    //     this.doctors = data;
-    //     this.isLoading = false;
-    //   },
-    //   (error) => {
-    //     this.errorMessage = 'Ошибка при загрузке списка врачей';
-    //     this.isLoading = false;
-    //   }
-    // );
-    
-    // Заглушка
-    setTimeout(() => {
-      this.isLoading = false;
-    }, 500);
+    this.orderService.getSpecialities(hospitalId).subscribe({
+      next: (data) => {
+        this.allSpecialities = data;
+        this.specialities = [...data];
+        this.isLoading = false;
+      },
+      error: (error) => {
+        this.errorMessage = 'Ошибка при загрузке списка специальностей';
+        this.isLoading = false;
+        console.error('Ошибка загрузки специальностей:', error);
+      }
+    });
+  }
+  
+  // Загрузка врачей по специальности и больнице
+  loadDoctorsBySpeciality(hospitalId: number, specialityId: number): void {
+    this.isLoading = true;
+    this.orderService.getDoctorsBySpecialityAndHospital(hospitalId, specialityId).subscribe({
+      next: (data) => {
+        this.allDoctors = data;
+        // Преобразуем данные в требуемый формат
+        this.doctors = data.map(doctor => ({
+          id: doctor.doctorId,
+          name: doctor.fullName,
+          specialization: doctor.doctorsSpeciality?.name || ''
+        }));
+        this.isLoading = false;
+      },
+      error: (error) => {
+        this.errorMessage = 'Ошибка при загрузке списка врачей';
+        this.isLoading = false;
+        console.error('Ошибка загрузки врачей:', error);
+      }
+    });
   }
   
   // Загрузка врачей конкретной больницы
@@ -271,13 +296,18 @@ export class ScheduleManagementComponent implements OnInit {
       lunchStart: ['13:00', [Validators.required, Validators.pattern('^([01]?[0-9]|2[0-3]):[0-5][0-9]$')]],
       lunchEnd: ['14:00', [Validators.required, Validators.pattern('^([01]?[0-9]|2[0-3]):[0-5][0-9]$')]],
       workDays: [[1, 2, 3, 4, 5, 6], Validators.required], // По умолчанию ПН-СБ
-      doctorId: [5], // Заглушка для doctorId
-      hospitalId: [1] // Заглушка для hospitalId
+      doctorId: [this.selectedDoctorId], // Используем выбранного врача
+      hospitalId: [this.selectedHospitalId] // Используем выбранную больницу
     }, { validators: [this.validateLunchBreak, this.validateWorkHours] });
   }
 
   // Загрузка настроек расписания для выбранного врача
   loadDoctorSettings(doctorId: number): void {
+    if (doctorId <= 0) {
+      this.initForm();
+      return;
+    }
+    
     this.isLoading = true;
     this.scheduleService.getDoctorScheduleSettings(doctorId).subscribe({
       next: (settings) => {
@@ -320,17 +350,35 @@ export class ScheduleManagementComponent implements OnInit {
         
         // После загрузки настроек загружаем расписание
         this.loadSchedule();
+        
+        // Скрыть сообщение об ошибке, если оно было
+        this.errorMessage = '';
       },
       error: (error: any) => {
+        // Если настроек нет, инициализируем форму значениями по умолчанию
+        this.initForm();
+        console.log('Настройки для врача не найдены, используются значения по умолчанию');
+        
+        // После инициализации формы загружаем расписание с дефолтными настройками
+        this.loadSchedule();
+        
         this.isLoading = false;
-        this.errorMessage = 'Ошибка при загрузке настроек расписания';
-        console.error('Ошибка загрузки настроек:', error);
       }
     });
   }
 
   // Загрузка текущего расписания
   loadSchedule(): void {
+    if (this.selectedDoctorId <= 0) {
+      this.currentSchedule = null;
+      this.buildEmptyCalendar();
+      this.isLoading = false;
+      return;
+    }
+    
+    console.log('Загрузка расписания для врача:', this.selectedDoctorId);
+    console.log('Период:', this.startDate, 'по', this.endDate);
+    
     this.isLoading = true;
     this.currentSchedule = null; // Очищаем текущее расписание во время загрузки
     this.scheduleService.getDoctorSchedule(
@@ -363,8 +411,18 @@ export class ScheduleManagementComponent implements OnInit {
       },
       error: (error: any) => {
         this.isLoading = false;
-        this.errorMessage = 'Ошибка при загрузке расписания';
-        console.error('Ошибка загрузки расписания:', error);
+        
+        // Если расписания нет, строим пустой календарь
+        if (error.status === 404) {
+          console.log('Расписание не найдено для врача, отображаем пустой календарь');
+          this.buildEmptyCalendar();
+        } else {
+          this.errorMessage = 'Ошибка при загрузке расписания';
+          console.error('Ошибка загрузки расписания:', error);
+          
+          // Строим пустой календарь в случае ошибки
+          this.buildEmptyCalendar();
+        }
       }
     });
   }
@@ -372,6 +430,12 @@ export class ScheduleManagementComponent implements OnInit {
   // Сохранение настроек расписания
   saveSettings(): void {
     if (this.settingsForm.invalid) {
+      return;
+    }
+    
+    // Проверка наличия выбранного врача
+    if (this.selectedDoctorId <= 0) {
+      this.errorMessage = 'Пожалуйста, выберите врача перед сохранением настроек';
       return;
     }
     
@@ -384,8 +448,8 @@ export class ScheduleManagementComponent implements OnInit {
     
     // Формируем объект настроек
     const settings: ScheduleSettings = {
-      doctorId: this.selectedDoctorId || 5, // Используем заглушку, если нет выбранного врача
-      hospitalId: this.selectedHospitalId || 1, // Используем заглушку, если нет выбранной больницы
+      doctorId: this.selectedDoctorId,
+      hospitalId: this.selectedHospitalId,
       workdayStart: formValues.workdayStart,
       workdayEnd: formValues.workdayEnd,
       slotDuration: formValues.slotDuration,
@@ -443,6 +507,36 @@ export class ScheduleManagementComponent implements OnInit {
       return;
     }
     
+    // Проверка наличия выбранного врача и больницы
+    if (this.selectedDoctorId <= 0) {
+      this.errorMessage = 'Пожалуйста, выберите врача перед генерацией расписания';
+      return;
+    }
+    
+    if (this.selectedHospitalId <= 0) {
+      this.errorMessage = 'Пожалуйста, выберите больницу перед генерацией расписания';
+      return;
+    }
+    
+    // Дополнительная проверка времени обеденного перерыва
+    const lunchStart = this.settingsForm.get('lunchStart')?.value;
+    const lunchEnd = this.settingsForm.get('lunchEnd')?.value;
+    
+    if (lunchStart && lunchEnd) {
+      const start = ScheduleManagementComponent.timeToMinutes(lunchStart);
+      const end = ScheduleManagementComponent.timeToMinutes(lunchEnd);
+      
+      if (end - start > 120) {
+        this.errorMessage = 'Обеденный перерыв не может быть более 2 часов';
+        return;
+      }
+      
+      if (end <= start) {
+        this.errorMessage = 'Время окончания обеда должно быть позже времени начала';
+        return;
+      }
+    }
+    
     this.isLoading = true;
     const formValues = this.settingsForm.value;
     
@@ -461,8 +555,8 @@ export class ScheduleManagementComponent implements OnInit {
       : formValues.workDays;
     
     const settings: ScheduleSettings = {
-      doctorId: 5, // Заглушка для doctorId
-      hospitalId: 1, // Заглушка для hospitalId
+      doctorId: this.selectedDoctorId,
+      hospitalId: this.selectedHospitalId,
       workdayStart: formValues.workdayStart,
       workdayEnd: formValues.workdayEnd,
       slotDuration: Number(formValues.slotDuration),
@@ -489,7 +583,7 @@ export class ScheduleManagementComponent implements OnInit {
     this.currentSchedule = null;
     
     generateMethod(
-      5, // Заглушка для doctorId
+      this.selectedDoctorId,
       this.startDate,
       this.endDate,
       settings
@@ -533,6 +627,11 @@ export class ScheduleManagementComponent implements OnInit {
 
   // Обновление доступности слота
   updateSlotAvailability(slot: TimeSlot, isAvailable: boolean): void {
+    if (!slot || !slot.id) {
+      this.errorMessage = 'Ошибка: недействительный слот';
+      return;
+    }
+    
     this.isLoading = true;
     this.scheduleService.updateSlotAvailability(slot.id, isAvailable).subscribe({
       next: (updatedSlot) => {
@@ -566,8 +665,18 @@ export class ScheduleManagementComponent implements OnInit {
 
   // Изменить расписание (обновить доступность слотов)
   editSchedule(): void {
-    if (!this.currentSchedule || !this.selectedCalendarDate) {
+    if (!this.currentSchedule) {
+      this.errorMessage = 'Расписание не найдено';
+      return;
+    }
+    
+    if (!this.selectedCalendarDate) {
       this.errorMessage = 'Выберите дату для изменения расписания';
+      return;
+    }
+    
+    if (this.selectedDoctorId <= 0) {
+      this.errorMessage = 'Для изменения расписания необходимо выбрать врача';
       return;
     }
     
@@ -608,14 +717,92 @@ export class ScheduleManagementComponent implements OnInit {
   // Изменение доктора
   onDoctorChange(doctorId: number): void {
     this.selectedDoctorId = doctorId;
-    this.loadDoctorSettings(doctorId);
+    if (doctorId > 0) {
+      this.isLoading = true;
+      this.currentSchedule = null; // Очищаем текущее расписание
+
+      // Загружаем настройки доктора
+      this.loadDoctorSettings(doctorId);
+    } else {
+      // Очищаем форму если не выбран врач
+      this.initForm();
+      this.currentSchedule = null;
+      this.buildEmptyCalendar();
+    }
   }
 
   // Изменение больницы
   onHospitalChange(hospitalId: number): void {
     this.selectedHospitalId = hospitalId;
-    // Загружаем врачей для выбранной больницы
-    this.loadHospitalDoctors(hospitalId);
+    this.selectedSpecialityId = 0;
+    this.selectedDoctorId = 0;
+    
+    // Очищаем списки специальностей и врачей
+    this.specialities = [];
+    this.doctors = [];
+    
+    // Загружаем специальности для выбранной больницы
+    this.loadSpecialities(hospitalId);
+  }
+
+  // Изменение специальности
+  onSpecialityChange(specialityId: number): void {
+    this.selectedSpecialityId = specialityId;
+    this.selectedDoctorId = 0;
+    
+    // Очищаем список врачей
+    this.doctors = [];
+    
+    // Загружаем врачей для выбранной больницы и специальности
+    this.loadDoctorsBySpeciality(this.selectedHospitalId, specialityId);
+  }
+
+  // Фильтрация больниц
+  filterHospitals(): void {
+    if (!this.hospitalFilter.trim()) {
+      this.hospitals = [...this.allHospitals];
+      return;
+    }
+    
+    const filterValue = this.hospitalFilter.toLowerCase().trim();
+    this.hospitals = this.allHospitals.filter(
+      hospital => hospital.name.toLowerCase().includes(filterValue)
+    );
+  }
+  
+  // Фильтрация специальностей
+  filterSpecialities(): void {
+    if (!this.specialityFilter.trim()) {
+      this.specialities = [...this.allSpecialities];
+      return;
+    }
+    
+    const filterValue = this.specialityFilter.toLowerCase().trim();
+    this.specialities = this.allSpecialities.filter(
+      speciality => speciality.name.toLowerCase().includes(filterValue)
+    );
+  }
+  
+  // Фильтрация врачей
+  filterDoctors(): void {
+    if (!this.doctorFilter.trim()) {
+      // Копируем все данные, но с преобразованием типа
+      this.doctors = this.allDoctors.map(doctor => ({
+        id: doctor.doctorId,
+        name: doctor.fullName,
+        specialization: doctor.doctorsSpeciality?.name || ''
+      }));
+      return;
+    }
+    
+    const filterValue = this.doctorFilter.toLowerCase().trim();
+    this.doctors = this.allDoctors
+      .filter(doctor => doctor.fullName.toLowerCase().includes(filterValue))
+      .map(doctor => ({
+        id: doctor.doctorId,
+        name: doctor.fullName,
+        specialization: doctor.doctorsSpeciality?.name || ''
+      }));
   }
 
   // Изменение периода
@@ -940,5 +1127,47 @@ export class ScheduleManagementComponent implements OnInit {
   getDayOfWeekForDate(date: Date): string {
     const dayIndex = date.getDay();
     return this.weekdays[dayIndex].name;
+  }
+
+  // Удаление расписания
+  deleteSchedule(): void {
+    if (!this.currentSchedule) {
+      this.errorMessage = 'Расписание не найдено для удаления';
+      return;
+    }
+    
+    if (this.selectedDoctorId <= 0) {
+      this.errorMessage = 'Для удаления расписания необходимо выбрать врача';
+      return;
+    }
+    
+    // Запрашиваем подтверждение у пользователя
+    if (confirm('Вы уверены, что хотите удалить расписание? Это действие нельзя отменить.')) {
+      this.isLoading = true;
+      
+      // Здесь в будущем будет реальный запрос к API для удаления расписания
+      // this.scheduleService.deleteSchedule(this.selectedDoctorId, this.startDate, this.endDate)
+      //   .subscribe({
+      //     ...
+      //   });
+      
+      // Пока используем заглушку - просто очищаем локальное расписание после задержки
+      setTimeout(() => {
+        this.currentSchedule = null;
+        this.selectedCalendarDate = null;
+        this.selectedDaySlots = [];
+        
+        // Перестраиваем пустой календарь
+        this.buildEmptyCalendar();
+        
+        this.isLoading = false;
+        this.saveSuccess = true;
+        
+        // Скрываем сообщение об успехе через 3 секунды
+        setTimeout(() => {
+          this.saveSuccess = false;
+        }, 3000);
+      }, 1000);
+    }
   }
 } 

@@ -16,9 +16,43 @@
   <div class="selection-row" *ngIf="userRole === 'Administrator'">
     <div class="hospital-selection">
       <h3>Выберите больницу</h3>
+      <div class="search-input">
+        <input 
+          type="text" 
+          [(ngModel)]="hospitalFilter" 
+          (input)="filterHospitals()" 
+          placeholder="Поиск больницы..."
+          class="filter-input"
+        >
+        <i class="icon-search"></i>
+      </div>
       <select [(ngModel)]="selectedHospitalId" (change)="onHospitalChange(selectedHospitalId)">
-        <option *ngFor="let hospital of hospitals" [value]="hospital.id">
+        <option [ngValue]="0">Выберите больницу</option>
+        <option *ngFor="let hospital of hospitals" [ngValue]="hospital.hospitalId">
           {{ hospital.name }}
+        </option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Выбор специальности (только когда выбрана больница) -->
+  <div class="selection-row" *ngIf="userRole === 'Administrator' && selectedHospitalId && specialities.length > 0">
+    <div class="speciality-selection">
+      <h3>Выберите специальность</h3>
+      <div class="search-input">
+        <input 
+          type="text" 
+          [(ngModel)]="specialityFilter" 
+          (input)="filterSpecialities()" 
+          placeholder="Поиск специальности..."
+          class="filter-input"
+        >
+        <i class="icon-search"></i>
+      </div>
+      <select [(ngModel)]="selectedSpecialityId" (change)="onSpecialityChange(selectedSpecialityId)">
+        <option [ngValue]="0">Выберите специальность</option>
+        <option *ngFor="let speciality of specialities" [ngValue]="speciality.doctorsSpecialityId">
+          {{ speciality.name }}
         </option>
       </select>
     </div>
@@ -27,10 +61,21 @@
   <!-- Выбор врача и периода -->
   <div class="selection-row">
     <!-- Выбор врача (только для администраторов и главврачей) -->
-    <div class="doctor-selection" *ngIf="userRole === 'Administrator' || userRole === 'ChiefDoctor'">
+    <div class="doctor-selection" *ngIf="(userRole === 'Administrator' && selectedSpecialityId) || userRole === 'ChiefDoctor'">
       <h3>Выберите врача</h3>
+      <div class="search-input">
+        <input 
+          type="text" 
+          [(ngModel)]="doctorFilter" 
+          (input)="filterDoctors()" 
+          placeholder="Поиск врача..."
+          class="filter-input"
+        >
+        <i class="icon-search"></i>
+      </div>
       <select [(ngModel)]="selectedDoctorId" (change)="onDoctorChange(selectedDoctorId)">
-        <option *ngFor="let doctor of doctors" [value]="doctor.id">
+        <option [ngValue]="0">Выберите врача</option>
+        <option *ngFor="let doctor of doctors" [ngValue]="doctor.id">
           {{ doctor.name }} ({{ doctor.specialization }})
         </option>
       </select>
@@ -172,6 +217,9 @@
         <button type="button" class="btn btn-accent" (click)="generateSchedule()" [disabled]="settingsForm.invalid || isLoading">
           <i class="icon-calendar"></i> Сгенерировать расписание
         </button>
+        <button type="button" class="btn btn-danger" (click)="deleteSchedule()" [disabled]="!currentSchedule || isLoading">
+          <i class="icon-delete"></i> Удалить расписание
+        </button>
       </div>
     </form>
   </div>
@@ -184,7 +232,7 @@
       <h3 *ngIf="!currentSchedule && isLoading">Загрузка расписания...</h3>
       
       <div class="schedule-actions" *ngIf="currentSchedule">
-        <button class="btn btn-secondary" (click)="editSchedule()">
+        <button class="btn btn-secondary" (click)="editSchedule()" [disabled]="isLoading">
           <i class="icon-edit"></i> Изменить расписание
         </button>
       </div>
@@ -253,11 +301,5 @@
         <p>Загрузка и построение расписания...</p>
       </div>
     </div>
-  </div>
-
-  <!-- Индикатор загрузки -->
-  <div class="loading-overlay" *ngIf="isLoading">
-    <div class="spinner"></div>
-    <p>Загрузка данных...</p>
   </div>
 </div> 
