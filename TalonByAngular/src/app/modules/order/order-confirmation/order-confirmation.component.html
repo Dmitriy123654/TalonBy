@@ -1,0 +1,253 @@
+<div class="order-confirmation-page">
+  <!-- Мобильное меню -->
+  <div class="mobile-details" *ngIf="isMobile">
+    <div class="mobile-header" (click)="toggleMobileDetails()">
+      <h1>{{hospital?.name || '-'}}</h1>
+      <span class="toggle-btn">
+        {{mobileDetailsOpen ? '‹ Скрыть' : 'Показать подробнее ›'}}
+      </span>
+    </div>
+
+    <div class="mobile-content" [class.open]="mobileDetailsOpen">
+      <div class="info-grid">
+        <div class="address-block">
+          <p>{{hospital?.address || '-'}}</p>
+          <a href="#" class="map-link">показать на карте</a>
+        </div>
+        <div class="registry-block">
+          <div class="phones">
+            <ng-container *ngFor="let item of getPhones()">
+              <span *ngIf="item.isLabel" class="label">{{item.text}}</span>
+              <a *ngIf="!item.isLabel" href="tel:{{item.text}}">{{item.text}}</a>
+            </ng-container>
+          </div>
+        </div>
+        <div class="schedule-block">
+          <div class="schedule-row">
+            <span class="label">ПН-ПТ:</span>{{getWorkingHours('ПН-ПТ') || '-'}}
+          </div>
+          <div class="schedule-row">
+            <span class="label">СБ:</span>{{getWorkingHours('СБ') || '-'}}
+          </div>
+        </div>
+        <div class="contacts-block">
+          <a *ngIf="hospital?.website" href="{{hospital?.website}}" class="website">{{getDomain(hospital?.website)}}</a>
+          <a *ngIf="hospital?.email" href="mailto:{{hospital?.email}}" class="email">{{hospital?.email}}</a>
+        </div>
+      </div>
+
+      <nav class="hospital-nav">
+        <ul>
+          <li><a href="#">Информация</a></li>
+          <li><a href="#">Врачи</a></li>
+          <li><a href="#">Расписание врачей</a></li>
+        </ul>
+      </nav>
+    </div>
+
+    <div class="order-steps-mobile" *ngIf="isMobile">
+      <div class="order-steps">
+        <div class="step completed" (click)="goToSpeciality()">
+          Специальность
+          <span class="substep">{{doctor?.doctorsSpeciality?.name || '-'}}</span>
+        </div>
+        <div class="step completed" (click)="goToDoctor()">
+          Врач
+          <span class="substep">{{doctor?.fullName || '-'}}</span>
+        </div>
+        <div class="step completed" (click)="goToDateTime()">
+          Дата и время
+          <span class="substep">{{formatSelectedDate() || '-'}}, {{formatSelectedTime() || '-'}}</span>
+        </div>
+        <div class="step completed" (click)="goToPatient()">
+          Личные данные
+          <span class="substep">{{patient?.fullName || '-'}}</span>
+        </div>
+        <div class="step active">Подтверждение</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Десктопная версия -->
+  <div class="hospital-header" *ngIf="!isMobile">
+    <div class="wrapper">
+      <div class="hospital-info">
+        <h1>{{hospital?.name || '-'}}</h1>
+        <div class="info-grid">
+          <div class="address-block">
+            <p>{{hospital?.address || '-'}}</p>
+            <a href="#" class="map-link">показать на карте</a>
+          </div>
+          <div class="registry-block">
+            <div class="phones">
+              <ng-container *ngFor="let item of getPhones()">
+                <span *ngIf="item.isLabel" class="label">{{item.text}}</span>
+                <a *ngIf="!item.isLabel" href="tel:{{item.text}}">{{item.text}}</a>
+              </ng-container>
+            </div>
+          </div>
+          <div class="schedule-block">
+            <div class="schedule-row">
+              <span class="label">ПН-ПТ:</span>{{getWorkingHours('ПН-ПТ') || '-'}}
+            </div>
+            <div class="schedule-row">
+              <span class="label">СБ:</span>{{getWorkingHours('СБ') || '-'}}
+            </div>
+          </div>
+          <div class="contacts-block">
+            <a *ngIf="hospital?.website" href="{{hospital?.website}}" class="website">{{getDomain(hospital?.website)}}</a>
+            <a *ngIf="hospital?.email" href="mailto:{{hospital?.email}}" class="email">{{hospital?.email}}</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Основной контент -->
+  <div class="wrapper">
+    <div class="content-block">
+      <aside *ngIf="!isMobile">
+        <div class="order-steps">
+          <div class="step completed" (click)="goToSpeciality()">
+            Специальность
+            <span class="substep">{{doctor?.doctorsSpeciality?.name || '-'}}</span>
+          </div>
+          <div class="step completed" (click)="goToDoctor()">
+            Врач
+            <span class="substep">{{doctor?.fullName || '-'}}</span>
+          </div>
+          <div class="step completed" (click)="goToDateTime()">
+            Дата и время
+            <span class="substep">{{formatSelectedDate() || '-'}}, {{formatSelectedTime() || '-'}}</span>
+          </div>
+          <div class="step completed" (click)="goToPatient()">
+            Личные данные
+            <span class="substep">{{patient?.fullName || '-'}}</span>
+          </div>
+          <div class="step active">Подтверждение</div>
+        </div>
+
+        <nav class="hospital-nav">
+          <ul>
+            <li><a href="#">Информация</a></li>
+            <li><a href="#">Врачи</a></li>
+            <li><a href="#">Расписание врачей</a></li>
+          </ul>
+        </nav>
+      </aside>
+
+      <main>
+        <h2>Заказ талона</h2>
+        <p class="subtitle">Подтверждение записи</p>
+
+        <!-- Блок с информацией о заказе -->
+        <div class="confirmation-grid" *ngIf="!isConfirmed">
+          <div class="confirmation-card">
+            <h3>Информация о больнице</h3>
+            <div class="confirmation-info">
+              <div class="info-item">
+                <span class="label">Название:</span>
+                <span class="value">{{hospital?.name || '-'}}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">Адрес:</span>
+                <span class="value">{{hospital?.address || '-'}}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="confirmation-card">
+            <h3>Информация о враче</h3>
+            <div class="confirmation-info">
+              <div class="info-item">
+                <span class="label">ФИО:</span>
+                <span class="value">{{doctor?.fullName || '-'}}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">Специализация:</span>
+                <span class="value">{{doctor?.doctorsSpeciality?.name || '-'}}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">Кабинет:</span>
+                <span class="value">{{doctor?.office || '-'}}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="confirmation-card">
+            <h3>Информация о дате и времени</h3>
+            <div class="confirmation-info">
+              <div class="info-item">
+                <span class="label">Дата:</span>
+                <span class="value">{{formatSelectedDate() || '-'}}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">Время:</span>
+                <span class="value">{{formatSelectedTime() || '-'}}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="confirmation-card">
+            <h3>Информация о пациенте</h3>
+            <div class="confirmation-info">
+              <div class="info-item">
+                <span class="label">ФИО:</span>
+                <span class="value">{{patient?.fullName || '-'}}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">Дата рождения:</span>
+                <span class="value">{{formatBirthDate() || '-'}}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Сообщение об ошибке -->
+        <div *ngIf="errorMessage" class="error-message">
+          {{errorMessage}}
+        </div>
+
+        <!-- Кнопки действий -->
+        <div class="action-buttons" *ngIf="!isConfirmed">
+          <button 
+            type="button" 
+            class="back-button" 
+            (click)="goBack()" 
+            [disabled]="isConfirming">
+            Назад
+          </button>
+          <button 
+            type="button" 
+            class="confirm-button" 
+            (click)="confirmOrder()" 
+            [disabled]="!canConfirm || isConfirming" 
+            [class.loading]="isConfirming">
+            <span *ngIf="!isConfirming">Подтвердить запись</span>
+            <span *ngIf="isConfirming">Подтверждение...</span>
+          </button>
+        </div>
+
+        <!-- Блок успешной записи -->
+        <div *ngIf="isConfirmed" class="success-message">
+          <div class="success-icon">✓</div>
+          <h3>Запись успешно создана!</h3>
+          <p>Ваша запись на прием успешно создана. Вы можете просмотреть все свои записи в личном кабинете.</p>
+          <div class="success-buttons">
+            <button type="button" class="view-button" (click)="viewAppointments()">
+              Мои записи
+            </button>
+            <button type="button" class="new-button" (click)="createNewAppointment()">
+              Новая запись
+            </button>
+          </div>
+        </div>
+
+        <!-- Индикатор загрузки -->
+        <div *ngIf="isLoading" class="loading">
+          Загрузка данных...
+        </div>
+      </main>
+    </div>
+  </div>
+</div> 
