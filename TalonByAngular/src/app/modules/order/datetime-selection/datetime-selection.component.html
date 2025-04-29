@@ -134,6 +134,16 @@
                     [class.disabled]="!canGoToNextMonth()">&gt;</button>
           </div>
 
+          <!-- Индикатор загрузки для календаря -->
+          <div class="loading-indicator" *ngIf="loading && !selectedDate">
+            <span>Загрузка расписания...</span>
+          </div>
+
+          <!-- Сообщение об ошибке -->
+          <div class="error-message" *ngIf="error">
+            <p>{{ error }}</p>
+          </div>
+
           <div class="calendar">
             <div class="weekdays">
               <div class="weekday" *ngFor="let day of weekDays">{{day}}</div>
@@ -143,14 +153,15 @@
               <div class="week" *ngFor="let week of calendar">
                 <div class="day" *ngFor="let day of week" 
                      [class.weekend]="day.isWeekend"
-                     [class.disabled]="day.isDisabled"
+                     [class.disabled]="day.isDisabled || day.availableSlots === 0"
                      [class.today]="day.isToday"
                      [class.selected]="selectedDate && day.date === selectedDate.getDate() && 
                                     day.month === selectedDate.getMonth() && 
                                     day.year === selectedDate.getFullYear()"
+                     [class.has-slots]="day.availableSlots > 0"
                      (click)="selectDate(day)">
                   <span class="date">{{day.date || ''}}</span>
-                  <span class="slots" *ngIf="day.date && !day.isDisabled">
+                  <span class="slots" *ngIf="day.date && !day.isDisabled && day.availableSlots > 0">
                     {{day.availableSlots}}
                   </span>
                 </div>
@@ -160,8 +171,21 @@
                 <div class="selected-date">
                   {{ selectedDate | date:'d MMMM' }}, {{ getDayOfWeek(selectedDate) }}
                 </div>
-                <div class="time-slots">
-                  <button class="time-slot" *ngFor="let time of firstShiftSlots">{{ time }}</button>
+                
+                <!-- Индикатор загрузки для временных слотов -->
+                <div class="loading-indicator" *ngIf="loading && selectedDate">
+                  <span>Загрузка доступных слотов...</span>
+                </div>
+                
+                <!-- Сообщение об отсутствии слотов -->
+                <div class="no-slots-message" *ngIf="!loading && availableTimeSlots.length === 0 && selectedDate">
+                  <p>На выбранную дату нет доступных слотов</p>
+                </div>
+                
+                <div class="time-slots" *ngIf="!loading && availableTimeSlots.length > 0">
+                  <button class="time-slot" *ngFor="let slot of availableTimeSlots" (click)="selectTimeSlot(slot)">
+                    {{ slot.startTime }}
+                  </button>
                 </div>
               </div>
             </div>

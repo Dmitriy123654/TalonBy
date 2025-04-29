@@ -1,9 +1,10 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { Hospital, DoctorDetails } from '../../../shared/interfaces/order.interface';
+import { Hospital, DoctorDetails, TimeSlot } from '../../../shared/interfaces/order.interface';
 import { OrderService } from '../../../core/services/order.service';
 import { trigger, transition, style, animate } from '@angular/animations';
+import { formatDate } from '@angular/common';
 
 interface CalendarDay {
   date: number;
@@ -56,17 +57,15 @@ export class DatetimeSelectionComponent implements OnInit, OnDestroy {
     'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
   ];
   selectedDate: Date | null = null;
-  availableTimeSlots: string[] = [];
+  availableTimeSlots: TimeSlot[] = [];
   loading = false;
   error: string | null = null;
   isMobile = false;
   isDetailsOpen = false;
-
-  firstShiftSlots: string[] = [
-    '09:00', '09:20', '09:40', '10:00', '10:20', 
-    '12:40', '13:00', '13:20', '13:40', '14:00',
-    '14:20', '14:40', '18:20', '19:00', '19:20'
-  ];
+  availableSlotsMap: { [key: string]: number } = {}; // Храним количество доступных слотов по датам
+  dataLoaded = false; // Флаг для отслеживания загрузки данных
+  selectedTimeSlot: TimeSlot | null = null;
+  selectedDateTime: Date | null = null;
 
   constructor(
     private router: Router,
@@ -86,12 +85,99 @@ export class DatetimeSelectionComponent implements OnInit, OnDestroy {
       this.router.navigate(['/order']);
       return;
     }
-    this.generateCalendar();
+    this.loadDoctorSchedule();
     window.addEventListener('resize', this.checkScreenSize.bind(this));
   }
 
   ngOnDestroy() {
     window.removeEventListener('resize', this.checkScreenSize.bind(this));
+  }
+
+  // Загружаем расписание доктора для текущего месяца
+  loadDoctorSchedule() {
+    // Если данные уже загружены, просто обновляем календарь без нового запроса
+    if (this.dataLoaded) {
+      this.generateCalendar();
+      return;
+    }
+    
+    this.loading = true;
+    this.error = null;
+    
+    // Получаем текущую дату (с обнуленным временем)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Устанавливаем конечную дату на 3 месяца вперед от текущей даты
+    const endDate = new Date(today);
+    endDate.setMonth(today.getMonth() + 3);
+    
+    // Форматируем даты для API
+    const startDateStr = this.formatDateForApi(today);
+    const endDateStr = this.formatDateForApi(endDate);
+    
+    if (this.doctor) {
+      this.orderService.getDoctorScheduleWithSlots(this.doctor.doctorId, startDateStr, endDateStr)
+        .subscribe({
+          next: (response) => {
+            // Сохраняем количество доступных слотов по датам
+            if (response && response.schedule) {
+              this.availableSlotsMap = {};
+              
+              // Итерируем по ключам объекта schedule (даты в формате YYYY-MM-DD)
+              Object.keys(response.schedule).forEach(dateKey => {
+                const slots = response.schedule[dateKey];
+                // Подсчитываем только доступные слоты
+                const availableCount = slots.filter((slot: any) => slot.isAvailable).length;
+                this.availableSlotsMap[dateKey] = availableCount;
+              });
+              
+              // Отмечаем, что данные успешно загружены
+              this.dataLoaded = true;
+            }
+            
+            this.generateCalendar();
+            this.loading = false;
+          },
+          error: (err) => {
+            console.error('Error loading doctor schedule:', err);
+            this.error = 'Не удалось загрузить расписание врача';
+            this.loading = false;
+            this.generateCalendar(); // Все равно генерируем календарь, но с пустыми слотами
+          }
+        });
+    } else {
+      this.loading = false;
+      this.generateCalendar();
+    }
+  }
+
+  // Форматирование даты для API (YYYY-MM-DD)
+  formatDateForApi(date: Date): string {
+    return formatDate(date, 'yyyy-MM-dd', 'en-US');
+  }
+
+  // Загружаем доступные временные слоты для выбранной даты
+  loadTimeSlotsForDate(date: Date) {
+    if (!this.doctor) return;
+    
+    const dateStr = this.formatDateForApi(date);
+    
+    // Используем существующий метод для получения слотов
+    this.loading = true;
+    this.orderService.getDoctorTimeSlots(this.doctor.doctorId, dateStr, dateStr)
+      .subscribe({
+        next: (slots: TimeSlot[]) => {
+          this.availableTimeSlots = slots.filter(slot => slot.isAvailable);
+          this.loading = false;
+        },
+        error: (err) => {
+          console.error('Error loading time slots:', err);
+          this.error = 'Не удалось загрузить доступные временные слоты';
+          this.loading = false;
+          this.availableTimeSlots = [];
+        }
+      });
   }
 
   generateCalendar() {
@@ -119,6 +205,7 @@ export class DatetimeSelectionComponent implements OnInit, OnDestroy {
     for (let day = 1; day <= lastDay.getDate(); day++) {
       const date = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth(), day);
       const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+      const dateKey = this.formatDateForApi(date);
       
       currentWeek.push({
         date: day,
@@ -126,8 +213,8 @@ export class DatetimeSelectionComponent implements OnInit, OnDestroy {
         year: this.currentMonth.getFullYear(),
         isToday: this.isToday(date),
         isWeekend,
-        isDisabled: date < new Date(),
-        availableSlots: Math.floor(Math.random() * 12) + 1 // Временно для демонстрации
+        isDisabled: date < new Date(new Date().setHours(0, 0, 0, 0)), // Отключаем прошедшие дни
+        availableSlots: this.availableSlotsMap[dateKey] || 0 // Используем данные из API
       });
 
       if (currentWeek.length === 7) {
@@ -164,12 +251,24 @@ export class DatetimeSelectionComponent implements OnInit, OnDestroy {
 
   prevMonth() {
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Сбрасываем время
+    today.setHours(0, 0, 0, 0); // Reset time
     
-    const prevMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() - 1, 1);
-    if (prevMonth >= today || this.currentMonth.getMonth() > today.getMonth()) {
+    // Create date for previous month
+    let prevMonth;
+    if (this.currentMonth.getMonth() === 0) {
+      // If current month is January, previous month is December of last year
+      prevMonth = new Date(this.currentMonth.getFullYear() - 1, 11, 1);
+    } else {
+      prevMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() - 1, 1);
+    }
+    
+    // Determine the first day of the current month (today's month)
+    const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    
+    // Only navigate if previous month is not before current month
+    if (prevMonth >= currentMonthStart) {
       this.currentMonth = prevMonth;
-      this.generateCalendar();
+      this.generateCalendar(); // Update calendar without loading new data
     }
   }
 
@@ -181,7 +280,7 @@ export class DatetimeSelectionComponent implements OnInit, OnDestroy {
     
     if (nextMonth <= maxDate) {
       this.currentMonth = nextMonth;
-      this.generateCalendar();
+      this.generateCalendar(); // Просто обновляем календарь без загрузки новых данных
     }
   }
 
@@ -194,8 +293,12 @@ export class DatetimeSelectionComponent implements OnInit, OnDestroy {
         this.selectedDate.getMonth() === day.month && 
         this.selectedDate.getFullYear() === day.year) {
       this.selectedDate = null;
+      this.availableTimeSlots = [];
     } else {
       this.selectedDate = new Date(day.year, day.month, day.date);
+      
+      // Загружаем доступные временные слоты для выбранной даты
+      this.loadTimeSlotsForDate(this.selectedDate);
       
       // Добавляем прокрутку к слотам времени после небольшой задержки,
       // чтобы дать время для отображения слотов
@@ -237,7 +340,6 @@ export class DatetimeSelectionComponent implements OnInit, OnDestroy {
         result.push({ isLabel: true, text: label.trim() });
       }
       
-      // Перемещаем обработку numbers внутрь текущего section
       numbers.forEach((number: string) => {
         if (number.trim()) {
           result.push({ isLabel: false, text: number.trim() });
@@ -251,43 +353,52 @@ export class DatetimeSelectionComponent implements OnInit, OnDestroy {
   getWorkingHours(day: string): string {
     if (!this.hospital?.workingHours) return '';
     
-    const schedules = this.hospital.workingHours.split(',');
-    const daySchedule = schedules.find((schedule: string) => 
-      schedule.trim().startsWith(day)
-    );
-    
-    if (daySchedule) {
-      const timeMatch = daySchedule.match(/(?:ПН-ПТ|СБ):\s*([\d:-]+)/);
-      return timeMatch ? timeMatch[1].trim() : '';
-    }
-    return '';
+    const regex = new RegExp(`${day}:\\s*([^,;]+)`);
+    const match = this.hospital.workingHours.match(regex);
+    return match ? match[1].trim() : '';
   }
 
   getDomain(url: string | undefined): string {
     if (!url) return '';
-    return url.replace(/^https?:\/\//, '');
+    try {
+      const domain = new URL(url).hostname;
+      return domain;
+    } catch (e) {
+      return url;
+    }
   }
 
-  // Добавим метод для проверки, можно ли переключиться на следующий месяц
   canGoToNextMonth(): boolean {
+    const nextMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() + 1, 1);
     const maxDate = new Date();
     maxDate.setMonth(maxDate.getMonth() + 3);
     
-    const nextMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() + 1);
+    // Allow navigation to next month as long as it's within the 3-month window
     return nextMonth <= maxDate;
   }
 
-  // Добавим метод для проверки, можно ли переключиться на предыдущий месяц
   canGoToPrevMonth(): boolean {
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Сбрасываем время
+    today.setHours(0, 0, 0, 0);
     
-    const firstDayOfCurrentMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth(), 1);
-    return firstDayOfCurrentMonth > today;
+    // Determine the first day of the previous month
+    let prevMonth;
+    if (this.currentMonth.getMonth() === 0) {
+      // If current month is January, previous month is December of last year
+      prevMonth = new Date(this.currentMonth.getFullYear() - 1, 11, 1);
+    } else {
+      prevMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() - 1, 1);
+    }
+    
+    // Determine the first day of the current month (today's month)
+    const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    
+    // Allow navigation if the previous month is not before the current month
+    return prevMonth >= currentMonthStart;
   }
 
   checkScreenSize() {
-    this.isMobile = window.innerWidth <= 768;
+    this.isMobile = window.innerWidth < 768;
   }
 
   toggleDetails() {
@@ -295,11 +406,46 @@ export class DatetimeSelectionComponent implements OnInit, OnDestroy {
   }
 
   getDayOfWeek(date: Date): string {
-    const days = ['понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота', 'воскресенье'];
+    const days = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
     return days[date.getDay()];
   }
 
   getAvailableSlotsCount(): number {
-    return this.firstShiftSlots.length;
+    return this.availableTimeSlots.length;
+  }
+
+  // При выборе времени, переходим на страницу выбора пациента
+  selectTimeSlot(timeSlot: TimeSlot) {
+    if (!this.selectedDate || !timeSlot.isAvailable) return;
+    
+    this.loading = true;
+    this.selectedTimeSlot = timeSlot;
+    this.selectedDateTime = new Date(this.selectedDate);
+    
+    // Parse the time from timeSlot.startTime (format: "HH:MM")
+    const [hours, minutes] = timeSlot.startTime.split(':').map(part => parseInt(part, 10));
+    this.selectedDateTime.setHours(hours, minutes, 0, 0);
+    
+    // Save selected info to order service
+    this.orderService.saveSelectedDateTime(this.selectedDateTime);
+    this.orderService.saveSelectedDoctor(this.doctor);
+    this.orderService.saveSelectedHospital(this.hospital);
+    
+    // Navigate to patient selection - include the data in router state as well
+    this.router.navigate(['/order/patient-selection'], {
+      state: {
+        hospital: this.hospital,
+        doctor: this.doctor,
+        speciality: this.speciality,
+        selectedDate: this.selectedDateTime,
+        selectedTimeSlot: timeSlot
+      }
+    });
+    
+    this.loading = false;
+  }
+
+  isTimeSlotAvailable(timeSlot: TimeSlot): boolean {
+    return timeSlot.isAvailable;
   }
 }
