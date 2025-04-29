@@ -5,6 +5,7 @@ import { DoctorScheduleView, ScheduleSettings, TimeSlot, Hospital } from '../../
 import { AuthService } from '../../../core/services/auth.service';
 import { OrderService } from '../../../core/services/order.service';
 import { Hospital as OrderHospital, DoctorDetails } from '../../../shared/interfaces/order.interface';
+import { take, switchMap } from 'rxjs/operators';
 
 @Component({
   selector: 'app-schedule-management',
@@ -455,11 +456,14 @@ export class ScheduleManagementComponent implements OnInit {
         if (schedule && schedule.schedule && typeof schedule.schedule === 'object') {
           const scheduleDates = Object.keys(schedule.schedule);
           if (scheduleDates.length > 0) {
+            // Если есть даты в расписании, строим календарь с ними
             this.buildCalendar();
           } else {
+            // Если расписание пустое, сохраняем текущий месяц и строим пустой календарь
             this.buildEmptyCalendar();
           }
         } else {
+          // Если расписание пустое, сохраняем текущий месяц и строим пустой календарь
           this.buildEmptyCalendar();
         }
         
@@ -897,6 +901,9 @@ export class ScheduleManagementComponent implements OnInit {
       return;
     }
     
+    // Обновляем текущий месяц для календаря на основе стартовой даты периода
+    this.currentMonth = new Date(startDateObj.getFullYear(), startDateObj.getMonth(), 1);
+    
     this.loadSchedule();
   }
 
@@ -1111,15 +1118,20 @@ export class ScheduleManagementComponent implements OnInit {
 
   // Переход к предыдущему месяцу
   prevMonth(): void {
-    const prevMonth = new Date(this.currentMonth);
-    prevMonth.setMonth(prevMonth.getMonth() - 1);
+    // Создаем дату для предыдущего месяца
+    let prevMonth;
+    if (this.currentMonth.getMonth() === 0) {
+      // Если текущий месяц январь, то предыдущий - декабрь прошлого года
+      prevMonth = new Date(this.currentMonth.getFullYear() - 1, 11, 1);
+    } else {
+      prevMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() - 1, 1);
+    }
     
     // Проверяем, не уходим ли в прошлое
     const today = new Date();
-    today.setDate(1);
-    today.setHours(0, 0, 0, 0);
+    const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
     
-    if (prevMonth >= today) {
+    if (prevMonth >= currentMonthStart) {
       this.currentMonth = prevMonth;
       this.buildCalendar();
     }
@@ -1133,7 +1145,9 @@ export class ScheduleManagementComponent implements OnInit {
     // Проверяем, не уходим ли более чем на 3 месяца вперед
     const maxDate = new Date();
     maxDate.setMonth(maxDate.getMonth() + 3);
-    maxDate.setDate(1);
+    
+    // Убираем ограничение на первый день месяца
+    // maxDate.setDate(1);
     
     if (nextMonth <= maxDate) {
       this.currentMonth = nextMonth;
@@ -1143,14 +1157,19 @@ export class ScheduleManagementComponent implements OnInit {
 
   // Проверка возможности перехода к предыдущему месяцу
   canGoToPrevMonth(): boolean {
-    const prevMonth = new Date(this.currentMonth);
-    prevMonth.setMonth(prevMonth.getMonth() - 1);
+    // Определяем первый день предыдущего месяца
+    let prevMonth;
+    if (this.currentMonth.getMonth() === 0) {
+      // Если текущий месяц январь, то предыдущий - декабрь прошлого года
+      prevMonth = new Date(this.currentMonth.getFullYear() - 1, 11, 1);
+    } else {
+      prevMonth = new Date(this.currentMonth.getFullYear(), this.currentMonth.getMonth() - 1, 1);
+    }
     
     const today = new Date();
-    today.setDate(1);
-    today.setHours(0, 0, 0, 0);
+    const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
     
-    return prevMonth >= today;
+    return prevMonth >= currentMonthStart;
   }
 
   // Проверка возможности перехода к следующему месяцу
@@ -1160,7 +1179,9 @@ export class ScheduleManagementComponent implements OnInit {
     
     const maxDate = new Date();
     maxDate.setMonth(maxDate.getMonth() + 3);
-    maxDate.setDate(1);
+    
+    // Убираем ограничение на первый день месяца
+    // maxDate.setDate(1);
     
     return nextMonth <= maxDate;
   }
@@ -1223,20 +1244,24 @@ export class ScheduleManagementComponent implements OnInit {
           if (scheduleDates.length > 0) {
             const firstScheduleDate = new Date(scheduleDates[0]);
             this.currentMonth = new Date(firstScheduleDate.getFullYear(), firstScheduleDate.getMonth(), 1);
-            this.buildCalendar();
-          } else {
-            this.buildEmptyCalendar();
           }
         } else {
-          this.buildEmptyCalendar();
+          // Если в расписании нет дат, но начальная дата периода указана, используем ее месяц
+          const startDateObj = new Date(this.startDate);
+          if (startDateObj && !isNaN(startDateObj.getTime())) {
+            this.currentMonth = new Date(startDateObj.getFullYear(), startDateObj.getMonth(), 1);
+          }
         }
         
+        // Обновляем календарь с учетом текущего месяца
+        this.buildCalendar();
         this.isLoading = false;
         
         console.log('Расписание после удаления:', schedule);
       },
       error: (error) => {
         console.error('Ошибка при обновлении расписания:', error);
+        // Сохраняем текущий месяц и строим пустой календарь
         this.buildEmptyCalendar();
         this.isLoading = false;
       }
@@ -1277,7 +1302,18 @@ export class ScheduleManagementComponent implements OnInit {
         .subscribe({
           next: (success) => {
             if (success) {
-              // Вместо ручного очищения, загружаем актуальное расписание
+              // Сбрасываем период к стандартным значениям (с сегодняшней даты на 3 месяца вперед)
+              const today = new Date();
+              this.startDate = this.formatDate(today);
+              
+              const maxDate = new Date();
+              maxDate.setMonth(maxDate.getMonth() + 3);
+              this.endDate = this.formatDate(maxDate);
+              
+              // Обновляем текущий месяц для календаря
+              this.currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+              
+              // Загружаем актуальное расписание с новым периодом
               this.refreshSchedule();
               this.saveSuccess = true;
               
@@ -1316,5 +1352,150 @@ export class ScheduleManagementComponent implements OnInit {
   hasDoctor(doctorId: number): boolean {
     return this.doctors && this.doctors.length > 0 && 
            this.doctors.some(d => d.id === doctorId);
+  }
+
+  // Перезапись расписания (удаление и создание нового с обновленными настройками)
+  updateSchedule(): void {
+    if (this.settingsForm.invalid) {
+      // Проверка специфических ошибок валидации
+      if (this.settingsForm.errors?.['lunchTooLong']) {
+        this.errorMessage = 'Обеденный перерыв не может быть более 2 часов';
+        return;
+      }
+      
+      if (this.settingsForm.errors?.['invalidLunchTime']) {
+        this.errorMessage = 'Время окончания обеда должно быть позже времени начала';
+        return;
+      }
+      
+      if (this.settingsForm.errors?.['invalidWorkHours']) {
+        this.errorMessage = 'Время окончания рабочего дня должно быть позже времени начала';
+        return;
+      }
+      
+      this.errorMessage = 'Пожалуйста, исправьте ошибки в форме настроек';
+      return;
+    }
+    
+    // Проверка наличия выбранного врача и больницы
+    if (this.selectedDoctorId <= 0) {
+      this.errorMessage = 'Пожалуйста, выберите врача перед изменением расписания';
+      return;
+    }
+    
+    if (this.selectedHospitalId <= 0) {
+      this.errorMessage = 'Пожалуйста, выберите больницу перед изменением расписания';
+      return;
+    }
+    
+    // Сохраняем текущий период для использования после удаления
+    const periodStartDate = this.startDate;
+    const periodEndDate = this.endDate;
+    
+    // Запрашиваем подтверждение у пользователя
+    if (confirm('Вы уверены, что хотите изменить расписание на выбранный период? Существующее расписание будет удалено и создано новое с обновленными настройками.')) {
+      this.isLoading = true;
+      this.errorMessage = '';
+      
+      // Шаг 1: Удаляем расписание на выбранный период
+      this.scheduleService.deleteSchedule(this.selectedDoctorId, periodStartDate, periodEndDate)
+        .subscribe({
+          next: (deleteSuccess) => {
+            if (deleteSuccess) {
+              console.log('Расписание успешно удалено, создаем новое с обновленными настройками');
+              
+              // Шаг 2: Получаем настройки из формы
+              const formValues = this.settingsForm.value;
+              const workDaysString = Array.isArray(formValues.workDays) 
+                ? formValues.workDays.join(',') 
+                : formValues.workDays;
+              
+              const settings: ScheduleSettings = {
+                doctorId: this.selectedDoctorId,
+                hospitalId: this.selectedHospitalId,
+                workdayStart: formValues.workdayStart,
+                workdayEnd: formValues.workdayEnd,
+                slotDuration: Number(formValues.slotDuration),
+                breakDuration: Number(formValues.breakDuration),
+                lunchStart: formValues.lunchStart,
+                lunchEnd: formValues.lunchEnd,
+                workDays: workDaysString,
+                lunchBreak: true
+              };
+              
+              // Сохраняем обновленные настройки
+              this.scheduleService.saveDoctorScheduleSettings(settings).subscribe({
+                next: () => {
+                  console.log('Настройки расписания обновлены');
+                  
+                  // Шаг 3: Создаем новое расписание с обновленными настройками
+                  // Выбираем метод генерации в зависимости от флага автоматической генерации
+                  const generateMethod = this.autoGenerateEnabled 
+                    ? this.scheduleService.generateAutomaticSchedule.bind(this.scheduleService)
+                    : this.scheduleService.generateSchedule.bind(this.scheduleService);
+                  
+                  generateMethod(
+                    this.selectedDoctorId,
+                    periodStartDate,
+                    periodEndDate,
+                    settings
+                  ).subscribe({
+                    next: (schedule) => {
+                      this.currentSchedule = schedule;
+                      
+                      // Сбрасываем период к стандартным значениям (с сегодняшней даты на 3 месяца вперед)
+                      const today = new Date();
+                      this.startDate = this.formatDate(today);
+                      
+                      const maxDate = new Date();
+                      maxDate.setMonth(maxDate.getMonth() + 3);
+                      this.endDate = this.formatDate(maxDate);
+                      
+                      // Устанавливаем текущий месяц для календаря
+                      this.currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                      
+                      // Загружаем актуальное расписание с новым периодом
+                      this.loadSchedule();
+                      
+                      this.saveSuccess = true;
+                      
+                      // Скрываем сообщение об успехе через 3 секунды
+                      setTimeout(() => {
+                        this.saveSuccess = false;
+                      }, 3000);
+                    },
+                    error: (error) => {
+                      this.isLoading = false;
+                      this.errorMessage = "Ошибка создания нового расписания: " + (error.error || error.message || JSON.stringify(error));
+                      console.error('Ошибка создания нового расписания:', error);
+                    }
+                  });
+                },
+                error: (error) => {
+                  this.isLoading = false;
+                  this.errorMessage = "Ошибка сохранения настроек: " + (error.error || error.message || JSON.stringify(error));
+                  console.error('Ошибка сохранения настроек:', error);
+                }
+              });
+            } else {
+              this.errorMessage = 'Не удалось удалить существующее расписание';
+              this.isLoading = false;
+            }
+          },
+          error: (error) => {
+            this.errorMessage = 'Ошибка при удалении расписания: ' + (error.error || error.message);
+            this.isLoading = false;
+            console.error('Ошибка удаления расписания:', error);
+          }
+        });
+    }
+  }
+
+  private buildDeleteData() {
+    // Implementation of buildDeleteData method
+  }
+
+  private buildCreateData() {
+    // Implementation of buildCreateData method
   }
 } 

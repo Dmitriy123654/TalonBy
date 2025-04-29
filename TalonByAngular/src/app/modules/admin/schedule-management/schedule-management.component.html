@@ -221,6 +221,7 @@
         <button type="button" class="btn btn-danger" (click)="deleteSchedule()" [disabled]="!currentSchedule || isLoading">
           <i class="icon-delete"></i> Удалить расписание
         </button>
+        <button type="button" class="btn btn-primary" (click)="updateSchedule()">Изменить расписание</button>
       </div>
     </form>
   </div>
@@ -231,12 +232,6 @@
       <h3 *ngIf="currentSchedule">Расписание: {{ currentSchedule.doctorName }} ({{ currentSchedule.specialization }})</h3>
       <h3 *ngIf="!currentSchedule && !isLoading">Календарь</h3>
       <h3 *ngIf="!currentSchedule && isLoading">Загрузка расписания...</h3>
-      
-      <div class="schedule-actions" *ngIf="currentSchedule">
-        <button class="btn btn-secondary" (click)="editSchedule()" [disabled]="isLoading">
-          <i class="icon-edit"></i> Изменить расписание
-        </button>
-      </div>
     </div>
 
     <div class="calendar-wrapper">
