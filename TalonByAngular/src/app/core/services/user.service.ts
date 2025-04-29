@@ -5,6 +5,7 @@ import { tap, catchError, map, switchMap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { User, Patient } from '../../shared/interfaces/user.interface';
 import { AuthService, UserInfo } from './auth.service';
+import { MedicalAppointmentDTO } from '../../shared/interfaces/medical-appointment.interface';
 
 @Injectable({
   providedIn: 'root',
@@ -152,6 +153,13 @@ export class UserService {
       catchError(() => {
         return of(this.currentUserSubject.value || {} as User);
       })
+    );
+  }
+  
+  updateUserSettings(settings: { email?: string; phone?: string }): Observable<boolean> {
+    return this.http.put<any>(`${environment.apiUrl}/User/update-settings`, settings).pipe(
+      map(() => true),
+      catchError(() => of(false))
     );
   }
   
@@ -305,5 +313,24 @@ export class UserService {
         // Данные профиля обновлены
       })
     );
+  }
+
+  // Get user's medical appointments with optional filtering
+  getUserAppointments(params: {
+    status?: number,
+    dateFrom?: string,
+    dateTo?: string
+  } = {}): Observable<MedicalAppointmentDTO[]> {
+    // Build query parameters
+    let queryParams = '';
+    const paramEntries = Object.entries(params).filter(([_, value]) => value !== undefined);
+    
+    if (paramEntries.length > 0) {
+      queryParams = '?' + paramEntries
+        .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+        .join('&');
+    }
+    
+    return this.http.get<MedicalAppointmentDTO[]>(`${environment.apiUrl}/MedicalAppointment/GetByParameters${queryParams}`);
   }
 } 

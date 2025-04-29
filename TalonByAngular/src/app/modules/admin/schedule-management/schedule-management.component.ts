@@ -195,7 +195,7 @@ export class ScheduleManagementComponent implements OnInit {
       return;
     }
     
-    this.userRole = userInfo.role;
+    this.userRole = userInfo.role || '';
     
     if (this.userRole === 'Administrator') {
       this.loadHospitals();
@@ -207,24 +207,26 @@ export class ScheduleManagementComponent implements OnInit {
       this.loadHospitals();
       
       // Получаем информацию о главвраче по ID пользователя
-      this.scheduleService.getChiefDoctorInfo(userInfo.userId).subscribe({
-        next: (doctorInfo: any) => {
-          if (doctorInfo && doctorInfo.hospitalId) {
-            this.selectedHospitalId = doctorInfo.hospitalId;
-            // Загружаем специальности этой больницы
-            this.loadSpecialities(this.selectedHospitalId);
-            console.log(`ChiefDoctor: автоматически выбрана больница с ID=${this.selectedHospitalId}`);
-          } else {
-            this.errorMessage = 'Не удалось получить информацию о больнице главного врача';
+      if (userInfo.userId) {
+        this.scheduleService.getChiefDoctorInfo(userInfo.userId.toString()).subscribe({
+          next: (doctorInfo: any) => {
+            if (doctorInfo && doctorInfo.hospitalId) {
+              this.selectedHospitalId = doctorInfo.hospitalId;
+              // Загружаем специальности этой больницы
+              this.loadSpecialities(this.selectedHospitalId);
+              console.log(`ChiefDoctor: автоматически выбрана больница с ID=${this.selectedHospitalId}`);
+            } else {
+              this.errorMessage = 'Не удалось получить информацию о больнице главного врача';
+            }
+            this.isLoading = false;
+          },
+          error: (error: any) => {
+            this.errorMessage = 'Ошибка при получении информации о главном враче';
+            this.isLoading = false;
+            console.error('Ошибка получения данных главврача:', error);
           }
-          this.isLoading = false;
-        },
-        error: (error: any) => {
-          this.errorMessage = 'Ошибка при получении информации о главном враче';
-          this.isLoading = false;
-          console.error('Ошибка получения данных главврача:', error);
-        }
-      });
+        });
+      }
     } else if (this.userRole === 'Doctor') {
       // Для врача загрузим ID врача и больницы из информации о пользователе
       this.isLoading = true;
@@ -233,24 +235,26 @@ export class ScheduleManagementComponent implements OnInit {
       this.loadHospitals();
       
       // Получаем информацию о враче по ID пользователя
-      this.scheduleService.getDoctorInfoByUserId(userInfo.userId).subscribe({
-        next: (doctorInfo: any) => {
-          if (doctorInfo && doctorInfo.doctorId && doctorInfo.hospitalId) {
-            this.selectedHospitalId = doctorInfo.hospitalId;
-            this.selectedDoctorId = doctorInfo.doctorId;
-            this.loadSchedule();
-            console.log(`Doctor: автоматически выбран врач с ID=${this.selectedDoctorId} в больнице с ID=${this.selectedHospitalId}`);
-          } else {
-            this.errorMessage = 'Не удалось получить информацию о враче';
+      if (userInfo.userId) {
+        this.scheduleService.getDoctorInfoByUserId(userInfo.userId.toString()).subscribe({
+          next: (doctorInfo: any) => {
+            if (doctorInfo && doctorInfo.doctorId && doctorInfo.hospitalId) {
+              this.selectedHospitalId = doctorInfo.hospitalId;
+              this.selectedDoctorId = doctorInfo.doctorId;
+              this.loadSchedule();
+              console.log(`Doctor: автоматически выбран врач с ID=${this.selectedDoctorId} в больнице с ID=${this.selectedHospitalId}`);
+            } else {
+              this.errorMessage = 'Не удалось получить информацию о враче';
+            }
+            this.isLoading = false;
+          },
+          error: (error: any) => {
+            this.errorMessage = 'Ошибка при получении информации о враче';
+            this.isLoading = false;
+            console.error('Ошибка получения данных врача:', error);
           }
-          this.isLoading = false;
-        },
-        error: (error: any) => {
-          this.errorMessage = 'Ошибка при получении информации о враче';
-          this.isLoading = false;
-          console.error('Ошибка получения данных врача:', error);
-        }
-      });
+        });
+      }
     } else if (this.userRole === 'Registrar') {
       // Если пользователь - регистратор, загружаем доступных врачей его больницы
       this.loadHospitalDoctors(this.selectedHospitalId);
