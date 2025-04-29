@@ -23,11 +23,6 @@ namespace Domain.Models
         [Required]
         public TimeSpan Time { get; set; }
 
-        public string TextResult { get; set; }
-
-        [StringLength(500)]
-        public string Description { get; set; }
-
         [ForeignKey("HospitalId")]
         public virtual Hospital Hospital { get; set; }
 
@@ -39,5 +34,7 @@ namespace Domain.Models
 
         [ForeignKey("ReceptionStatusId")]
         public virtual ReceptionStatus ReceptionStatus { get; set; }
+        
+        public virtual AppointmentMedicalDetails MedicalDetails { get; set; }
     }
 }

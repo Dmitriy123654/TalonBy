@@ -129,7 +129,7 @@ namespace TalonBy
             builder.Services.AddTransient<IReceptionStatusService, ReceptionStatusService>();
             builder.Services.AddScoped<IEmailService, EmailService>();
             builder.Services.AddScoped<IScheduleService,ScheduleService>();
-
+            builder.Services.AddTransient<IAppointmentMedicalDetailsService, AppointmentMedicalDetailsService>();
 
             //dal
             builder.Services.AddTransient<IUserRepository, UserRepository>();
@@ -143,6 +143,7 @@ namespace TalonBy
             builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
             builder.Services.AddScoped<ITimeSlotRepository, TimeSlotRepository>();
             builder.Services.AddScoped<IDoctorScheduleSettingsRepository, DoctorScheduleSettingsRepository>();
+            builder.Services.AddTransient<IAppointmentMedicalDetailsRepository, AppointmentMedicalDetailsRepository>();
 
             // Создадим новый класс для запланированной очистки refresh токенов
             builder.Services.AddHostedService<BLL.Services.TokenCleanupService>();

@@ -84,8 +84,8 @@ namespace DAL
                 DoctorName = a.Doctor.FullName,
                 DoctorSpecialty = a.Doctor.DoctorsSpeciality.Name,
                 ReceptionStatus = a.ReceptionStatus.Status.ToString(),
-                Description = a.Description
-
+                Date = a.Date,
+                Time = a.Time
             }).ToListAsync();
 
             return result;

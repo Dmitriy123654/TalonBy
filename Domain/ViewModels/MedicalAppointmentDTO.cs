@@ -14,6 +14,7 @@ namespace Domain.ViewModels
         public string DoctorName { get; set; }
         public string DoctorSpecialty { get; set; }
         public string ReceptionStatus { get; set; }
-        public string Description { get; set;}
+        public DateTime Date { get; set; }
+        public TimeSpan Time { get; set; }
     }
 }

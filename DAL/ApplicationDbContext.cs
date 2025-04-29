@@ -19,6 +19,7 @@ namespace DAL
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<TimeSlot> TimeSlots { get; set; }
         public DbSet<DoctorScheduleSettings> DoctorScheduleSettings { get; set; }
+        public DbSet<AppointmentMedicalDetails> AppointmentMedicalDetails { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -43,10 +44,10 @@ namespace DAL
                 .WithMany(d => d.MedicalAppointments)
                 .HasForeignKey(ma => ma.DoctorId);
 
-            modelBuilder.Entity<MedicalAppointment>()
-                .HasOne(ma => ma.ReceptionStatus)
-                .WithMany(rs => rs.MedicalAppointments)
-                .HasForeignKey(ma => ma.ReceptionStatusId);
+            modelBuilder.Entity<AppointmentMedicalDetails>()
+                .HasOne(amd => amd.MedicalAppointment)
+                .WithOne(ma => ma.MedicalDetails)
+                .HasForeignKey<AppointmentMedicalDetails>(amd => amd.MedicalAppointmentId);
 
             modelBuilder.Entity<Doctor>()
                 .HasOne(d => d.DoctorsSpeciality)

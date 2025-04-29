@@ -3,6 +3,9 @@ using Domain.Models;
 using Domain.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace TalonBy.Controllers
 {
@@ -25,21 +28,49 @@ namespace TalonBy.Controllers
             return CreatedAtAction(nameof(GetMedicalAppointmentById), new { id = appointment.MedicalAppointmentId }, appointment);
         }
 
-        [HttpPut("Update {id}")]
+        [HttpPost("CreateFromTimeSlot")]
+        public async Task<IActionResult> CreateFromTimeSlot(int timeSlotId, int patientId)
+        {
+            try
+            {
+                var appointment = await _medicalAppointmentService.CreateAppointmentFromTimeSlotAsync(timeSlotId, patientId);
+                return CreatedAtAction(nameof(GetMedicalAppointmentById), new { id = appointment.MedicalAppointmentId }, appointment);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPut("Update/{id}")]
         public async Task<IActionResult> UpdateMedicalAppointment(int id, MedicalAppointmentModel model)
         {
-            await _medicalAppointmentService.UpdateMedicalAppointmentAsync(id, model);
-            return NoContent();
+            try 
+            {
+                await _medicalAppointmentService.UpdateMedicalAppointmentAsync(id, model);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
-        [HttpDelete("Delete {id}")]
+        [HttpDelete("Delete/{id}")]
         public async Task<IActionResult> DeleteMedicalAppointment(int id)
         {
-            await _medicalAppointmentService.DeleteMedicalAppointmentAsync(id);
-            return NoContent();
+            try 
+            {
+                await _medicalAppointmentService.DeleteMedicalAppointmentAsync(id);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
-        [HttpGet("GetById{id}")]
+        [HttpGet("GetById/{id}")]
         public async Task<ActionResult<MedicalAppointment>> GetMedicalAppointmentById(int id)
         {
             var appointment = await _medicalAppointmentService.GetMedicalAppointmentByIdAsync(id);

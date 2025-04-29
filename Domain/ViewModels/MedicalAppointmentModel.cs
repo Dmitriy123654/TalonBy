@@ -22,11 +22,8 @@ namespace Domain.ViewModels
 
         [Required]
         public TimeSpan Time { get; set; }
-
-        public string TextResult { get; set; }
-
-        [StringLength(500)]
-        public string Description { get; set; }
+        
+        public string FileResultLink { get; set; }
     }
 
 }
