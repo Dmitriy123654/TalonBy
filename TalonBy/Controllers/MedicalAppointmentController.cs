@@ -29,11 +29,11 @@ namespace TalonBy.Controllers
         }
 
         [HttpPost("CreateFromTimeSlot")]
-        public async Task<IActionResult> CreateFromTimeSlot(int timeSlotId, int patientId)
+        public async Task<IActionResult> CreateFromTimeSlot(int timeSlotId, int patientId, int receptionStatusId = 4)
         {
             try
             {
-                var appointment = await _medicalAppointmentService.CreateAppointmentFromTimeSlotAsync(timeSlotId, patientId);
+                var appointment = await _medicalAppointmentService.CreateAppointmentFromTimeSlotAsync(timeSlotId, patientId, receptionStatusId);
                 return CreatedAtAction(nameof(GetMedicalAppointmentById), new { id = appointment.MedicalAppointmentId }, appointment);
             }
             catch (Exception ex)

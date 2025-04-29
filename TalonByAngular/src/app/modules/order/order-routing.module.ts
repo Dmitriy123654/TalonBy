@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { OrderComponent } from './order.component';
+import { PatientSelectionComponent } from './patient-selection/patient-selection.component';
 
 const routes: Routes = [
   { 
@@ -21,6 +22,15 @@ const routes: Routes = [
     path: 'datetime', 
     loadChildren: () => import('./datetime-selection/datetime-selection.module')
       .then(m => m.DatetimeSelectionModule)
+  },
+  {
+    path: 'patient-selection',
+    component: PatientSelectionComponent
+  },
+  {
+    path: 'confirmation',
+    loadChildren: () => import('./order-confirmation/order-confirmation.module')
+      .then(m => m.OrderConfirmationModule)
   }
 ];
 

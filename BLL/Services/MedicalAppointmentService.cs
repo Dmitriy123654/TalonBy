@@ -12,7 +12,7 @@ namespace BLL.Services
     public interface IMedicalAppointmentService
     {
         Task<MedicalAppointment> CreateMedicalAppointmentAsync(MedicalAppointmentModel model);
-        Task<MedicalAppointment> CreateAppointmentFromTimeSlotAsync(int timeSlotId, int patientId);
+        Task<MedicalAppointment> CreateAppointmentFromTimeSlotAsync(int timeSlotId, int patientId, int receptionStatusId = 4);
         Task UpdateMedicalAppointmentAsync(int id, MedicalAppointmentModel model);
         Task DeleteMedicalAppointmentAsync(int id);
         Task<MedicalAppointment> GetMedicalAppointmentByIdAsync(int id);
@@ -46,7 +46,7 @@ namespace BLL.Services
             return await _medicalAppointmentRepository.CreateAsync(appointment);
         }
 
-        public async Task<MedicalAppointment> CreateAppointmentFromTimeSlotAsync(int timeSlotId, int patientId)
+        public async Task<MedicalAppointment> CreateAppointmentFromTimeSlotAsync(int timeSlotId, int patientId, int receptionStatusId = 4)
         {
             var timeSlot = await _timeSlotRepository.GetTimeSlotByIdAsync(timeSlotId);
             if (timeSlot == null)
@@ -55,24 +55,32 @@ namespace BLL.Services
             if (!timeSlot.IsAvailable)
                 throw new Exception($"TimeSlot с ID {timeSlotId} уже занят.");
 
-            // Создаем запись о приеме
-            var appointment = new MedicalAppointment
+            try
             {
-                HospitalId = timeSlot.HospitalId ?? throw new Exception("В TimeSlot отсутствует HospitalId"),
-                PatientId = patientId,
-                DoctorId = timeSlot.DoctorId,
-                ReceptionStatusId = 1, // Предполагаем, что ID 1 означает "Запланирован"
-                Date = timeSlot.Date,
-                Time = timeSlot.Time
-            };
+                // Создаем запись о приеме
+                var appointment = new MedicalAppointment
+                {
+                    HospitalId = timeSlot.HospitalId ?? throw new Exception("В TimeSlot отсутствует HospitalId"),
+                    PatientId = patientId,
+                    DoctorId = timeSlot.DoctorId,
+                    // Статус ожидания (Waiting) имеет ID=4 в базе
+                    ReceptionStatusId = 4, // Status.Waiting - жестко задаем ID=4, так как это точно существует в БД
+                    Date = timeSlot.Date,
+                    Time = timeSlot.Time
+                };
 
-            // Создаем запись и обновляем timeSlot (помечаем как занятый)
-            var createdAppointment = await _medicalAppointmentRepository.CreateAsync(appointment);
-            
-            timeSlot.IsAvailable = false;
-            await _timeSlotRepository.UpdateTimeSlotAsync(timeSlot);
+                // Создаем запись и обновляем timeSlot (помечаем как занятый)
+                var createdAppointment = await _medicalAppointmentRepository.CreateAsync(appointment);
+                
+                timeSlot.IsAvailable = false;
+                await _timeSlotRepository.UpdateTimeSlotAsync(timeSlot);
 
-            return createdAppointment;
+                return createdAppointment;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Ошибка при создании записи: {ex.Message}", ex);
+            }
         }
 
         public async Task UpdateMedicalAppointmentAsync(int id, MedicalAppointmentModel model)
