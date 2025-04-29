@@ -1,0 +1,177 @@
+<div class="patient-selection-page">
+    <!-- Мобильное меню -->
+    <div class="mobile-details" *ngIf="isMobile">
+      <div class="mobile-header" (click)="toggleDetails()">
+        <h1>{{hospital?.name}}</h1>
+        <span class="toggle-btn">
+          {{isDetailsOpen ? '‹ Скрыть' : 'Показать подробнее ›'}}
+        </span>
+      </div>
+  
+      <div class="mobile-content" [class.open]="isDetailsOpen">
+        <div class="info-grid">
+          <div class="address-block">
+            <p>{{hospital?.address}}</p>
+            <a href="#" class="map-link">показать на карте</a>
+          </div>
+          <div class="registry-block">
+            <div class="phones">
+              <ng-container *ngFor="let item of getPhones()">
+                <span *ngIf="item.isLabel" class="label">{{item.text}}</span>
+                <a *ngIf="!item.isLabel" href="tel:{{item.text}}">{{item.text}}</a>
+              </ng-container>
+            </div>
+          </div>
+          <div class="schedule-block">
+            <div class="schedule-row">
+              <span class="label">ПН-ПТ:</span>{{getWorkingHours('ПН-ПТ')}}
+            </div>
+            <div class="schedule-row">
+              <span class="label">СБ:</span>{{getWorkingHours('СБ')}}
+            </div>
+          </div>
+          <div class="contacts-block">
+            <a *ngIf="hospital?.website" href="{{hospital?.website}}" class="website">{{getDomain(hospital?.website)}}</a>
+            <a *ngIf="hospital?.email" href="mailto:{{hospital?.email}}" class="email">{{hospital?.email}}</a>
+          </div>
+        </div>
+  
+        <nav class="hospital-nav">
+          <ul>
+            <li><a href="#">Информация</a></li>
+            <li><a href="#">Врачи</a></li>
+            <li><a href="#">Расписание врачей</a></li>
+          </ul>
+        </nav>
+      </div>
+  
+      <div class="order-steps-mobile" *ngIf="isMobile">
+        <div class="order-steps">
+          <div class="step completed" (click)="goToSpeciality()">
+            Специальность
+            <span class="substep">{{speciality?.name}}</span>
+          </div>
+          <div class="step completed" (click)="goToDoctor()">
+            Врач
+            <span class="substep">{{doctor?.fullName}}</span>
+          </div>
+          <div class="step completed" (click)="goToDatime()">
+            Дата и время
+            <span class="substep">{{getFormattedDate()}}, {{getFormattedTime()}}</span>
+          </div>
+          <div class="step active">Личные данные</div>
+          <div class="step">Запись</div>
+        </div>
+      </div>
+    </div>
+  
+    <!-- Десктопная версия -->
+    <div class="hospital-header" *ngIf="!isMobile && hospital">
+      <div class="wrapper">
+        <div class="hospital-info">
+          <h1>{{hospital.name}}</h1>
+          <div class="info-grid">
+            <div class="address-block">
+              <p>{{hospital.address}}</p>
+              <a href="#" class="map-link">показать на карте</a>
+            </div>
+            <div class="registry-block">
+              <div class="phones">
+                <ng-container *ngFor="let item of getPhones()">
+                  <span *ngIf="item.isLabel" class="label">{{item.text}}</span>
+                  <a *ngIf="!item.isLabel" href="tel:{{item.text}}">{{item.text}}</a>
+                </ng-container>
+              </div>
+            </div>
+            <div class="schedule-block">
+              <div class="schedule-row">
+                <span class="label">ПН-ПТ:</span>{{getWorkingHours('ПН-ПТ')}}
+              </div>
+              <div class="schedule-row">
+                <span class="label">СБ:</span>{{getWorkingHours('СБ')}}
+              </div>
+            </div>
+            <div class="contacts-block">
+              <a *ngIf="hospital.website" href="{{hospital.website}}" class="website">{{getDomain(hospital.website)}}</a>
+              <a *ngIf="hospital.email" href="mailto:{{hospital.email}}" class="email">{{hospital.email}}</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  
+    <!-- Основной контент -->
+    <div class="wrapper">
+      <div class="content-block">
+        <aside *ngIf="!isMobile">
+          <div class="order-steps">
+            <div class="step completed" (click)="goToSpeciality()">
+              Специальность
+              <span class="substep">{{speciality?.name}}</span>
+            </div>
+            <div class="step completed" (click)="goToDoctor()">
+              Врач
+              <span class="substep">{{doctor?.fullName}}</span>
+            </div>
+            <div class="step completed" (click)="goToDatime()">
+              Дата и время
+              <span class="substep">{{getFormattedDate()}}, {{getFormattedTime()}}</span>
+            </div>
+            <div class="step active">Личные данные</div>
+            <div class="step">Запись</div>
+          </div>
+  
+          <nav class="hospital-nav">
+            <ul>
+              <li><a href="#">Информация</a></li>
+              <li><a href="#">Врачи</a></li>
+              <li><a href="#">Расписание врачей</a></li>
+            </ul>
+          </nav>
+        </aside>
+  
+        <main>
+          <h2>Заказ талона</h2>
+          <p class="subtitle">Выбор пациента</p>
+  
+          <div class="patients-grid" *ngIf="!loading && !error && hasPatients">
+            <div class="row">
+              <div class="patient-card" *ngFor="let patient of patients" (click)="selectPatient(patient)">
+                <div class="patient-info">
+                  <div class="patient-details">
+                    <h5>{{patient.fullName}}</h5>
+                    <p class="gender">{{ patient.relationship === 'male' ? 'Мужской' : patient.relationship === 'female' ? 'Женский' : 'Пол не указан' }}</p>
+                    <p class="birthdate">{{ patient.birthDate | date:'dd.MM.yyyy' }}</p>
+                    <p class="address" *ngIf="patient.address">{{ patient.address }}</p>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Add new patient card -->
+              <div class="patient-card add-patient" *ngFor="let i of getRemainingPatientsSlots()" (click)="addNewPatient()">
+                <div class="add-patient-content">
+                  <span class="add-patient-icon">+</span>
+                  <span class="add-patient-text">Добавить пациента</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- No patients message -->
+          <div *ngIf="!loading && !error && !hasPatients" class="no-patients-message">
+            <p>У вас пока нет добавленных пациентов</p>
+            <button class="btn btn-primary" (click)="goToCreatePatient()">Создать пациента</button>
+          </div>
+  
+          <div *ngIf="loading" class="loading">
+            Загрузка списка пациентов...
+          </div>
+  
+          <div *ngIf="error" class="error">
+            {{error}}
+          </div>
+        </main>
+      </div>
+    </div>
+  </div>
+  
