@@ -28,7 +28,9 @@ $border-color: var(--border-color);
 .speciality-page,
 .doctor-selection-page,
 .datetime-selection-page,
-.order-page {
+.patient-selection-page,
+.order-page,
+.order-confirmation-page {
   background: var(--background-color);
   min-height: 100vh;
   position: relative;
