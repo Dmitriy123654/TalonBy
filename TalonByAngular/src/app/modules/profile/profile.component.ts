@@ -4,6 +4,8 @@ import { AuthService, UserInfo } from '../../core/services/auth.service';
 import { User, Patient } from '../../shared/interfaces/user.interface';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
+import { MedicalAppointmentDTO, AppointmentStatus } from '../../shared/interfaces/medical-appointment.interface';
+import { formatDate } from '@angular/common';
 
 @Component({
   selector: 'app-profile',
@@ -18,6 +20,14 @@ export class ProfileComponent implements OnInit, OnDestroy {
   editingPatient: Patient | null = null;
   isLoading: boolean = true;
   hasAdminAccess: boolean = false;
+  
+  // Appointments tab
+  appointments: MedicalAppointmentDTO[] = [];
+  isLoadingAppointments: boolean = false;
+  appointmentFilterStatus: number = AppointmentStatus.All;
+  dateFrom: string = '';
+  dateTo: string = '';
+  AppointmentStatus = AppointmentStatus; // Expose enum to template
   
   // Создаем Subscription для управления подписками
   private subscriptions = new Subscription();
@@ -63,6 +73,14 @@ export class ProfileComponent implements OnInit, OnDestroy {
       this.userSettings.phone = this.userInfo.phone || '';
     }
     
+    // Check if URL has parameters for tab activation
+    const url = this.router.url;
+    const tabParam = url.includes('?tab=appointments');
+    
+    if (tabParam) {
+      this.setActiveTab('appointments');
+    }
+    
     // Проверяем, есть ли уже данные пользователя в userService
     const userSub = this.userService.currentUser.subscribe(user => {
       if (user) {
@@ -70,6 +88,11 @@ export class ProfileComponent implements OnInit, OnDestroy {
         this.userSettings.email = user.email;
         this.userSettings.phone = user.phone || '';
         this.isLoading = false;
+        
+        // If we're on the appointments tab, load appointments now that we have user data
+        if (this.activeTab === 'appointments') {
+          this.loadAppointments();
+        }
       } else {
         // Загружаем полный профиль с сервера, если данных нет
         this.loadUserProfile();
@@ -136,6 +159,123 @@ export class ProfileComponent implements OnInit, OnDestroy {
     // Если выходим из редактирования пациента, сбрасываем текущего редактируемого пациента
     if (tab !== 'editPatient') {
       this.editingPatient = null;
+    }
+    
+    // If switching to appointments tab, load appointments
+    if (tab === 'appointments') {
+      this.loadAppointments();
+    }
+  }
+
+  // Load appointments with current filters
+  loadAppointments(): void {
+    this.isLoadingAppointments = true;
+    
+    const filterParams: any = {};
+    
+    // Only add the status filter if it's not "All"
+    if (this.appointmentFilterStatus !== AppointmentStatus.All) {
+      filterParams.ReceptionStatusId = this.appointmentFilterStatus;
+    }
+    
+    // Add date filters if provided
+    if (this.dateFrom) {
+      filterParams.DateFrom = this.dateFrom;
+    }
+    
+    if (this.dateTo) {
+      filterParams.DateTo = this.dateTo;
+    }
+    
+    // Add the PatientId filter to only get appointments for the current user's patients
+    if (this.currentUser && this.currentUser.patients && this.currentUser.patients.length > 0) {
+      // Get all patient IDs of the current user
+      const patientIds = this.currentUser.patients.map(p => p.patientId);
+      
+      // If user has multiple patients, we'll need to make multiple requests
+      // and combine the results (or implement a backend endpoint that accepts multiple patient IDs)
+      
+      // For simplicity here, we'll just load appointments for all patients
+      // In a real-world scenario, you might want to add a PatientIds array parameter to the API
+      
+      const appointmentsSub = this.userService.getUserAppointments(filterParams).subscribe({
+        next: (appointments) => {
+          // Filter appointments for user's patients only
+          this.appointments = appointments.filter(a => 
+            patientIds.some(id => a.patientName.includes(this.getPatientNameById(id)))
+          );
+          this.isLoadingAppointments = false;
+        },
+        error: (error) => {
+          console.error('Error loading appointments:', error);
+          this.appointments = [];
+          this.isLoadingAppointments = false;
+        }
+      });
+      
+      this.subscriptions.add(appointmentsSub);
+    } else {
+      this.appointments = [];
+      this.isLoadingAppointments = false;
+    }
+  }
+  
+  // Helper method to get patient name by ID
+  getPatientNameById(patientId: number): string {
+    if (!this.currentUser || !this.currentUser.patients) return '';
+    
+    const patient = this.currentUser.patients.find(p => p.patientId === patientId);
+    return patient ? patient.fullName : '';
+  }
+  
+  // Filter appointments by status
+  filterByStatus(status: number): void {
+    this.appointmentFilterStatus = status;
+    this.loadAppointments();
+  }
+  
+  // Apply date filter
+  applyDateFilter(): void {
+    this.loadAppointments();
+  }
+  
+  // Reset date filters
+  resetDateFilter(): void {
+    this.dateFrom = '';
+    this.dateTo = '';
+    this.loadAppointments();
+  }
+  
+  // Format appointment date for display
+  formatAppointmentDate(date: string): string {
+    return formatDate(date, 'dd.MM.yyyy', 'en-US');
+  }
+  
+  // Get appropriate status class for styling
+  getStatusClass(status: string): string {
+    switch (status.toLowerCase()) {
+      case 'waiting':
+        return 'status-waiting';
+      case 'completed':
+        return 'status-completed';
+      case 'cancelled':
+        return 'status-cancelled';
+      default:
+        return '';
+    }
+  }
+  
+  // Перевод статуса на русский язык
+  getStatusTranslation(status: string): string {
+    switch (status.toLowerCase()) {
+      case 'waiting':
+        return 'Ожидается';
+      case 'completed':
+        return 'Выполнен';
+      case 'cancelled':
+        return 'Отменён';
+      default:
+        return status;
     }
   }
 
@@ -252,15 +392,12 @@ export class ProfileComponent implements OnInit, OnDestroy {
     }
   }
   
-  // Валидация формы пациента
   validatePatientForm(): boolean {
-    return !this.patientFullNameInvalid && 
-           !this.patientRelationshipInvalid && 
-           !this.patientBirthDateInvalid;
+    return !this.patientFullNameInvalid && !this.patientRelationshipInvalid && !this.patientBirthDateInvalid;
   }
   
   get patientFullNameInvalid(): boolean {
-    return !this.editingPatient?.fullName || this.editingPatient.fullName.trim().length < 3;
+    return !this.editingPatient?.fullName;
   }
   
   get patientRelationshipInvalid(): boolean {
@@ -270,16 +407,11 @@ export class ProfileComponent implements OnInit, OnDestroy {
   get patientBirthDateInvalid(): boolean {
     if (!this.editingPatient?.birthDate) return true;
     
-    try {
     const birthDate = new Date(this.editingPatient.birthDate);
     const today = new Date();
-      return isNaN(birthDate.getTime()) || birthDate > today;
-    } catch (e) {
-      return true;
-    }
+    return birthDate > today;
   }
   
-  // Сохранение пользовательских настроек
   saveUserSettings(): void {
     this.isUserFormSubmitted = true;
     
@@ -287,38 +419,33 @@ export class ProfileComponent implements OnInit, OnDestroy {
       return;
     }
     
-    // Показываем индикатор загрузки
       this.isLoading = true;
       
-    const updatedUserData = {
+    const settings = {
         email: this.userSettings.email,
         phone: this.userSettings.phone
       };
       
-    this.userService.updateUserProfile(updatedUserData).subscribe({
-      next: (user) => {
-        this.currentUser = user;
-          
-        // Обновляем информацию о пользователе в сервисе и в компоненте
-        this.userInfo = this.authService.getUserInfo();
-        
-        this.userSettings.email = user.email;
-        this.userSettings.phone = user.phone || '';
-        
+    const settingsSub = this.userService.updateUserSettings(settings).subscribe({
+      next: (success: boolean) => {
+        if (success) {
+          // Обновляем данные пользователя
+          this.loadUserProfile(true);
+          alert('Настройки успешно сохранены.');
+        } else {
+          alert('Ошибка при сохранении настроек. Пожалуйста, попробуйте еще раз.');
               this.isLoading = false;
-              this.isUserFormSubmitted = false;
-        
-        // Показываем сообщение об успешном обновлении
-        alert('Настройки успешно обновлены!');
+        }
         },
       error: () => {
+        alert('Ошибка при сохранении настроек. Пожалуйста, попробуйте еще раз.');
           this.isLoading = false;
-        alert('Ошибка при обновлении настроек. Пожалуйста, попробуйте еще раз.');
         }
       });
+    
+    this.subscriptions.add(settingsSub);
   }
   
-  // Смена пароля
   changePassword(): void {
     this.isPasswordFormSubmitted = true;
     
@@ -326,7 +453,10 @@ export class ProfileComponent implements OnInit, OnDestroy {
       return;
     }
     
-    // Показываем индикатор загрузки
+    if (this.passwordChange.newPassword !== this.passwordChange.confirmPassword) {
+      return;
+    }
+    
     this.isLoading = true;
     
     this.userService.changePassword(
@@ -361,29 +491,22 @@ export class ProfileComponent implements OnInit, OnDestroy {
     });
   }
   
-  // Валидация формы настроек пользователя
   validateUserForm(): boolean {
     return !this.emailInvalid && !this.phoneInvalid;
   }
   
-  // Валидация формы смены пароля
   validatePasswordForm(): boolean {
-    return !this.currentPasswordInvalid && 
-           !this.newPasswordInvalid && 
-           !this.confirmPasswordInvalid;
+    return !this.currentPasswordInvalid && !this.newPasswordInvalid && !this.confirmPasswordInvalid;
   }
   
-  // Геттеры для валидации полей
   get emailInvalid(): boolean {
     const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    return !this.userSettings.email || !emailPattern.test(this.userSettings.email);
+    return !emailPattern.test(this.userSettings.email);
   }
   
   get phoneInvalid(): boolean {
-    // Упрощенная валидация для телефона - должен начинаться с +375 и содержать 9 цифр после
-    // Полная валидация должна учитывать формат +375 (XX) XXX-XX-XX
-    const phonePattern = /^\+375\(\d{2}\)\d{3}-\d{2}-\d{2}$/;
-    return !this.userSettings.phone || !phonePattern.test(this.userSettings.phone);
+    // Простая проверка телефона (может потребоваться более сложная логика)
+    return this.userSettings.phone.length < 10; 
   }
   
   get currentPasswordInvalid(): boolean {
@@ -391,30 +514,26 @@ export class ProfileComponent implements OnInit, OnDestroy {
   }
   
   get newPasswordInvalid(): boolean {
-    // Пароль должен содержать минимум 6 символов, хотя бы одну заглавную букву и цифру
+    // Минимум 6 символов, одна заглавная буква и одна цифра
     const passwordPattern = /^(?=.*[A-Z])(?=.*[0-9]).*$/;
-    return !this.passwordChange.newPassword || 
-           this.passwordChange.newPassword.length < 6 ||
-           !passwordPattern.test(this.passwordChange.newPassword);
+    return this.passwordChange.newPassword.length < 6 || !passwordPattern.test(this.passwordChange.newPassword);
   }
   
   get confirmPasswordInvalid(): boolean {
-    return !this.passwordChange.confirmPassword || 
-           this.passwordChange.newPassword !== this.passwordChange.confirmPassword;
+    return this.passwordChange.confirmPassword !== this.passwordChange.newPassword;
   }
   
-  // Вспомогательный метод для управления добавлением пациентов
+  // Helper for grid layout with adding patient buttons
   getRemainingPatientsSlots(): number[] {
     const currentCount = this.currentUser?.patients?.length || 0;
     const maxPatients = 6;
-    const remainingSlots = Math.max(0, maxPatients - currentCount);
+    const remaining = maxPatients - currentCount;
     
-    // Возвращаем массив индексов для добавления новых пациентов
-    return Array(remainingSlots).fill(0).map((_, i) => i);
+    return Array(remaining).fill(0).map((_, i) => i);
   }
 
-  // Выход из системы
   logout(): void {
-    this.authService.logout().subscribe();
+    this.authService.logout();
+    this.router.navigate(['/login']);
   }
 } 

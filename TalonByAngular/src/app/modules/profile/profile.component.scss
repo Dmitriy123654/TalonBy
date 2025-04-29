@@ -276,7 +276,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .error-state {
@@ -631,6 +633,354 @@ select.form-control {
       
       &:hover {
         filter: brightness(90%);
+      }
+    }
+  }
+} 
+
+/* Appointments Section Styles */
+.appointments-section {
+  padding: 20px;
+  background-color: var(--background-color); /* Самый темный фон */
+  
+  h2 {
+    margin-bottom: 20px;
+    font-weight: 500;
+    color: var(--text-color);
+  }
+  
+  .filter-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: var(--card-bg); /* Блок светлее фона */
+    border-radius: 8px;
+    box-shadow: 0 1px 3px var(--shadow-color);
+    
+    @media (min-width: 768px) {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .status-filters {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      
+      .status-filter-btn {
+        padding: 8px 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        background: var(--header-footer-bg); /* Кнопки светлее блоков */
+        color: var(--text-light);
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+        
+        &:hover {
+          background-color: var(--hover-bg);
+        }
+        
+        &.active {
+          background-color: var(--primary-color);
+          color: white;
+          border-color: var(--primary-color);
+          box-shadow: 0 2px 4px var(--shadow-color);
+        }
+      }
+    }
+    
+    .date-filters {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      
+      .date-filter-group {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        
+        label {
+          font-size: 14px;
+          margin-bottom: 0;
+          color: var(--text-color);
+        }
+        
+        .date-input {
+          width: 150px;
+          padding: 6px 8px;
+          font-size: 14px;
+          background-color: var(--input-bg);
+          border: 1px solid var(--border-color);
+          color: var(--text-color);
+          border-radius: 4px;
+          
+          &:focus {
+            border-color: var(--primary-color);
+            outline: none;
+          }
+        }
+      }
+      
+      button {
+        padding: 6px 12px;
+        font-size: 14px;
+        border-radius: 4px;
+        
+        &.btn-primary {
+          background-color: var(--primary-color);
+          color: white;
+          border: none;
+          
+          &:hover {
+            filter: brightness(90%);
+          }
+        }
+        
+        &.btn-outline-secondary {
+          background-color: transparent;
+          color: var(--text-light);
+          border: 1px solid var(--border-color);
+          
+          &:hover {
+            background-color: var(--hover-bg);
+          }
+        }
+      }
+    }
+  }
+  
+  .loading-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 0;
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    margin-bottom: 20px;
+    
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      border-top-color: var(--primary-color);
+      animation: spin 1s linear infinite;
+      margin-bottom: 15px;
+    }
+    
+    p {
+      color: var(--text-light);
+    }
+  }
+  
+  .appointments-list {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    
+    @media (max-width: 1024px) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+    }
+    
+    .no-appointments {
+      grid-column: 1 / -1;
+      padding: 30px;
+      text-align: center;
+      background-color: var(--card-bg);
+      border-radius: 8px;
+      
+      p {
+        color: var(--text-light);
+        margin-bottom: 0;
+        
+        a {
+          color: var(--primary-color);
+          text-decoration: none;
+          font-weight: 500;
+          
+          &:hover {
+            text-decoration: underline;
+          }
+        }
+      }
+    }
+    
+    .appointment-card {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 16px;
+      background-color: var(--card-bg);
+      border-radius: 8px;
+      box-shadow: 0 2px 4px var(--shadow-color);
+      position: relative;
+      overflow: hidden;
+      
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 4px;
+        background-color: var(--primary-color);
+      }
+      
+      .appointment-status {
+        padding: 6px 12px;
+        border-radius: 4px;
+        font-size: 14px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        max-width: fit-content;
+        margin-bottom: 5px;
+        
+        &.status-waiting {
+          background-color: var(--input-bg);
+          color: var(--primary-color);
+          border: 1px solid var(--primary-color);
+        }
+        
+        &.status-completed {
+          background-color: rgba(76, 175, 80, 0.1);
+          color: #4CAF50;
+          border: 1px solid #4CAF50;
+          
+          /* Для темных тем */
+          .dark-theme &, .violet-theme &, .blue-theme & {
+            background-color: rgba(76, 175, 80, 0.2);
+            color: #81C784;
+          }
+        }
+        
+        &.status-cancelled {
+          background-color: rgba(244, 67, 54, 0.1);
+          color: #F44336;
+          border: 1px solid #F44336;
+          
+          /* Для темных тем */
+          .dark-theme &, .violet-theme &, .blue-theme & {
+            background-color: rgba(244, 67, 54, 0.2);
+            color: #E57373;
+          }
+        }
+      }
+      
+      .appointment-datetime {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        
+        .appointment-date {
+          font-weight: 600;
+          font-size: 16px;
+          color: var(--text-color);
+        }
+        
+        .appointment-time {
+          font-size: 14px;
+          color: var(--text-light);
+        }
+      }
+      
+      .appointment-hospital {
+        h4 {
+          margin: 0;
+          font-size: 16px;
+          font-weight: 500;
+          color: var(--text-color);
+        }
+      }
+      
+      .appointment-doctor {
+        .doctor-specialty {
+          font-size: 14px;
+          color: var(--text-light);
+          margin-bottom: 5px;
+        }
+        
+        .doctor-name {
+          font-weight: 500;
+          font-size: 15px;
+          color: var(--text-color);
+        }
+      }
+    }
+  }
+}
+
+/* Для темных тем - совместимость со стилями темы */
+.dark-theme, .violet-theme, .blue-theme {
+  .appointments-section {
+    background-color: var(--background-color); /* Самый темный фон */
+    
+    .filter-controls {
+      background-color: var(--card-bg); /* Блоки светлее фона */
+      
+      .status-filter-btn {
+        background-color: var(--header-footer-bg); /* Кнопки еще светлее */
+        border-color: var(--border-color);
+        color: var(--text-light);
+        
+        &:hover {
+          background-color: var(--hover-bg);
+        }
+        
+        &.active {
+          background-color: var(--primary-color);
+          color: var(--white-color);
+          border-color: var(--primary-color);
+        }
+      }
+      
+      .date-input {
+        background-color: var(--input-bg);
+        border-color: var(--border-color);
+        color: var(--text-color);
+        
+        &:focus {
+          border-color: var(--primary-color);
+        }
+      }
+    }
+    
+    .loading-indicator {
+      background-color: var(--card-bg);
+      
+      .spinner {
+        border-color: rgba(255, 255, 255, 0.1);
+        border-top-color: var(--primary-color);
+      }
+    }
+    
+    .no-appointments {
+      background-color: var(--card-bg);
+    }
+    
+    .appointment-card {
+      background-color: var(--card-bg);
+      
+      &::before {
+        background-color: var(--primary-color);
+      }
+      
+      .appointment-status {
+        &.status-waiting {
+          background-color: rgba(var(--primary-color-rgb), 0.1);
+          color: var(--white-color);
+          border-color: var(--primary-color);
+        }
       }
     }
   }

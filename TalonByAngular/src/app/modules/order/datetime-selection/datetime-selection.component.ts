@@ -365,7 +365,7 @@ export class DatetimeSelectionComponent implements OnInit, OnDestroy {
       return domain;
     } catch (e) {
       return url;
-    }
+  }
   }
 
   canGoToNextMonth(): boolean {

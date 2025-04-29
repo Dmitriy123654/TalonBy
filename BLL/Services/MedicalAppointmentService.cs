@@ -57,25 +57,25 @@ namespace BLL.Services
 
             try
             {
-                // Создаем запись о приеме
-                var appointment = new MedicalAppointment
-                {
-                    HospitalId = timeSlot.HospitalId ?? throw new Exception("В TimeSlot отсутствует HospitalId"),
-                    PatientId = patientId,
-                    DoctorId = timeSlot.DoctorId,
+            // Создаем запись о приеме
+            var appointment = new MedicalAppointment
+            {
+                HospitalId = timeSlot.HospitalId ?? throw new Exception("В TimeSlot отсутствует HospitalId"),
+                PatientId = patientId,
+                DoctorId = timeSlot.DoctorId,
                     // Статус ожидания (Waiting) имеет ID=4 в базе
                     ReceptionStatusId = 4, // Status.Waiting - жестко задаем ID=4, так как это точно существует в БД
-                    Date = timeSlot.Date,
+                Date = timeSlot.Date,
                     Time = timeSlot.Time
-                };
+            };
 
-                // Создаем запись и обновляем timeSlot (помечаем как занятый)
-                var createdAppointment = await _medicalAppointmentRepository.CreateAsync(appointment);
-                
-                timeSlot.IsAvailable = false;
-                await _timeSlotRepository.UpdateTimeSlotAsync(timeSlot);
+            // Создаем запись и обновляем timeSlot (помечаем как занятый)
+            var createdAppointment = await _medicalAppointmentRepository.CreateAsync(appointment);
+            
+            timeSlot.IsAvailable = false;
+            await _timeSlotRepository.UpdateTimeSlotAsync(timeSlot);
 
-                return createdAppointment;
+            return createdAppointment;
             }
             catch (Exception ex)
             {

@@ -1,0 +1,193 @@
+<div class="appointments-management">
+  <!-- Фильтры по доступности ролей -->
+  <div class="filters-container">
+    <form [formGroup]="filterForm" class="filters-form">
+      <!-- Выбор больницы (только для админа) -->
+      <div class="filter-group" *ngIf="userRole === 'Administrator'">
+        <label for="hospitalSelect">Больница:</label>
+        <select 
+          id="hospitalSelect" 
+          formControlName="hospitalId" 
+          class="form-control">
+          <option [value]="0">Выберите больницу</option>
+          <option *ngFor="let hospital of hospitals" [value]="hospital.hospitalId">
+            {{ hospital.name }}
+          </option>
+        </select>
+        <div class="loading-indicator" *ngIf="loading.hospitals">
+          <div class="spinner-sm"></div>
+        </div>
+      </div>
+
+      <!-- Выбор больницы (для главврача, показывается но отключено) -->
+      <div class="filter-group" *ngIf="userRole === 'ChiefDoctor'">
+        <label for="hospitalSelect">Больница:</label>
+        <select 
+          id="hospitalSelect" 
+          formControlName="hospitalId" 
+          class="form-control"
+          [disabled]="true">
+          <option *ngFor="let hospital of hospitals" [value]="hospital.hospitalId" [selected]="hospital.hospitalId === hospitalId">
+            {{ hospital.name }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Выбор специальности (для админа и главврача) -->
+      <div class="filter-group" *ngIf="userRole === 'Administrator' || userRole === 'ChiefDoctor'">
+        <label for="specialtySelect">Специальность:</label>
+        <select 
+          id="specialtySelect" 
+          formControlName="specialtyId" 
+          class="form-control">
+          <option [value]="0">Выберите специальность</option>
+          <option *ngFor="let specialty of specialties" [value]="specialty.doctorsSpecialityId">
+            {{ specialty.name }}
+          </option>
+        </select>
+        <div class="loading-indicator" *ngIf="loading.specialties">
+          <div class="spinner-sm"></div>
+        </div>
+      </div>
+
+      <!-- Выбор врача (для админа и главврача) -->
+      <div class="filter-group" *ngIf="userRole === 'Administrator' || userRole === 'ChiefDoctor'">
+        <label for="doctorSelect">Врач:</label>
+        <select 
+          id="doctorSelect" 
+          formControlName="doctorId" 
+          class="form-control">
+          <option [value]="0">Выберите врача</option>
+          <option *ngFor="let doctor of doctors" [value]="doctor.doctorId">
+            {{ doctor.fullName }}
+          </option>
+        </select>
+        <div class="loading-indicator" *ngIf="loading.doctors">
+          <div class="spinner-sm"></div>
+        </div>
+      </div>
+
+      <!-- Выбор даты (для всех пользователей) -->
+      <div class="filter-group" [ngClass]="{'full-width': userRole === 'Doctor'}">
+        <label for="dateFromSelect">Дата с:</label>
+        <input
+          id="dateFromSelect"
+          type="date"
+          formControlName="dateFrom"
+          class="form-control">
+      </div>
+
+      <div class="filter-group" [ngClass]="{'full-width': userRole === 'Doctor'}">
+        <label for="dateToSelect">Дата по:</label>
+        <input
+          id="dateToSelect"
+          type="date"
+          formControlName="dateTo"
+          class="form-control">
+      </div>
+
+      <!-- Кнопка применения фильтров -->
+      <div class="filter-actions">
+        <button 
+          type="button" 
+          class="btn btn-primary apply-button" 
+          (click)="applyFilters()"
+          [disabled]="!isFilterValid() || loading.appointments">
+          Применить
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Фильтры по статусу (для всех) -->
+  <div class="status-filters">
+    <div class="status-filters-title">Фильтр по статусу:</div>
+    <button 
+      class="status-filter-btn" 
+      [class.active]="statusFilter === AppointmentStatus.All"
+      (click)="filterByStatus(AppointmentStatus.All)">
+      Все
+    </button>
+    <button 
+      class="status-filter-btn" 
+      [class.active]="statusFilter === AppointmentStatus.Waiting"
+      (click)="filterByStatus(AppointmentStatus.Waiting)">
+      Ожидаются
+    </button>
+    <button 
+      class="status-filter-btn" 
+      [class.active]="statusFilter === AppointmentStatus.Completed"
+      (click)="filterByStatus(AppointmentStatus.Completed)">
+      Выполненные
+    </button>
+    <button 
+      class="status-filter-btn" 
+      [class.active]="statusFilter === AppointmentStatus.Cancelled"
+      (click)="filterByStatus(AppointmentStatus.Cancelled)">
+      Отменённые
+    </button>
+  </div>
+
+  <!-- Информация о враче (для врачей) -->
+  <div class="doctor-info" *ngIf="userRole === 'Doctor'">
+    <div class="current-date">
+      <strong>Период:</strong> {{ formatDate(selectedFilters.dateFrom || today) }} - {{ formatDate(selectedFilters.dateTo || today) }}
+    </div>
+  </div>
+
+  <!-- Таблица с талонами -->
+  <div class="appointments-table-container">
+    <div class="loading-overlay" *ngIf="loading.appointments">
+      <div class="spinner-container">
+        <div class="spinner"></div>
+        <p>Загрузка талонов...</p>
+      </div>
+    </div>
+
+    <div class="no-appointments" *ngIf="!loading.appointments && appointments.length === 0">
+      <p>Нет доступных талонов для выбранных параметров</p>
+    </div>
+
+    <table class="appointments-table" *ngIf="!loading.appointments && appointments.length > 0">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Дата</th>
+          <th>Время</th>
+          <th>Пациент</th>
+          <th>Статус</th>
+          <th>Действия</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let appointment of appointments">
+          <td>{{ appointment.id }}</td>
+          <td>{{ formatDate(appointment.date) }}</td>
+          <td>{{ appointment.time }}</td>
+          <td>{{ appointment.patientName }}</td>
+          <td>
+            <span class="status-badge" [ngClass]="getStatusClass(appointment.receptionStatus)">
+              {{ getStatusText(appointment.receptionStatus) }}
+            </span>
+          </td>
+          <td class="actions-cell">
+            <button 
+              *ngIf="appointment.receptionStatus.toLowerCase() === 'waiting'"
+              class="btn btn-sm btn-success" 
+              (click)="completeAppointment(appointment.id)"
+              title="Отметить как выполненный">
+              ✓
+            </button>
+            <button 
+              *ngIf="appointment.receptionStatus.toLowerCase() === 'waiting'"
+              class="btn btn-sm btn-danger" 
+              (click)="cancelAppointment(appointment.id)"
+              title="Отменить">
+              ✕
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div> 

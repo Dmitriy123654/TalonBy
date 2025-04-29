@@ -23,11 +23,7 @@
       <!-- Appointments tab content -->
       <div class="appointments-section" *ngIf="activeTab === 'appointments'">
         <h2>Управление талонами</h2>
-        <p class="empty-state">
-          Здесь будет размещена информация для управления талонами и записями пациентов.
-          <br>
-          Функциональность находится в разработке.
-        </p>
+        <app-appointments-management *ngIf="!isLoading"></app-appointments-management>
       </div>
 
       <!-- Schedule Management tab content -->

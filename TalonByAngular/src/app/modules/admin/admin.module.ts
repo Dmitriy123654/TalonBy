@@ -4,6 +4,7 @@ import { RouterModule, Routes } from '@angular/router';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { AdminComponent } from './admin.component';
 import { ScheduleManagementComponent } from './schedule-management/schedule-management.component';
+import { AppointmentsManagementComponent } from './appointments-management/appointments-management.component';
 
 const routes: Routes = [
   {
@@ -15,7 +16,8 @@ const routes: Routes = [
 @NgModule({
   declarations: [
     AdminComponent,
-    ScheduleManagementComponent
+    ScheduleManagementComponent,
+    AppointmentsManagementComponent
   ],
   imports: [
     CommonModule,

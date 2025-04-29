@@ -8,10 +8,11 @@ import { UserLogin, UserRegistration } from '../../shared/interfaces/auth.interf
 import { RoleOfUser } from '../../shared/interfaces/user.interface';
 
 export interface UserInfo {
-  userId: string;
+  userId: string | number;
   email: string;
-  role: string;
+  role?: string;
   phone?: string;
+  hospitalId?: number;
   exp?: number;
 }
 
@@ -108,7 +109,8 @@ export class AuthService {
       userId: decodedToken.nameid || '',
       email: decodedToken.email || '',
       role: decodedToken.role || '',
-      phone: decodedToken.Phone || ''
+      phone: decodedToken.Phone || '',
+      hospitalId: decodedToken.hospitalId || undefined
     };
     
     // Update expiration
@@ -254,7 +256,8 @@ export class AuthService {
                 userId: '0', // Временный ID, будет обновлен при первом запросе me
                 email: email,
                 role: response.role,
-                phone: ''
+                phone: '',
+                hospitalId: undefined
               };
               
               // Сохраняем минимальную информацию

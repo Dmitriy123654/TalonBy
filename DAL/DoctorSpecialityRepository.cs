@@ -57,7 +57,7 @@ namespace DAL
                 .Where(ds => _context.Doctors
                     .Any(d => d.HospitalId == hospitalId
                                && d.DoctorsSpecialityId == ds.DoctorsSpecialityId))
-                .Where(ds => ds.DoctorsSpecialityId != 1 && ds.DoctorsSpecialityId != 2)
+                .Where(ds => ds.DoctorsSpecialityId != 2)
                 .ToList();
         }
     }

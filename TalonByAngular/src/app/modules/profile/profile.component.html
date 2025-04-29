@@ -74,7 +74,97 @@
       <!-- Appointments tab content -->
       <div class="appointments-section" *ngIf="activeTab === 'appointments'">
         <h2>Ваши талоны</h2>
-        <p *ngIf="true" class="empty-state">У вас пока нет талонов. Вы можете <a routerLink="/order">записаться на прием</a>.</p>
+        
+        <!-- Filter controls -->
+        <div class="filter-controls">
+          <div class="status-filters">
+            <button 
+              class="status-filter-btn" 
+              [class.active]="appointmentFilterStatus === AppointmentStatus.All"
+              (click)="filterByStatus(AppointmentStatus.All)">
+              Все
+            </button>
+            <button 
+              class="status-filter-btn" 
+              [class.active]="appointmentFilterStatus === AppointmentStatus.Waiting"
+              (click)="filterByStatus(AppointmentStatus.Waiting)">
+              Ожидаются
+            </button>
+            <button 
+              class="status-filter-btn" 
+              [class.active]="appointmentFilterStatus === AppointmentStatus.Completed"
+              (click)="filterByStatus(AppointmentStatus.Completed)">
+              Выполненные
+            </button>
+            <button 
+              class="status-filter-btn" 
+              [class.active]="appointmentFilterStatus === AppointmentStatus.Cancelled"
+              (click)="filterByStatus(AppointmentStatus.Cancelled)">
+              Отменённые
+            </button>
+          </div>
+          
+          <div class="date-filters">
+            <div class="date-filter-group">
+              <label for="dateFrom">С:</label>
+              <input 
+                type="date" 
+                id="dateFrom" 
+                [(ngModel)]="dateFrom" 
+                class="form-control date-input">
+            </div>
+            
+            <div class="date-filter-group">
+              <label for="dateTo">По:</label>
+              <input 
+                type="date" 
+                id="dateTo" 
+                [(ngModel)]="dateTo" 
+                class="form-control date-input">
+            </div>
+            
+            <button class="btn btn-primary btn-sm" (click)="applyDateFilter()">
+              Применить
+            </button>
+            
+            <button class="btn btn-outline-secondary btn-sm" (click)="resetDateFilter()">
+              Сбросить
+            </button>
+          </div>
+        </div>
+        
+        <!-- Loading indicator -->
+        <div class="loading-indicator" *ngIf="isLoadingAppointments">
+          <div class="spinner"></div>
+          <p>Загрузка талонов...</p>
+        </div>
+        
+        <!-- Appointments list -->
+        <div class="appointments-list" *ngIf="!isLoadingAppointments">
+          <div class="no-appointments" *ngIf="appointments.length === 0">
+            <p>У вас пока нет талонов. Вы можете <a routerLink="/order">записаться на прием</a>.</p>
+          </div>
+          
+          <div class="appointment-card" *ngFor="let appointment of appointments">
+            <div class="appointment-status" [ngClass]="getStatusClass(appointment.receptionStatus)">
+              <span>{{ getStatusTranslation(appointment.receptionStatus) }}</span>
+            </div>
+            
+            <div class="appointment-datetime">
+              <div class="appointment-date">{{ formatAppointmentDate(appointment.date) }}</div>
+              <div class="appointment-time">{{ appointment.time }}</div>
+            </div>
+            
+            <div class="appointment-hospital">
+              <h4>{{ appointment.hospitalName }}</h4>
+            </div>
+            
+            <div class="appointment-doctor">
+              <div class="doctor-specialty">{{ appointment.doctorSpecialty }}</div>
+              <div class="doctor-name">{{ appointment.doctorName }}</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Visits tab content -->

@@ -22,7 +22,7 @@ namespace Domain.ViewModels
 
         [Required]
         public TimeSpan Time { get; set; }
-        
+
         public string FileResultLink { get; set; }
     }
 

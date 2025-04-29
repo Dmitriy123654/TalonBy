@@ -4,6 +4,8 @@ import { OrderService } from '../../../core/services/order.service';
 import { Hospital, DoctorDetails, TimeSlot } from '../../../shared/interfaces/order.interface';
 import { Patient } from '../../../shared/interfaces/user.interface';
 import { finalize } from 'rxjs/operators';
+import { UserService } from '../../../core/services/user.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-order-confirmation',
@@ -32,24 +34,63 @@ export class OrderConfirmationComponent implements OnInit, OnDestroy {
   errorMessage: string | null = null;
   mobileDetailsOpen: boolean = false;
   
+  private subscriptions = new Subscription();
+  
   constructor(
     private router: Router,
-    private orderService: OrderService
+    private orderService: OrderService,
+    private userService: UserService
   ) {
     this.checkScreenSize();
   }
 
   ngOnInit(): void {
+    // Always try to load data from localStorage first to handle page refresh
+    this.loadDataFromStorage();
+    
+    // Then check and update from OrderService if available
     this.loadOrderDetails();
     window.addEventListener('resize', this.checkScreenSize.bind(this));
   }
 
   ngOnDestroy(): void {
     window.removeEventListener('resize', this.checkScreenSize.bind(this));
+    this.subscriptions.unsubscribe();
   }
 
   checkScreenSize(): void {
     this.isMobile = window.innerWidth < 768;
+  }
+
+  private loadDataFromStorage(): void {
+    // Try to load confirmation data from localStorage
+    const storedConfirmationData = localStorage.getItem('orderConfirmationData');
+    
+    if (storedConfirmationData) {
+      try {
+        const data = JSON.parse(storedConfirmationData);
+        this.doctor = data.selectedDoctor;
+        this.hospital = data.selectedHospital;
+        this.appointmentDate = data.selectedDateTime ? new Date(data.selectedDateTime) : null;
+        this.patient = data.selectedPatient;
+        this.timeSlot = data.selectedTimeSlot;
+      } catch (error) {
+        console.error('Failed to parse stored confirmation data', error);
+      }
+    }
+  }
+  
+  private saveDataToStorage(): void {
+    // Save current confirmation data to localStorage
+    const confirmationData = {
+      selectedDoctor: this.doctor,
+      selectedHospital: this.hospital,
+      selectedDateTime: this.appointmentDate?.toISOString(),
+      selectedPatient: this.patient,
+      selectedTimeSlot: this.timeSlot
+    };
+    
+    localStorage.setItem('orderConfirmationData', JSON.stringify(confirmationData));
   }
 
   loadOrderDetails(): void {
@@ -104,6 +145,7 @@ export class OrderConfirmationComponent implements OnInit, OnDestroy {
     }
 
     this.isLoading = false;
+    this.saveDataToStorage();
   }
 
   toggleMobileDetails(): void {
@@ -172,59 +214,56 @@ export class OrderConfirmationComponent implements OnInit, OnDestroy {
       return;
     }
     
-    // В реальной реализации здесь использовались бы правильные поля
-    // из интерфейсов, но пока создаем минимальный объект, который
-    // соответствует ожидаемой подписи OrderService.createAppointment
+    this.isLoading = true;
+    this.error = null;
+    
     const appointmentData = {
+      patientId: this.patient.patientId,
+      timeSlotId: this.timeSlot.id,
+      departmentId: 1, // Default department ID if not selected
       hospitalId: this.hospital.hospitalId,
       doctorId: this.doctor.doctorId,
-      patientId: this.patient.patientId,
-      departmentId: 1, // Требуется интерфейсом, но не используется в UI
-      timeSlotId: this.timeSlot.id,
-      status: 'Scheduled'
+      status: 'Waiting'
     };
     
-    this.orderService.createAppointment(appointmentData)
-      .pipe(
-        finalize(() => {
-          this.isConfirming = false;
-        })
-      )
-      .subscribe({
-        next: (result) => {
-          // После успешного создания записи обновляем статус слота (делаем недоступным)
-          if (this.timeSlot) {
-            this.orderService.updateTimeSlotStatus(this.timeSlot.id, false)
-              .subscribe({
-                next: () => {
-                  console.log('Статус слота успешно обновлен');
-                },
-                error: (error) => {
-                  console.error('Ошибка при обновлении статуса слота:', error);
-                  // Не показываем ошибку пользователю, т.к. запись уже создана
-                }
-              });
-          }
-          
-          this.isConfirmed = true;
-          
-          // Очищаем данные заказа из localStorage
-          localStorage.removeItem('selectedPatient');
-          localStorage.removeItem('selectedTimeSlot');
-          this.orderService.clearOrderData(); // Вызываем метод очистки данных в сервисе
-        },
-        error: (error) => {
-          this.errorMessage = 'Произошла ошибка при создании записи. Пожалуйста, попробуйте еще раз.';
-          console.error('Ошибка при создании записи:', error);
+    const appointmentSub = this.orderService.createAppointment(appointmentData).subscribe({
+      next: (response) => {
+        this.isLoading = false;
+        this.isSuccess = true;
+        // После успешного создания записи обновляем статус слота (делаем недоступным)
+        if (this.timeSlot) {
+          this.orderService.updateTimeSlotStatus(this.timeSlot.id, false)
+            .subscribe({
+              next: () => {
+                console.log('Статус слота успешно обновлен');
+              },
+              error: (error) => {
+                console.error('Ошибка при обновлении статуса слота:', error);
+                // Не показываем ошибку пользователю, т.к. запись уже создана
+              }
+            });
         }
-      });
+        
+        // Очищаем данные заказа из localStorage
+        localStorage.removeItem('selectedPatient');
+        localStorage.removeItem('selectedTimeSlot');
+        this.orderService.clearOrderData(); // Вызываем метод очистки данных в сервисе
+      },
+      error: (error) => {
+        this.isLoading = false;
+        this.error = error.error?.message || 'Произошла ошибка при создании записи. Пожалуйста, попробуйте еще раз.';
+      }
+    });
+    
+    this.subscriptions.add(appointmentSub);
   }
 
   viewAppointments(): void {
-    this.router.navigate(['/profile/appointments']);
+    this.router.navigate(['/profile'], { queryParams: { tab: 'appointments' } });
   }
 
   createNewAppointment(): void {
+    this.orderService.clearOrderData();
     this.router.navigate(['/order']);
   }
 
