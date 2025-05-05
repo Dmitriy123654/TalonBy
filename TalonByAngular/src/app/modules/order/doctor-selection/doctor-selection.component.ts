@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { Hospital, DoctorDetails } from '../../../shared/interfaces/order.interface';
 import { OrderService } from '../../../core/services/order.service';
+import { ImageService } from '../../../core/services/image.service';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
@@ -28,7 +29,8 @@ export class DoctorSelectionComponent implements OnInit, OnDestroy {
   
   constructor(
     private router: Router,
-    private orderService: OrderService
+    private orderService: OrderService,
+    public imageService: ImageService
   ) {
     const state = this.router.getCurrentNavigation()?.extras.state;
     console.log('Received state:', state);
@@ -138,7 +140,14 @@ export class DoctorSelectionComponent implements OnInit, OnDestroy {
       this.orderService.getDoctorsBySpecialityAndHospital(this.hospital.hospitalId, this.specialityId)
         .subscribe({
           next: (doctors) => {
-            this.doctors = doctors;
+            // Assign photo URLs to doctors before assigning to the component property
+            this.doctors = doctors.map(doctor => ({
+              ...doctor,
+              photo: doctor.photo || this.imageService.getDoctorImage(
+                doctor.doctorId, 
+                doctor.doctorsSpeciality?.name
+              )
+            }));
             this.loading = false;
           },
           error: (error) => {
@@ -152,7 +161,14 @@ export class DoctorSelectionComponent implements OnInit, OnDestroy {
       this.orderService.getDoctorsByHospital(this.hospital.hospitalId)
         .subscribe({
           next: (doctors) => {
-            this.doctors = doctors;
+            // Assign photo URLs to doctors before assigning to the component property
+            this.doctors = doctors.map(doctor => ({
+              ...doctor,
+              photo: doctor.photo || this.imageService.getDoctorImage(
+                doctor.doctorId, 
+                doctor.doctorsSpeciality?.name
+              )
+            }));
             this.loading = false;
           },
           error: (error) => {
@@ -162,5 +178,13 @@ export class DoctorSelectionComponent implements OnInit, OnDestroy {
           }
         });
     }
+  }
+  
+  // Helper method to get doctor image
+  getDoctorImage(doctor: DoctorDetails): string {
+    return doctor.photo || this.imageService.getDoctorImage(
+      doctor.doctorId, 
+      doctor.doctorsSpeciality?.name
+    );
   }
 }

@@ -126,7 +126,10 @@
           <div class="row">
             <div class="doctor-card" *ngFor="let doctor of doctors" (click)="selectDoctor(doctor)">
               <div class="doctor-info">
-                <img *ngIf="doctor.photo" [src]="doctor.photo" [alt]="doctor.fullName" class="doctor-photo">
+                <img [src]="getDoctorImage(doctor)" 
+                     [alt]="doctor.fullName" 
+                     class="doctor-photo"
+                     (error)="doctor.photo = imageService.getDoctorImage(doctor.doctorId, doctor.doctorsSpeciality?.name)">
                 <div class="doctor-details">
                   <h5>{{doctor.fullName}}</h5>
                   <p class="speciality">{{doctor.doctorsSpeciality?.name}}</p>
