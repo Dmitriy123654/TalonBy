@@ -31,7 +31,7 @@ export class MainPageComponent implements OnInit {
     },
     {
       author: 'Анастасия Шунто',
-      title: 'Это не менструация! Какие болезни вызывают маточное кровотечение?',
+      title: 'Женские проблемы',
       views: 5018,
       image: 'https://blog.talon.by/files/articles/krovotechenie-5ad38d752473f9b7f1bc6cae7b3d4527-7d889d2096c90f7725330cf68a6998f2-thumb-960x960.jpg',
       url: 'eto-ne-menstruaciya'
