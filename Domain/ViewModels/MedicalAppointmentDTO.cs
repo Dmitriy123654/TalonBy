@@ -16,5 +16,6 @@ namespace Domain.ViewModels
         public string ReceptionStatus { get; set; }
         public DateTime Date { get; set; }
         public TimeSpan Time { get; set; }
+        public int? PatientCardId { get; set; }
     }
 }

@@ -302,6 +302,12 @@ namespace DAL.Migrations
                     b.Property<int>("HospitalId")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("NextAppointmentDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("PatientCardId")
+                        .HasColumnType("int");
+
                     b.Property<int>("PatientId")
                         .HasColumnType("int");
 
@@ -316,6 +322,8 @@ namespace DAL.Migrations
                     b.HasIndex("DoctorId");
 
                     b.HasIndex("HospitalId");
+
+                    b.HasIndex("PatientCardId");
 
                     b.HasIndex("PatientId");
 
@@ -355,6 +363,118 @@ namespace DAL.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Patients");
+                });
+
+            modelBuilder.Entity("Domain.Models.PatientAllergy", b =>
+                {
+                    b.Property<int>("AllergyId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AllergyId"), 1L, 1);
+
+                    b.Property<string>("AllergyName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("PatientCardId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Severity")
+                        .HasColumnType("int");
+
+                    b.HasKey("AllergyId");
+
+                    b.HasIndex("PatientCardId");
+
+                    b.ToTable("PatientAllergies");
+                });
+
+            modelBuilder.Entity("Domain.Models.PatientCard", b =>
+                {
+                    b.Property<int>("PatientCardId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PatientCardId"), 1L, 1);
+
+                    b.Property<int?>("BloodType")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("DateOfBirth")
+                        .HasColumnType("date");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("LastUpdate")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("PatientId")
+                        .IsRequired()
+                        .HasColumnType("int");
+
+                    b.HasKey("PatientCardId");
+
+                    b.HasIndex("PatientId");
+
+                    b.ToTable("PatientCards");
+                });
+
+            modelBuilder.Entity("Domain.Models.PatientChronicCondition", b =>
+                {
+                    b.Property<int>("ConditionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ConditionId"), 1L, 1);
+
+                    b.Property<string>("ConditionName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("DiagnosedDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("PatientCardId")
+                        .HasColumnType("int");
+
+                    b.HasKey("ConditionId");
+
+                    b.HasIndex("PatientCardId");
+
+                    b.ToTable("PatientChronicConditions");
+                });
+
+            modelBuilder.Entity("Domain.Models.PatientImmunization", b =>
+                {
+                    b.Property<int>("ImmunizationId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ImmunizationId"), 1L, 1);
+
+                    b.Property<int>("PatientCardId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("VaccinationDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("VaccineName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.HasKey("ImmunizationId");
+
+                    b.HasIndex("PatientCardId");
+
+                    b.ToTable("PatientImmunizations");
                 });
 
             modelBuilder.Entity("Domain.Models.ReceptionStatus", b =>
@@ -571,6 +691,10 @@ namespace DAL.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Domain.Models.PatientCard", "PatientCard")
+                        .WithMany("MedicalAppointments")
+                        .HasForeignKey("PatientCardId");
+
                     b.HasOne("Domain.Models.Patient", "Patient")
                         .WithMany()
                         .HasForeignKey("PatientId")
@@ -589,6 +713,8 @@ namespace DAL.Migrations
 
                     b.Navigation("Patient");
 
+                    b.Navigation("PatientCard");
+
                     b.Navigation("ReceptionStatus");
                 });
 
@@ -601,6 +727,50 @@ namespace DAL.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Domain.Models.PatientAllergy", b =>
+                {
+                    b.HasOne("Domain.Models.PatientCard", "PatientCard")
+                        .WithMany("Allergies")
+                        .HasForeignKey("PatientCardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("PatientCard");
+                });
+
+            modelBuilder.Entity("Domain.Models.PatientCard", b =>
+                {
+                    b.HasOne("Domain.Models.Patient", "Patient")
+                        .WithMany()
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Patient");
+                });
+
+            modelBuilder.Entity("Domain.Models.PatientChronicCondition", b =>
+                {
+                    b.HasOne("Domain.Models.PatientCard", "PatientCard")
+                        .WithMany("ChronicConditions")
+                        .HasForeignKey("PatientCardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("PatientCard");
+                });
+
+            modelBuilder.Entity("Domain.Models.PatientImmunization", b =>
+                {
+                    b.HasOne("Domain.Models.PatientCard", "PatientCard")
+                        .WithMany("Immunizations")
+                        .HasForeignKey("PatientCardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("PatientCard");
                 });
 
             modelBuilder.Entity("Domain.Models.RefreshToken", b =>
@@ -653,6 +823,17 @@ namespace DAL.Migrations
                 {
                     b.Navigation("MedicalDetails")
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Domain.Models.PatientCard", b =>
+                {
+                    b.Navigation("Allergies");
+
+                    b.Navigation("ChronicConditions");
+
+                    b.Navigation("Immunizations");
+
+                    b.Navigation("MedicalAppointments");
                 });
 
             modelBuilder.Entity("Domain.Models.ReceptionStatus", b =>

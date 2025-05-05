@@ -21,6 +21,10 @@ namespace DAL
         public DbSet<DoctorScheduleSettings> DoctorScheduleSettings { get; set; }
         public DbSet<AppointmentMedicalDetails> AppointmentMedicalDetails { get; set; }
         public DbSet<AutoGenerationSettings> AutoGenerationSettings { get; set; }
+        public DbSet<PatientCard> PatientCards { get; set; }
+        public DbSet<PatientAllergy> PatientAllergies { get; set; }
+        public DbSet<PatientChronicCondition> PatientChronicConditions { get; set; }
+        public DbSet<PatientImmunization> PatientImmunizations { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -44,6 +48,12 @@ namespace DAL
                 .HasOne(ma => ma.Doctor)
                 .WithMany(d => d.MedicalAppointments)
                 .HasForeignKey(ma => ma.DoctorId);
+
+            modelBuilder.Entity<MedicalAppointment>()
+                .HasOne(ma => ma.PatientCard)
+                .WithMany(pc => pc.MedicalAppointments)
+                .HasForeignKey(ma => ma.PatientCardId)
+                .IsRequired(false);
 
             modelBuilder.Entity<AppointmentMedicalDetails>()
                 .HasOne(amd => amd.MedicalAppointment)
@@ -77,6 +87,26 @@ namespace DAL
                 .HasOne(dss => dss.Doctor)
                 .WithMany()
                 .HasForeignKey(dss => dss.DoctorId);
+
+            modelBuilder.Entity<PatientCard>()
+                .HasOne(pc => pc.Patient)
+                .WithMany()
+                .HasForeignKey(pc => pc.PatientId);
+
+            modelBuilder.Entity<PatientAllergy>()
+                .HasOne(pa => pa.PatientCard)
+                .WithMany(pc => pc.Allergies)
+                .HasForeignKey(pa => pa.PatientCardId);
+
+            modelBuilder.Entity<PatientChronicCondition>()
+                .HasOne(pcc => pcc.PatientCard)
+                .WithMany(pc => pc.ChronicConditions)
+                .HasForeignKey(pcc => pcc.PatientCardId);
+
+            modelBuilder.Entity<PatientImmunization>()
+                .HasOne(pi => pi.PatientCard)
+                .WithMany(pc => pc.Immunizations)
+                .HasForeignKey(pi => pi.PatientCardId);
         }
     }
 }

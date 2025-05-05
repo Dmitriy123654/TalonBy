@@ -16,6 +16,7 @@ namespace Domain.ViewModels
         public int PatientId { get; set; }
         public int DoctorId { get; set; }
         public int ReceptionStatusId { get; set; }
+        public int? PatientCardId { get; set; }
         [Required]
         [Column(TypeName = "date")]
         public DateTime Date { get; set; }
