@@ -144,9 +144,11 @@ namespace TalonBy
             builder.Services.AddScoped<ITimeSlotRepository, TimeSlotRepository>();
             builder.Services.AddScoped<IDoctorScheduleSettingsRepository, DoctorScheduleSettingsRepository>();
             builder.Services.AddTransient<IAppointmentMedicalDetailsRepository, AppointmentMedicalDetailsRepository>();
+            builder.Services.AddScoped<IAutoGenerationSettingsRepository, AutoGenerationSettingsRepository>();
 
             // Создадим новый класс для запланированной очистки refresh токенов
             builder.Services.AddHostedService<BLL.Services.TokenCleanupService>();
+            builder.Services.AddHostedService<TalonBy.Services.ScheduleGenerationBackgroundService>();
 
 
             var app = builder.Build();

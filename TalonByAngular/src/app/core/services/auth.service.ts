@@ -285,13 +285,29 @@ export class AuthService {
     // Получаем refresh токен для отзыва на сервере
     const refreshToken = localStorage.getItem(`${this.storageKeyPrefix}refreshToken`);
     
-    // Clear local storage first - чтобы предотвратить повторные запросы при ошибках
+    // Clear all storage - including user specific data
     localStorage.removeItem(`${this.storageKeyPrefix}token`);
     localStorage.removeItem(`${this.storageKeyPrefix}refreshToken`);
     localStorage.removeItem(`${this.storageKeyPrefix}expirationDate`);
     localStorage.removeItem(`${this.storageKeyPrefix}auth_state`);
     localStorage.removeItem(`${this.storageKeyPrefix}user_info`);
     localStorage.removeItem(`${this.storageKeyPrefix}lastUserFetch`);
+    
+    // Clear user profile data
+    localStorage.removeItem('user_profile_cache');
+    localStorage.removeItem('user_profile_timestamp');
+    localStorage.removeItem('appointment_confirmation');
+    
+    // Clear any other application-specific data
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith(this.storageKeyPrefix) || key.includes('profile') || key.includes('appointment'))) {
+        keysToRemove.push(key);
+      }
+    }
+    
+    keysToRemove.forEach(key => localStorage.removeItem(key));
     
     if (this.tokenExpirationTimer) {
       clearTimeout(this.tokenExpirationTimer);

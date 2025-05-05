@@ -33,6 +33,27 @@ export class UserService {
         // Ошибка загрузки кеша
       }
     }
+    
+    // Subscribe to auth state changes to clear cache on logout
+    this.authService.authState.subscribe(isAuthenticated => {
+      if (!isAuthenticated) {
+        this.clearUserCache();
+      }
+    });
+  }
+
+  // Method to clear all user cache data
+  clearUserCache(): void {
+    // Reset in-memory cache
+    this.lastProfileFetch = 0;
+    this.currentUserSubject.next(null);
+    
+    // Clear localStorage cache
+    localStorage.removeItem('user_profile_cache');
+    localStorage.removeItem('user_profile_timestamp');
+    
+    // Clear any other user-related cached data
+    localStorage.removeItem('appointment_confirmation');
   }
 
   getUserProfile(forceRefresh: boolean = false): Observable<User> {
@@ -64,7 +85,7 @@ export class UserService {
               // Create user object using auth data + profile data
               const user: User = {
                 userId: userInfo?.userId ? parseInt(userInfo.userId.toString(), 10) : 0,
-                email: userInfo?.email || '',
+                email: userInfo?.email || '', // Keep email from auth token
                 fullName: profileData?.fullName || '',
                 phone: userInfo?.phone || profileData?.phone || '',
                 role: userInfo?.role || profileData?.role || 'Patient',
@@ -78,6 +99,9 @@ export class UserService {
                 })) : []
               };
               
+              // Log the created user object for debugging
+              console.log('User profile loaded:', user);
+              
               // Update cache
               this.lastProfileFetch = Date.now();
               localStorage.setItem('user_profile_cache', JSON.stringify(user));
@@ -87,16 +111,19 @@ export class UserService {
               return user;
             }),
             catchError(error => {
+              console.error('Error fetching profile:', error);
+              
               // Use auth data if profile fetch fails
               if (userInfo) {
                 const minimalUser: User = {
                   userId: parseInt(userInfo.userId.toString(), 10),
                   email: userInfo.email,
                   fullName: '',
-                  role: userInfo.role,
+                  role: userInfo.role || 'Patient',
                   phone: userInfo.phone || '',
                   patients: []
                 };
+                console.log('Using minimal user profile:', minimalUser);
                 this.currentUserSubject.next(minimalUser);
                 return of(minimalUser);
               }
@@ -157,9 +184,25 @@ export class UserService {
   }
   
   updateUserSettings(settings: { email?: string; phone?: string }): Observable<boolean> {
-    return this.http.put<any>(`${environment.apiUrl}/User/update-settings`, settings).pipe(
+    console.log('Updating user settings:', settings);
+    
+    // Clear cache to ensure we get fresh data after update
+    localStorage.removeItem('user_profile_cache');
+    localStorage.removeItem('user_profile_timestamp');
+    this.lastProfileFetch = 0;
+    
+    return this.http.put<any>(`${environment.apiUrl}/users/profile`, settings).pipe(
+      tap(response => {
+        console.log('Settings update response:', response);
+        
+        // Refresh user data after successful update
+        setTimeout(() => this.refreshAllUserData().subscribe(), 500);
+      }),
       map(() => true),
-      catchError(() => of(false))
+      catchError(error => {
+        console.error('Error updating user settings:', error);
+        return of(false);
+      })
     );
   }
   
