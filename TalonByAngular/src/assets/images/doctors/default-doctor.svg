@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="100" fill="#F5F5F5"/>
+  
+  <!-- Head -->
+  <circle cx="100" cy="80" r="40" fill="#E0E0E0"/>
+  
+  <!-- Body/Coat -->
+  <path d="M60 120 L50 200 H150 L140 120 Z" fill="#FFFFFF"/>
+  
+  <!-- Stethoscope -->
+  <path d="M70 130 Q90 150 110 130 Q130 150 140 130" stroke="#4A90E2" stroke-width="4" fill="none"/>
+  <circle cx="75" cy="130" r="5" fill="#4A90E2"/>
+  
+  <!-- Face elements -->
+  <circle cx="85" cy="75" r="5" fill="#555555"/>
+  <circle cx="115" cy="75" r="5" fill="#555555"/>
+  <path d="M90 95 Q100 105 110 95" stroke="#555555" stroke-width="2" fill="none"/>
+  
+  <!-- Medical cross -->
+  <rect x="85" y="110" width="30" height="10" fill="#FF5722"/>
+  <rect x="95" y="100" width="10" height="30" fill="#FF5722"/>
+</svg> 
