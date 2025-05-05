@@ -61,6 +61,9 @@ export class ProfileComponent implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit(): void {
+    // Always show loading state initially
+    this.isLoading = true;
+    
     // Проверяем административный доступ на основе JWT
     this.hasAdminAccess = this.authService.hasAdminAccess();
     
@@ -71,6 +74,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
       // Инициализация настроек пользователя из JWT
       this.userSettings.email = this.userInfo.email;
       this.userSettings.phone = this.userInfo.phone || '';
+      console.log('User info from token:', this.userInfo);
     }
     
     // Check if URL has parameters for tab activation
@@ -81,25 +85,8 @@ export class ProfileComponent implements OnInit, OnDestroy {
       this.setActiveTab('appointments');
     }
     
-    // Проверяем, есть ли уже данные пользователя в userService
-    const userSub = this.userService.currentUser.subscribe(user => {
-      if (user) {
-        this.currentUser = user;
-        this.userSettings.email = user.email;
-        this.userSettings.phone = user.phone || '';
-        this.isLoading = false;
-        
-        // If we're on the appointments tab, load appointments now that we have user data
-        if (this.activeTab === 'appointments') {
-          this.loadAppointments();
-        }
-      } else {
-        // Загружаем полный профиль с сервера, если данных нет
-        this.loadUserProfile();
-      }
-    });
-    
-    this.subscriptions.add(userSub);
+    // Always load a fresh user profile when component initializes
+    this.loadUserProfile(true);
   }
   
   ngOnDestroy(): void {
@@ -111,11 +98,15 @@ export class ProfileComponent implements OnInit, OnDestroy {
     this.isLoading = true;
     const profileSub = this.userService.getUserProfile(forceRefresh).subscribe({
       next: (user) => {
+        console.log('Profile loaded successfully:', user);
         this.currentUser = user;
         
         // Обновляем настройки пользователя из профиля
-        this.userSettings.email = this.currentUser.email;
-        this.userSettings.phone = this.currentUser.phone || '';
+        if (user) {
+          this.userSettings.email = user.email || '';
+          this.userSettings.phone = user.phone || '';
+          console.log('User settings updated:', this.userSettings);
+        }
         
         // Обновляем информацию о пользователе из AuthService
         this.userInfo = this.authService.getUserInfo();
@@ -124,8 +115,15 @@ export class ProfileComponent implements OnInit, OnDestroy {
         this.hasAdminAccess = this.authService.hasAdminAccess();
         
         this.isLoading = false;
+        
+        // If we're on the appointments tab, load appointments now that we have user data
+        if (this.activeTab === 'appointments') {
+          this.loadAppointments();
+        }
       },
-      error: () => {
+      error: (err) => {
+        console.error('Error loading profile:', err);
+        
         // Если есть информация из JWT, используем её для минимального отображения
         this.userInfo = this.authService.getUserInfo();
         if (this.userInfo) {
@@ -141,6 +139,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
           // Обновляем настройки пользователя из JWT
           this.userSettings.email = this.userInfo.email;
           this.userSettings.phone = this.userInfo.phone || '';
+          console.log('Fallback to user info from token:', this.userSettings);
         }
         this.isLoading = false;
       }
@@ -419,29 +418,32 @@ export class ProfileComponent implements OnInit, OnDestroy {
       return;
     }
     
-      this.isLoading = true;
-      
+    this.isLoading = true;
+    
+    console.log('Saving user settings:', this.userSettings);
+    
     const settings = {
-        email: this.userSettings.email,
-        phone: this.userSettings.phone
-      };
-      
+      email: this.userSettings.email,
+      phone: this.userSettings.phone
+    };
+    
     const settingsSub = this.userService.updateUserSettings(settings).subscribe({
       next: (success: boolean) => {
         if (success) {
-          // Обновляем данные пользователя
+          // Обновляем данные пользователя принудительно
           this.loadUserProfile(true);
           alert('Настройки успешно сохранены.');
         } else {
           alert('Ошибка при сохранении настроек. Пожалуйста, попробуйте еще раз.');
-              this.isLoading = false;
-        }
-        },
-      error: () => {
-        alert('Ошибка при сохранении настроек. Пожалуйста, попробуйте еще раз.');
           this.isLoading = false;
         }
-      });
+      },
+      error: (error) => {
+        console.error('Settings save error:', error);
+        alert('Ошибка при сохранении настроек. Пожалуйста, попробуйте еще раз.');
+        this.isLoading = false;
+      }
+    });
     
     this.subscriptions.add(settingsSub);
   }
@@ -533,7 +535,22 @@ export class ProfileComponent implements OnInit, OnDestroy {
   }
 
   logout(): void {
-    this.authService.logout();
-    this.router.navigate(['/login']);
+    // Clear any local component state before logout
+    this.dateFrom = '';
+    this.dateTo = '';
+    this.appointments = [];
+    this.isLoadingAppointments = false;
+    
+    // Call auth service logout which will handle clearing all auth data
+    this.authService.logout().subscribe({
+      next: () => {
+        // Navigate to login page
+        this.router.navigate(['/login']);
+      },
+      error: () => {
+        // Even if logout fails, still navigate to login
+        this.router.navigate(['/login']);
+      }
+    });
   }
 } 
