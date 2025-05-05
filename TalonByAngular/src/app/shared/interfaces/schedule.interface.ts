@@ -32,4 +32,17 @@ export interface DoctorScheduleView {
 export interface Hospital {
   id: number;
   name: string;
+}
+
+// Интерфейс для настроек автоматической генерации
+export interface AutoGenerationSettings {
+  autoGenerationSettingsId?: number;
+  isEnabled: boolean;
+  scope: string;
+  periodType: string;
+  nextGenerationDate: string;
+  hospitalId?: number;
+  specialityId?: number;
+  doctorId?: number;
+  scheduleSettings: ScheduleSettings;
 } 

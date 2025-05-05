@@ -73,12 +73,21 @@
         >
         <i class="icon-search"></i>
       </div>
-      <select [(ngModel)]="selectedDoctorId" (change)="onDoctorChange(selectedDoctorId)">
-        <option [ngValue]="0">Выберите врача</option>
-        <option *ngFor="let doctor of doctors" [ngValue]="doctor.id">
-          {{ doctor.name }} ({{ doctor.specialization }})
-        </option>
-      </select>
+      <div *ngIf="doctors.length > 0" class="select-wrapper">
+        <select 
+          [(ngModel)]="selectedDoctorId" 
+          (ngModelChange)="onDoctorChange($event)"
+          class="doctor-select"
+        >
+          <option [ngValue]="0">Выберите врача</option>
+          <option *ngFor="let doctor of doctors" [ngValue]="doctor.id">
+            {{ doctor.name }} ({{ doctor.specialization }})
+          </option>
+        </select>
+      </div>
+      <div *ngIf="doctors.length === 0" class="no-doctors-message">
+        <p>Нет доступных врачей для выбранной специальности</p>
+      </div>
     </div>
 
     <!-- Выбор периода (для всех) -->
@@ -91,6 +100,7 @@
             type="date" 
             id="startDate" 
             [(ngModel)]="startDate" 
+            [ngModelOptions]="{standalone: true}"
             (change)="onPeriodChange()"
             [min]="startDate"
           >
@@ -101,6 +111,7 @@
             type="date" 
             id="endDate" 
             [(ngModel)]="endDate" 
+            [ngModelOptions]="{standalone: true}"
             (change)="onPeriodChange()"
             [min]="startDate"
             [max]="maxEndDate"
@@ -204,24 +215,137 @@
         </div>
       </div>
 
-      <div class="auto-generate-section">
-        <label class="auto-generate-checkbox">
-          <input type="checkbox" [(ngModel)]="autoGenerateEnabled" [ngModelOptions]="{standalone: true}">
-          <span class="checkbox-text">Генерировать автоматически</span>
-        </label>
+      <!-- Блок автоматической генерации (только для администраторов и главврачей) -->
+      <div class="auto-generate-section" *ngIf="userRole === 'Administrator' || userRole === 'ChiefDoctor'">
+        <h3 class="section-title" (click)="toggleAutoGenerationPanel()">
+          <span class="section-icon">{{isAutoGenerationPanelOpen ? '▼' : '►'}}</span> 
+          Автоматическая генерация
+          <span class="generation-status" [class.active]="autoGenerationActive">
+            Статус: {{autoGenerationActive ? 'Активна' : 'Не активна'}}
+          </span>
+          <span class="info-icon" *ngIf="autoGenerationActive" (click)="showAutoGenerationInfo($event)">ⓘ</span>
+        </h3>
+
+        <!-- Раскрывающийся блок с настройками автогенерации -->
+        <div class="auto-generate-panel" *ngIf="isAutoGenerationPanelOpen">
+          <div class="auto-generate-switch">
+            <label class="switch">
+              <input type="checkbox" [(ngModel)]="autoGenerateEnabled" [ngModelOptions]="{standalone: true}">
+              <span class="slider round"></span>
+            </label>
+            <span class="switch-label">Генерировать автоматически</span>
+          </div>
+
+          <!-- Блок настроек автоматической генерации -->
+          <div class="auto-generate-settings" *ngIf="autoGenerateEnabled">
+            <!-- Область применения -->
+            <div class="auto-generate-scope">
+              <label>Область применения:</label>
+              <div class="scope-options">
+                <!-- Опция "Для всех больниц" только для администраторов -->
+                <label class="scope-option" *ngIf="userRole === 'Administrator'">
+                  <input type="radio" [(ngModel)]="autoGenerateScope" value="allHospitals" [ngModelOptions]="{standalone: true}" name="scope">
+                  <span>Для всех больниц</span>
+                </label>
+                <label class="scope-option">
+                  <input type="radio" [(ngModel)]="autoGenerateScope" value="selectedHospital" [ngModelOptions]="{standalone: true}" [disabled]="!selectedHospitalId" name="scope">
+                  <span>Для выбранной больницы</span>
+                </label>
+                <label class="scope-option">
+                  <input type="radio" [(ngModel)]="autoGenerateScope" value="selectedSpeciality" [ngModelOptions]="{standalone: true}" [disabled]="!selectedHospitalId || !selectedSpecialityId" name="scope">
+                  <span>Для выбранной специальности</span>
+                </label>
+                <label class="scope-option">
+                  <input type="radio" [(ngModel)]="autoGenerateScope" value="selectedDoctor" [ngModelOptions]="{standalone: true}" [disabled]="!selectedDoctorId" name="scope">
+                  <span>Для выбранного врача</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Период генерации -->
+            <div class="auto-generate-period">
+              <label>Период генерации:</label>
+              <div class="period-options">
+                <label class="period-option">
+                  <input type="radio" [(ngModel)]="autoGeneratePeriod" value="week" [ngModelOptions]="{standalone: true}" (change)="onPeriodTypeChange()" name="period">
+                  <span>1 неделя</span>
+                </label>
+                <label class="period-option">
+                  <input type="radio" [(ngModel)]="autoGeneratePeriod" value="month" [ngModelOptions]="{standalone: true}" (change)="onPeriodTypeChange()" name="period">
+                  <span>1 месяц</span>
+                </label>
+                <label class="period-option">
+                  <input type="radio" [(ngModel)]="autoGeneratePeriod" value="year" [ngModelOptions]="{standalone: true}" (change)="onPeriodTypeChange()" name="period">
+                  <span>1 год</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Дата начала генерации -->
+            <div class="auto-generate-date">
+              <label>Дата начала генерации:</label>
+              <input 
+                type="date" 
+                [(ngModel)]="autoGenerateStartDate" 
+                [ngModelOptions]="{standalone: true}"
+                (change)="onStartDateChange()" 
+                class="form-control"
+                [min]="startDate">
+              <div class="date-info" *ngIf="autoGenerateEndDate">
+                <small>Конец периода: {{ autoGenerateEndDate }}</small>
+              </div>
+            </div>
+
+            <!-- Результат автогенерации -->
+            <div class="auto-generate-result" *ngIf="autoGenerateResult" [class.success]="autoGenerateSuccess" [class.error]="!autoGenerateSuccess">
+              {{ autoGenerateResult }}
+              
+              <!-- Детали созданных расписаний, которые появляются при успешной генерации -->
+              <div class="generation-details" *ngIf="autoGenerateSuccess && generatedDoctorNames && generatedDoctorNames.length > 0">
+                <div class="details-header">
+                  Расписания созданы для следующих врачей:
+                </div>
+                <div class="doctors-list">
+                  <ul>
+                    <li *ngFor="let doctorName of generatedDoctorNames.slice(0, 10)">{{ doctorName }}</li>
+                    <li *ngIf="generatedDoctorNames.length > 10" class="more-doctors">
+                      ...и ещё {{ generatedDoctorNames.length - 10 }} врач(ей)
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- Кнопки управления автогенерацией -->
+            <div class="auto-generate-actions">
+              <button type="button" class="btn btn-primary" (click)="saveAutoGenerationSettings()" [disabled]="!canStartAutoGeneration()">
+                Сохранить настройки
+              </button>
+              <button type="button" class="btn btn-success" (click)="startAutoGenerate()" [disabled]="!canStartAutoGeneration()">
+                <span *ngIf="autoGenerationActive">Создать новую (старая будет отменена)</span>
+                <span *ngIf="!autoGenerationActive">Создать расписание</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="action-buttons">
-        <button type="submit" class="btn btn-primary" [disabled]="settingsForm.invalid || isLoading">
+        <button type="submit" class="btn btn-primary" [disabled]="isLoading">
           <i class="icon-save"></i> Сохранить настройки
         </button>
-        <button type="button" class="btn btn-accent" (click)="generateSchedule()" [disabled]="settingsForm.invalid || isLoading">
+        <button type="button" class="btn btn-accent" (click)="generateSchedule()" [disabled]="isLoading">
           <i class="icon-calendar"></i> Сгенерировать расписание
         </button>
-        <button type="button" class="btn btn-danger" (click)="deleteSchedule()" [disabled]="!currentSchedule || isLoading">
+        <button type="button" class="btn btn-danger" (click)="deleteSchedule()" [disabled]="isLoading || !currentSchedule">
           <i class="icon-delete"></i> Удалить расписание
         </button>
-        <button type="button" class="btn btn-primary" (click)="updateSchedule()">Изменить расписание</button>
+        <button type="button" class="btn btn-primary" (click)="updateSchedule()" [disabled]="isLoading">
+          <i class="icon-update"></i> Изменить расписание
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="resetSelections()" title="Сбросить все выбранные значения" [disabled]="isLoading">
+          <i class="icon-reset"></i> Сбросить выбор
+        </button>
       </div>
     </form>
   </div>

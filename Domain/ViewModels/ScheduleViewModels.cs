@@ -44,6 +44,7 @@ namespace Domain.ViewModels
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public ScheduleSettingsViewModel Settings { get; set; }
+        public bool ClearExistingSchedule { get; set; } = false;
     }
 
     // DTO для представления расписания врача

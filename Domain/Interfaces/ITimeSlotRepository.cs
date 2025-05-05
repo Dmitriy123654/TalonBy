@@ -17,5 +17,9 @@ namespace Domain.Interfaces
         Task<bool> DeleteTimeSlotAsync(int slotId);
         Task<bool> DeleteTimeSlotsForPeriodAsync(int doctorId, DateTime startDate, DateTime endDate);
         Task<Doctor> GetDoctorByIdAsync(int doctorId);
+        
+        // Новые методы
+        Task<bool> DeleteDoctorTimeSlotsAsync(int doctorId, DateTime startDate, DateTime endDate);
+        Task<bool> SaveRangeAsync(List<TimeSlot> timeSlots);
     }
 } 

@@ -1055,4 +1055,326 @@ h3 {
   }
 }
 
+// Стили для блока автоматической генерации расписания
+.auto-generate-settings {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 20px;
+  margin-bottom: 20px;
+  
+  h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: var(--primary-color);
+    font-size: 18px;
+    font-weight: 500;
+  }
+  
+  .auto-generate-scope, 
+  .auto-generate-period,
+  .auto-generate-date {
+    margin-bottom: 20px;
+    
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+  }
+  
+  .scope-options, 
+  .period-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    
+    .scope-option, 
+    .period-option {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      
+      input[type="radio"] {
+        margin-right: 8px;
+      }
+      
+      &:hover span {
+        color: var(--primary-color);
+      }
+      
+      input[type="radio"]:disabled + span {
+        color: var(--text-light);
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
+    }
+  }
+  
+  .auto-generate-date {
+    input[type="date"] {
+      width: 100%;
+      max-width: 200px;
+      padding: 8px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      margin-bottom: 10px;
+      
+      &:focus {
+        border-color: var(--primary-color);
+        outline: none;
+      }
+    }
+    
+    .date-info {
+      font-size: 14px;
+      color: var(--text-light);
+      margin-top: 5px;
+    }
+  }
+  
+  .auto-generate-action {
+    button {
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      
+      i {
+        margin-right: 8px;
+      }
+      
+      &:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
+    }
+  }
+  
+  .auto-generate-result {
+    margin-top: 15px;
+    padding: 10px 15px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    
+    &.success {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+      border-left: 4px solid #2e7d32;
+    }
+    
+    &.error {
+      background-color: #ffebee;
+      color: #c62828;
+      border-left: 4px solid #c62828;
+    }
+    
+    // Стили для блока с деталями генерации
+    .generation-details {
+      margin-top: 10px;
+      padding: 10px;
+      background-color: rgba(255, 255, 255, 0.6);
+      border-radius: 4px;
+      
+      .details-header {
+        font-weight: 600;
+        margin-bottom: 5px;
+      }
+      
+      .doctors-list {
+        ul {
+          padding-left: 20px;
+          margin: 5px 0;
+          
+          li {
+            font-size: 0.9em;
+            margin-bottom: 3px;
+            
+            &.more-doctors {
+              font-style: italic;
+              color: #555;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// Стили для чекбокса автоматической генерации
+.auto-generate-checkbox {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  margin: 10px 0;
+  
+  input[type="checkbox"] {
+    margin-right: 10px;
+  }
+  
+  .checkbox-text {
+    font-weight: 500;
+  }
+  
+  &:hover .checkbox-text {
+    color: var(--primary-color);
+  }
+}
+
+.auto-generate-section {
+  margin-top: 20px;
+  margin-bottom: 20px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  overflow: hidden;
+  
+  .section-title {
+    display: flex;
+    align-items: center;
+    background-color: #f8f8f8;
+    padding: 10px 15px;
+    margin: 0;
+    cursor: pointer;
+    font-size: 18px;
+    position: relative;
+    
+    &:hover {
+      background-color: #f0f0f0;
+    }
+    
+    .section-icon {
+      margin-right: 10px;
+      font-size: 12px;
+    }
+    
+    .generation-status {
+      margin-left: auto;
+      font-size: 14px;
+      font-weight: normal;
+      color: #666;
+      
+      &.active {
+        color: #4caf50;
+        font-weight: bold;
+      }
+    }
+    
+    .info-icon {
+      margin-left: 10px;
+      color: #2196F3;
+      font-size: 18px;
+      cursor: help;
+      
+      &:hover {
+        color: #0b7dda;
+      }
+    }
+  }
+  
+  .auto-generate-panel {
+    padding: 15px;
+    background-color: #fff;
+    border-top: 1px solid #ddd;
+  }
+  
+  .auto-generate-switch {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 24px;
+      margin-right: 10px;
+      
+      input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+        
+        &:checked + .slider {
+          background-color: #2196F3;
+        }
+        
+        &:checked + .slider:before {
+          transform: translateX(26px);
+        }
+      }
+      
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: .4s;
+        
+        &:before {
+          position: absolute;
+          content: "";
+          height: 16px;
+          width: 16px;
+          left: 4px;
+          bottom: 4px;
+          background-color: white;
+          transition: .4s;
+        }
+        
+        &.round {
+          border-radius: 24px;
+          
+          &:before {
+            border-radius: 50%;
+          }
+        }
+      }
+    }
+    
+    .switch-label {
+      font-weight: bold;
+    }
+  }
+}
+
+.select-wrapper {
+  margin-bottom: 10px;
+
+  .doctor-select {
+    width: 100%;
+    padding: 10px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+  }
+
+  .selected-info {
+    margin-top: 5px;
+    font-size: 12px;
+    color: var(--primary-color);
+    
+    p {
+      margin: 0;
+    }
+  }
+}
+
+.no-doctors-message {
+  padding: 15px;
+  background-color: #f8f8f8;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  text-align: center;
+  
+  p {
+    margin: 0;
+    color: #888;
+    font-style: italic;
+  }
+}
+
  

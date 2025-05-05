@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, throwError, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
-import { TimeSlot, ScheduleSettings, DoctorScheduleView } from '../../shared/interfaces/schedule.interface';
-import { delay, catchError } from 'rxjs/operators';
+import { DoctorScheduleView, ScheduleSettings, TimeSlot } from '../../shared/interfaces/schedule.interface';
+import { AutoGenerationSettings } from '../../shared/interfaces/schedule.interface';
 
 @Injectable({
   providedIn: 'root'
@@ -19,8 +20,19 @@ export class ScheduleService {
   getDoctorScheduleSettings(doctorId: number): Observable<ScheduleSettings> {
     console.log('Получение настроек расписания для врача', doctorId);
     
-    // Реализация для бэкенда
-    return this.http.get<ScheduleSettings>(`${this.apiUrl}/schedule/settings/${doctorId}`);
+    // Реализация для бэкенда с обработкой ошибок
+    return this.http.get<ScheduleSettings>(`${this.apiUrl}/schedule/settings/${doctorId}`).pipe(
+      catchError(error => {
+        console.log('Ошибка получения настроек:', error);
+        // Если ошибка 404 (Not Found), возвращаем дефолтные настройки
+        if (error.status === 404) {
+          console.log('Настройки не найдены, используем дефолтные');
+          return of(this.getDefaultSettings(doctorId));
+        }
+        // Иначе возвращаем ошибку
+        return throwError(() => new Error('Не удалось получить настройки расписания'));
+      })
+    );
   }
 
   // Получить дефолтные настройки расписания
@@ -215,6 +227,67 @@ export class ScheduleService {
       catchError(error => {
         console.error('Ошибка при удалении расписания:', error);
         return throwError(() => new Error('Не удалось удалить расписание'));
+      })
+    );
+  }
+
+  /**
+   * Автоматическая генерация расписания для выбранной области
+   * @param data Объект с данными для генерации расписания
+   */
+  autoGenerateSchedule(data: {
+    scope: string;
+    startDate: string;
+    endDate: string;
+    settings: ScheduleSettings;
+    hospitalId?: number;
+    specialityId?: number;
+    doctorId?: number;
+  }): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/schedule/auto-generate`, data).pipe(
+      catchError(error => {
+        console.error('Ошибка при автоматической генерации расписания:', error);
+        return throwError(() => new Error('Не удалось сгенерировать расписание'));
+      })
+    );
+  }
+
+  // Сохранение настроек автоматической генерации
+  saveAutoGenerationSettings(settings: AutoGenerationSettings): Observable<AutoGenerationSettings> {
+    return this.http.post<AutoGenerationSettings>(`${this.apiUrl}/schedule/auto-generate/settings`, settings).pipe(
+      catchError(error => {
+        console.error('Ошибка при сохранении настроек автоматической генерации:', error);
+        return throwError(() => new Error('Не удалось сохранить настройки автоматической генерации'));
+      })
+    );
+  }
+
+  // Получить настройки автоматической генерации для всех врачей/больниц
+  getAutoGenerationSettings(): Observable<AutoGenerationSettings[]> {
+    return this.http.get<AutoGenerationSettings[]>(`${this.apiUrl}/schedule/auto-generate/settings`).pipe(
+      catchError(error => {
+        console.error('Ошибка при получении настроек автоматической генерации:', error);
+        return of([]); // Возвращаем пустой массив в случае ошибки
+      })
+    );
+  }
+
+  // Получить настройки автоматической генерации для врача
+  getAutoGenerationSettingsForDoctor(doctorId: number): Observable<AutoGenerationSettings | null> {
+    return this.http.get<AutoGenerationSettings>(`${this.apiUrl}/schedule/auto-generate/settings/doctor/${doctorId}`).pipe(
+      catchError(error => {
+        console.error(`Ошибка при получении настроек автоматической генерации для врача ${doctorId}:`, error);
+        return of(null); // Возвращаем null в случае ошибки
+      })
+    );
+  }
+
+  // Отключение автоматической генерации
+  disableAutoGeneration(settingsId: number): Observable<boolean> {
+    return this.http.delete<boolean>(`${this.apiUrl}/schedule/auto-generate/settings/${settingsId}`).pipe(
+      catchError(error => {
+        console.error('Ошибка при отключении автоматической генерации:', error);
+        return throwError(() => new Error('Не удалось отключить автоматическую генерацию'));
       })
     );
   }

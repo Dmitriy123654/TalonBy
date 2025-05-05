@@ -112,8 +112,9 @@ namespace DAL
                 }
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.WriteLine($"Ошибка при удалении временных слотов: {ex.Message}");
                 return false;
             }
         }
@@ -121,6 +122,47 @@ namespace DAL
         public async Task<Doctor> GetDoctorByIdAsync(int doctorId)
         {
             return await _context.Doctors.FindAsync(doctorId);
+        }
+
+        public async Task<bool> DeleteDoctorTimeSlotsAsync(int doctorId, DateTime startDate, DateTime endDate)
+        {
+            try
+            {
+                var slots = await _context.TimeSlots
+                    .Where(s => s.DoctorId == doctorId && s.Date >= startDate.Date && s.Date <= endDate.Date)
+                    .ToListAsync();
+
+                if (slots.Any())
+                {
+                    _context.TimeSlots.RemoveRange(slots);
+                    return await _context.SaveChangesAsync() > 0;
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка при удалении временных слотов для врача {doctorId}: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> SaveRangeAsync(List<TimeSlot> timeSlots)
+        {
+            try
+            {
+                if (timeSlots == null || !timeSlots.Any())
+                {
+                    return true;
+                }
+                
+                _context.TimeSlots.AddRange(timeSlots);
+                return await _context.SaveChangesAsync() > 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка при сохранении временных слотов: {ex.Message}");
+                return false;
+            }
         }
     }
 } 

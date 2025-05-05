@@ -1,10 +1,11 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators } from '@angular/forms';
 import { ScheduleService } from '../../../core/services/schedule.service';
-import { DoctorScheduleView, ScheduleSettings, TimeSlot, Hospital } from '../../../shared/interfaces/schedule.interface';
-import { AuthService } from '../../../core/services/auth.service';
 import { OrderService } from '../../../core/services/order.service';
-import { Hospital as OrderHospital, DoctorDetails } from '../../../shared/interfaces/order.interface';
+import { AuthService } from '../../../core/services/auth.service';
+import { DoctorScheduleView, ScheduleSettings, TimeSlot, AutoGenerationSettings } from '../../../shared/interfaces/schedule.interface';
+import { Hospital as OrderHospital } from '../../../shared/interfaces/order.interface';
+import { DoctorDetails } from '../../../shared/interfaces/order.interface';
 import { take, switchMap } from 'rxjs/operators';
 
 @Component({
@@ -41,6 +42,16 @@ export class ScheduleManagementComponent implements OnInit {
   breakOptions = [0, 5, 10];
   // Флаг автоматической генерации
   autoGenerateEnabled: boolean = false;
+  
+  // Настройки автоматической генерации
+  autoGenerateScope: string = 'selectedDoctor'; // allHospitals, selectedHospital, selectedSpeciality, selectedDoctor
+  autoGeneratePeriod: string = 'month'; // week, month, year
+  autoGenerateStartDate: string = '';
+  autoGenerateEndDate: string = '';
+  autoGenerateResult: string = '';
+  autoGenerateSuccess: boolean = false;
+  generatedDoctorNames: string[] = []; // Список врачей, для которых создано расписание
+  
   // Список всех врачей (будет загружаться с сервера)
   doctors = [
     { id: 1, name: 'Иванов И.И.', specialization: 'Терапевт' },
@@ -86,6 +97,11 @@ export class ScheduleManagementComponent implements OnInit {
   selectedCalendarDate: Date | null = null;
   selectedDaySlots: TimeSlot[] = [];
 
+  // Переменные для раскрывающегося блока автогенерации
+  isAutoGenerationPanelOpen: boolean = false;
+  autoGenerationActive: boolean = false;
+  autoGenerationInfo: any = null;
+
   constructor(
     private fb: FormBuilder,
     private scheduleService: ScheduleService,
@@ -122,10 +138,32 @@ export class ScheduleManagementComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.initializeByRole();
+    console.log('Инициализация компонента ScheduleManagement');
     
-    // Добавляем инициализацию календаря даже без данных
-    this.buildEmptyCalendar();
+    // Инициализируем dates
+    const today = new Date();
+    this.startDate = this.formatDate(today);
+    
+    // Устанавливаем конечную дату на 30 дней вперед
+    const endDate = new Date();
+    endDate.setDate(today.getDate() + 30);
+    this.endDate = this.formatDate(endDate);
+    
+    // Устанавливаем максимальную конечную дату на 3 месяца вперед
+    const maxEndDate = new Date();
+    maxEndDate.setMonth(today.getMonth() + 3);
+    this.maxEndDate = this.formatDate(maxEndDate);
+    
+    // Инициализируем форму настроек
+    this.initForm();
+    
+    // Получаем роль пользователя
+    this.getUserRole();
+    
+    // Пытаемся восстановить выбранные значения после инициализации
+    setTimeout(() => {
+      this.restoreSelectedValuesFromLocalStorage();
+    }, 1000);
   }
 
   // Валидация: обеденный перерыв не должен превышать 2 часа
@@ -175,93 +213,131 @@ export class ScheduleManagementComponent implements OnInit {
   
   // Получение роли пользователя из сервиса авторизации
   getUserRole(): void {
-    // Получаем информацию о пользователе из AuthService
-    const userInfo = this.authService.getUserInfo();
-    // Если информация есть, берем роль
-    if (userInfo && userInfo.role) {
-      this.userRole = userInfo.role;
-    } else {
-      // По умолчанию - обычный пользователь
-      this.userRole = 'Patient';
-    }
-  }
-  
-  // Инициализация компонента в зависимости от роли пользователя
-  initializeByRole(): void {
-    // Get user role from the auth service
+    console.log('Получение роли пользователя');
+    
     const userInfo = this.authService.getUserInfo();
     if (!userInfo) {
-      this.errorMessage = 'User information not found';
+      console.error('Не удалось получить информацию о пользователе');
+      this.errorMessage = 'Ошибка идентификации пользователя';
       return;
     }
     
     this.userRole = userInfo.role || '';
+    console.log('Роль пользователя:', this.userRole);
     
-    if (this.userRole === 'Administrator') {
-      this.loadHospitals();
-    } else if (this.userRole === 'ChiefDoctor') {
-      // Для главного врача загрузим информацию о всех больницах и выберем нужную
-      this.isLoading = true;
-      
-      // Сначала загружаем все больницы
-      this.loadHospitals();
-      
-      // Получаем информацию о главвраче по ID пользователя
-      if (userInfo.userId) {
-        this.scheduleService.getChiefDoctorInfo(userInfo.userId.toString()).subscribe({
-          next: (doctorInfo: any) => {
-            if (doctorInfo && doctorInfo.hospitalId) {
-              this.selectedHospitalId = doctorInfo.hospitalId;
-              // Загружаем специальности этой больницы
+    // После получения роли пользователя, вызываем инициализацию
+    this.initializeByRole();
+  }
+  
+  // Инициализация компонента в зависимости от роли пользователя
+  private initializeByRole(): void {
+    console.log('Инициализация компонента по роли пользователя:', this.userRole);
+    
+    // Сбрасываем выбранные значения
+    this.selectedHospitalId = 0;
+    this.selectedSpecialityId = 0;
+    this.selectedDoctorId = 0;
+    
+    switch (this.userRole) {
+      case 'Administrator':
+        console.log('Инициализация для администратора');
+        // Загружаем список больниц
+        this.loadHospitals();
+        break;
+        
+      case 'ChiefDoctor':
+        console.log('Инициализация для главврача');
+        // Для главврача загружаем сначала его информацию из API, чтобы узнать его больницу
+        this.isLoading = true;
+        
+        // Получаем информацию о пользователе из AuthService
+        const userInfo = this.authService.getUserInfo();
+        if (!userInfo || !userInfo.userId) {
+          console.error('Не удалось получить ID пользователя');
+          this.errorMessage = 'Ошибка идентификации пользователя';
+          this.isLoading = false;
+          return;
+        }
+        const userId = userInfo.userId.toString();
+        
+        this.scheduleService.getChiefDoctorInfo(userId).subscribe({
+          next: (info) => {
+            console.log('Информация о главвраче:', info);
+            
+            if (info && info.doctorId && info.hospitalId) {
+              // Сохраняем ID главврача как доктора для работы с его расписанием
+              this.selectedDoctorId = info.doctorId;
+              this.selectedHospitalId = info.hospitalId;
+              
+              // Загружаем специальности для данной больницы
               this.loadSpecialities(this.selectedHospitalId);
-              console.log(`ChiefDoctor: автоматически выбрана больница с ID=${this.selectedHospitalId}`);
+              
+              // Загружаем настройки расписания для этого врача
+              this.loadDoctorSettings(this.selectedDoctorId);
             } else {
-              this.errorMessage = 'Не удалось получить информацию о больнице главного врача';
+              this.errorMessage = 'Ошибка получения информации о главвраче';
+              this.isLoading = false;
             }
-            this.isLoading = false;
           },
-          error: (error: any) => {
-            this.errorMessage = 'Ошибка при получении информации о главном враче';
+          error: (error) => {
+            console.error('Ошибка при получении информации о главвраче:', error);
+            this.errorMessage = 'Ошибка при получении информации о главвраче';
             this.isLoading = false;
-            console.error('Ошибка получения данных главврача:', error);
           }
         });
-      }
-    } else if (this.userRole === 'Doctor') {
-      // Для врача загрузим ID врача и больницы из информации о пользователе
-      this.isLoading = true;
-      
-      // Загружаем список больниц для отображения имени больницы
-      this.loadHospitals();
-      
-      // Получаем информацию о враче по ID пользователя
-      if (userInfo.userId) {
-        this.scheduleService.getDoctorInfoByUserId(userInfo.userId.toString()).subscribe({
-          next: (doctorInfo: any) => {
-            if (doctorInfo && doctorInfo.doctorId && doctorInfo.hospitalId) {
-              this.selectedHospitalId = doctorInfo.hospitalId;
-              this.selectedDoctorId = doctorInfo.doctorId;
-              this.loadSchedule();
-              console.log(`Doctor: автоматически выбран врач с ID=${this.selectedDoctorId} в больнице с ID=${this.selectedHospitalId}`);
+        break;
+        
+      case 'Doctor':
+        console.log('Инициализация для врача');
+        // Для врача загружаем сначала его информацию из API
+        this.isLoading = true;
+        
+        // Получаем информацию о пользователе из AuthService
+        const doctorUserInfo = this.authService.getUserInfo();
+        if (!doctorUserInfo || !doctorUserInfo.userId) {
+          console.error('Не удалось получить ID пользователя');
+          this.errorMessage = 'Ошибка идентификации пользователя';
+          this.isLoading = false;
+          return;
+        }
+        const doctorUserId = doctorUserInfo.userId.toString();
+        
+        this.scheduleService.getDoctorInfoByUserId(doctorUserId).subscribe({
+          next: (info) => {
+            console.log('Информация о враче:', info);
+            
+            if (info && info.doctorId && info.hospitalId) {
+              // Сохраняем ID врача для работы с его расписанием
+              this.selectedDoctorId = info.doctorId;
+              console.log('Установлен ID врача:', this.selectedDoctorId);
+              
+              // Сохраняем ID больницы
+              this.selectedHospitalId = info.hospitalId;
+              console.log('Установлен ID больницы:', this.selectedHospitalId);
+              
+              // Загружаем настройки расписания для этого врача
+              this.loadDoctorSettings(this.selectedDoctorId);
             } else {
-              this.errorMessage = 'Не удалось получить информацию о враче';
+              this.errorMessage = 'Ошибка получения информации о враче';
+              this.isLoading = false;
             }
-            this.isLoading = false;
           },
-          error: (error: any) => {
+          error: (error) => {
+            console.error('Ошибка при получении информации о враче:', error);
             this.errorMessage = 'Ошибка при получении информации о враче';
             this.isLoading = false;
-            console.error('Ошибка получения данных врача:', error);
           }
         });
-      }
-    } else if (this.userRole === 'Registrar') {
-      // Если пользователь - регистратор, загружаем доступных врачей его больницы
-      this.loadHospitalDoctors(this.selectedHospitalId);
-    } else {
-      // Для других ролей - ограниченный доступ или перенаправление
-      this.errorMessage = 'У вас нет прав для управления расписанием';
+        break;
+        
+      default:
+        console.warn('Неизвестная роль пользователя:', this.userRole);
+        this.errorMessage = 'У вас нет доступа к этому разделу';
+        break;
     }
+    
+    // Строим пустой календарь
+    this.buildEmptyCalendar();
   }
   
   // Загрузка списка больниц
@@ -310,24 +386,68 @@ export class ScheduleManagementComponent implements OnInit {
     });
   }
   
-  // Загрузка врачей по специальности и больнице
+  // Загрузка врачей по больнице и специальности
   loadDoctorsBySpeciality(hospitalId: number, specialityId: number): void {
+    console.log('Загружаем врачей для больницы', hospitalId, 'и специальности', specialityId);
+    
+    // Сохраняем текущий ID врача
+    const currentDoctorId = this.selectedDoctorId;
+    
     this.isLoading = true;
     this.orderService.getDoctorsBySpecialityAndHospital(hospitalId, specialityId).subscribe({
-      next: (data) => {
-        this.allDoctors = data;
-        // Преобразуем данные в требуемый формат
-        this.doctors = data.map(doctor => ({
-          id: doctor.doctorId,
-          name: doctor.fullName,
-          specialization: doctor.doctorsSpeciality?.name || ''
-        }));
+      next: (response: any[]) => {
+        console.log('Получены данные о врачах:', response);
+        
+        // Если в ответе пустой массив, устанавливаем пустой список врачей
+        if (!response || response.length === 0) {
+          this.doctors = [];
+          this.isLoading = false;
+          return;
+        }
+        
+        // Преобразуем полученные данные в удобный формат
+        this.doctors = response.map((doctor: any) => {
+          console.log('Преобразованный врач:', {
+            id: doctor.doctorId,
+            name: doctor.fullName,
+            specialization: doctor.specialityName
+          });
+          
+          return {
+            id: doctor.doctorId,
+            name: doctor.fullName,
+            specialization: doctor.specialityName
+          };
+        });
+        
+        console.log('Преобразованный список врачей:', this.doctors);
+        
+        // Проверяем, есть ли текущий врач в новом списке
+        if (currentDoctorId > 0) {
+          const doctorExists = this.doctors.some(doc => doc.id === currentDoctorId);
+          if (doctorExists) {
+            // Если врач найден в списке, сохраняем его ID
+            console.log('Текущий врач ID:', currentDoctorId, 'найден в списке врачей, сохраняем его');
+            this.selectedDoctorId = currentDoctorId;
+            this.settingsForm.get('doctorId')?.setValue(currentDoctorId);
+            // Загружаем настройки и расписание для найденного врача
+            this.loadDoctorSettings(currentDoctorId);
+          } else {
+            // Если врач не найден, сбрасываем выбор
+            console.log('Текущий врач ID:', currentDoctorId, 'не найден в новом списке, сбрасываем выбор');
+            this.selectedDoctorId = 0;
+            this.settingsForm.get('doctorId')?.setValue(0);
+            this.currentSchedule = null;
+            this.buildEmptyCalendar();
+          }
+        }
+        
         this.isLoading = false;
       },
-      error: (error) => {
-        this.errorMessage = 'Ошибка при загрузке списка врачей';
+      error: (error: any) => {
+        console.error('Ошибка при загрузке врачей:', error);
+        this.doctors = [];
         this.isLoading = false;
-        console.error('Ошибка загрузки врачей:', error);
       }
     });
   }
@@ -371,63 +491,90 @@ export class ScheduleManagementComponent implements OnInit {
 
   // Загрузка настроек расписания для выбранного врача
   loadDoctorSettings(doctorId: number): void {
-    if (doctorId <= 0) {
-      this.initForm();
+    if (!doctorId) {
+      this.resetForm();
       return;
     }
     
+    console.log('Начинаем загрузку настроек для врача с ID:', doctorId);
     this.isLoading = true;
+    
+    // Убедимся, что ID врача сохранен в компоненте
+    this.selectedDoctorId = doctorId;
+    const previousHospitalId = this.selectedHospitalId; // Сохраняем текущий hospitalId
+    
     this.scheduleService.getDoctorScheduleSettings(doctorId).subscribe({
       next: (settings) => {
-        // Преобразуем строку дней недели в массив чисел
-        let workDaysArray: number[] = [];
-        if (settings.workDays) {
-          // Если workDays - строка, разбиваем по запятой и конвертируем в числа
-          if (typeof settings.workDays === 'string') {
-            workDaysArray = settings.workDays.split(',').map(day => parseInt(day.trim()));
-          } 
-          // Если workDays уже массив, используем его как есть
-          else if (Array.isArray(settings.workDays)) {
-            workDaysArray = settings.workDays;
-          }
-          // По умолчанию - пн-пт
-          else {
-            workDaysArray = [1, 2, 3, 4, 5];
-          }
-        } else {
-          // По умолчанию - пн-пт
-          workDaysArray = [1, 2, 3, 4, 5];
-        }
+        console.log('Загружены настройки:', settings);
+        this.lastSettings = settings;
         
-        console.log('Загруженные рабочие дни (массив):', workDaysArray);
-        
-        // Сохраняем последние настройки
-        this.lastSettings = { ...settings };
-        
+        // Заполняем форму настройками
         this.settingsForm.patchValue({
-          workdayStart: settings.workdayStart,
-          workdayEnd: settings.workdayEnd,
-          slotDuration: settings.slotDuration,
-          breakDuration: settings.breakDuration,
-          lunchStart: settings.lunchStart || '13:00',
-          lunchEnd: settings.lunchEnd || '14:00',
-          workDays: workDaysArray,
-          doctorId: doctorId,
-          hospitalId: this.selectedHospitalId
+          workdayStart: settings.workdayStart || '08:00',
+          workdayEnd: settings.workdayEnd || '17:00',
+          slotDuration: settings.slotDuration || 30,
+          breakDuration: settings.breakDuration || 5,
+          lunchStart: settings.lunchStart || '12:00',
+          lunchEnd: settings.lunchEnd || '13:00',
+          workDays: this.parseWorkDays(settings.workDays || '1,2,3,4,5'),
+          doctorId: this.selectedDoctorId
         });
         
-        // После загрузки настроек загружаем расписание
+        // Не изменяем выбранную больницу, если она уже выбрана
+        if (!previousHospitalId && settings.hospitalId) {
+          this.selectedHospitalId = settings.hospitalId;
+        }
+        
+        // Загружаем настройки автоматической генерации
+        this.loadAutoGenerationSettings();
+        
+        // Проверяем, что ID врача все еще установлен
+        console.log('Перед загрузкой расписания, ID врача =', this.selectedDoctorId);
+        
+        // Сохраняем выбранные значения, чтобы они не потерялись
+        this.saveSelectedValuesToLocalStorage();
+        
+        // Загружаем расписание с явной передачей ID врача
         this.loadSchedule();
         
-        // Скрыть сообщение об ошибке, если оно было
-        this.errorMessage = '';
+        this.isLoading = false;
       },
-      error: (error: any) => {
-        // Если настроек нет, инициализируем форму значениями по умолчанию
-        this.initForm();
-        console.log('Настройки для врача не найдены, используются значения по умолчанию');
+      error: (error) => {
+        console.error('Ошибка загрузки настроек:', error);
         
-        // После инициализации формы загружаем расписание с дефолтными настройками
+        // В случае 404 ошибки, используем дефолтные настройки, так как у врача ещё нет настроек
+        if (error.status === 404) {
+          console.log('Настройки не найдены для врача, используем дефолтные настройки');
+          const defaultSettings = this.getDefaultSettings();
+          this.lastSettings = defaultSettings;
+          
+          // Заполняем форму дефолтными настройками
+          this.settingsForm.patchValue({
+            workdayStart: defaultSettings.workdayStart,
+            workdayEnd: defaultSettings.workdayEnd,
+            slotDuration: defaultSettings.slotDuration,
+            breakDuration: defaultSettings.breakDuration,
+            lunchStart: defaultSettings.lunchStart,
+            lunchEnd: defaultSettings.lunchEnd,
+            workDays: this.parseWorkDays(defaultSettings.workDays),
+            doctorId: this.selectedDoctorId // Сохраняем исходный ID врача
+          });
+        } else {
+          // Даже в случае другой ошибки сбрасываем форму к дефолтным значениям
+          this.lastSettings = null;
+          this.resetForm();
+          
+          // Сбрасываем настройки автогенерации
+          this.resetAutoGenerationSettings();
+        }
+        
+        // Проверяем, что ID врача все еще установлен
+        console.log('После ошибки загрузки настроек, ID врача =', this.selectedDoctorId);
+        
+        // Сохраняем выбранные значения, чтобы они не потерялись
+        this.saveSelectedValuesToLocalStorage();
+        
+        // Всё равно пытаемся загрузить расписание (если оно есть)
         this.loadSchedule();
         
         this.isLoading = false;
@@ -437,62 +584,47 @@ export class ScheduleManagementComponent implements OnInit {
 
   // Загрузка расписания
   loadSchedule(): void {
-    if (this.selectedDoctorId <= 0) {
+    console.log('loadSchedule начинает выполнение. ID врача:', this.selectedDoctorId);
+    
+    if (!this.selectedDoctorId || this.selectedDoctorId <= 0) {
+      console.log('loadSchedule: ID врача не выбран или некорректный, очищаем расписание и строим пустой календарь');
+      // Очищаем текущее расписание и строим пустой календарь
       this.currentSchedule = null;
       this.buildEmptyCalendar();
-      this.isLoading = false;
       return;
     }
     
-    console.log('Загрузка расписания для врача:', this.selectedDoctorId);
-    console.log('Период:', this.startDate, 'по', this.endDate);
-    
     this.isLoading = true;
-    this.currentSchedule = null; // Очищаем текущее расписание во время загрузки
-    this.scheduleService.getDoctorSchedule(
-      this.selectedDoctorId, 
-      this.startDate, 
-      this.endDate
-    ).subscribe({
+    
+    // Убедимся, что есть корректные даты для начала и конца периода
+    if (!this.startDate || !this.endDate) {
+      this.setDefaultDates();
+    }
+    
+    console.log('Загрузка расписания для врача', this.selectedDoctorId, 'с', this.startDate, 'по', this.endDate);
+    
+    this.scheduleService.getDoctorSchedule(this.selectedDoctorId, this.startDate, this.endDate).subscribe({
       next: (schedule) => {
+        console.log('Получено расписание:', schedule);
         this.currentSchedule = schedule;
+        this.buildCalendar();
         
-        if (schedule && schedule.schedule && typeof schedule.schedule === 'object') {
-          const scheduleDates = Object.keys(schedule.schedule);
-          if (scheduleDates.length > 0) {
-            // Если есть даты в расписании, строим календарь с ними
-            this.buildCalendar();
-          } else {
-            // Если расписание пустое, сохраняем текущий месяц и строим пустой календарь
-            this.buildEmptyCalendar();
-          }
-        } else {
-          // Если расписание пустое, сохраняем текущий месяц и строим пустой календарь
-          this.buildEmptyCalendar();
+        // Если в расписании есть слоты, но не выбрана дата, выбираем первую дату с доступными слотами
+        if (schedule && schedule.schedule && Object.keys(schedule.schedule).length > 0 && !this.selectedCalendarDate) {
+          const firstDate = Object.keys(schedule.schedule)[0];
+          this.selectedCalendarDate = new Date(firstDate);
+          this.updateSelectedDaySlots();
         }
         
         this.isLoading = false;
-        
-        // Сбрасываем выбранную дату
-        this.selectedCalendarDate = null;
-        this.selectedDaySlots = [];
-        
-        console.log('Загруженное расписание:', schedule);
+        this.errorMessage = '';
       },
-      error: (error: any) => {
+      error: (error) => {
+        console.error('Ошибка загрузки расписания:', error);
+        this.errorMessage = 'Не удалось загрузить расписание';
+        this.currentSchedule = null;
+        this.buildEmptyCalendar();
         this.isLoading = false;
-        
-        // Если расписания нет, строим пустой календарь
-        if (error.status === 404) {
-          console.log('Расписание не найдено для врача, отображаем пустой календарь');
-          this.buildEmptyCalendar();
-        } else {
-          this.errorMessage = 'Ошибка при загрузке расписания';
-          console.error('Ошибка загрузки расписания:', error);
-          
-          // Строим пустой календарь в случае ошибки
-          this.buildEmptyCalendar();
-        }
       }
     });
   }
@@ -540,6 +672,9 @@ export class ScheduleManagementComponent implements OnInit {
         this.saveSuccess = true;
         this.errorMessage = '';
         this.isLoading = false;
+        
+        // Сохраняем выбранные значения в localStorage
+        this.saveSelectedValuesToLocalStorage();
         
         // Автоматически сбрасываем сообщение об успехе через 3 секунды
         setTimeout(() => {
@@ -652,6 +787,9 @@ export class ScheduleManagementComponent implements OnInit {
     this.isLoading = true;
     this.currentSchedule = null;
     
+    // Сохраняем выбранные значения, чтобы они не потерялись при перезагрузке страницы
+    this.saveSelectedValuesToLocalStorage();
+    
     generateMethod(
       this.selectedDoctorId,
       this.startDate,
@@ -693,6 +831,57 @@ export class ScheduleManagementComponent implements OnInit {
         console.error('Ошибка генерации расписания:', error);
       }
     });
+  }
+
+  // Сохранение выбранных значений в localStorage
+  private saveSelectedValuesToLocalStorage(): void {
+    const selectedValues = {
+      hospitalId: this.selectedHospitalId,
+      specialityId: this.selectedSpecialityId,
+      doctorId: this.selectedDoctorId,
+      startDate: this.startDate,
+      endDate: this.endDate
+    };
+    
+    localStorage.setItem('scheduleManagement_selectedValues', JSON.stringify(selectedValues));
+    console.log('Сохранены выбранные значения в localStorage:', selectedValues);
+  }
+
+  // Восстановление выбранных значений из localStorage
+  private restoreSelectedValuesFromLocalStorage(): void {
+    const savedValues = localStorage.getItem('scheduleManagement_selectedValues');
+    if (savedValues) {
+      try {
+        const values = JSON.parse(savedValues);
+        console.log('Восстановлены значения из localStorage:', values);
+        
+        // Восстанавливаем ID больницы и загружаем специальности
+        if (values.hospitalId) {
+          this.selectedHospitalId = values.hospitalId;
+          this.loadSpecialities(values.hospitalId);
+          
+          // Восстанавливаем ID специальности и загружаем врачей, если есть
+          if (values.specialityId) {
+            this.selectedSpecialityId = values.specialityId;
+            this.loadDoctorsBySpeciality(values.hospitalId, values.specialityId);
+            
+            // Восстанавливаем ID врача и загружаем его настройки, если есть
+            if (values.doctorId) {
+              this.selectedDoctorId = values.doctorId;
+              this.settingsForm.get('doctorId')?.setValue(this.selectedDoctorId);
+              this.loadDoctorSettings(values.doctorId);
+            }
+          }
+        }
+        
+        // Восстанавливаем даты
+        if (values.startDate) this.startDate = values.startDate;
+        if (values.endDate) this.endDate = values.endDate;
+        
+      } catch (error) {
+        console.error('Ошибка при восстановлении значений из localStorage:', error);
+      }
+    }
   }
 
   // Обновление доступности слота
@@ -786,93 +975,152 @@ export class ScheduleManagementComponent implements OnInit {
 
   // Изменение доктора
   onDoctorChange(doctorId: number): void {
-    this.selectedDoctorId = doctorId;
+    console.log('Выбран врач с ID:', doctorId);
+    
+    // Проверяем, действительно ли это число
+    if (typeof doctorId === 'string') {
+      doctorId = parseInt(doctorId, 10);
+      console.log('Преобразован doctorId в число:', doctorId);
+    }
+    
+    // Устанавливаем ID врача явно
+    this.selectedDoctorId = doctorId || 0;
+    console.log('Установлен selectedDoctorId:', this.selectedDoctorId);
+    
+    // Обновляем значение DoctorId в форме
+    this.settingsForm.get('doctorId')?.setValue(this.selectedDoctorId);
+    
+    // Сбрасываем текущее расписание
+    this.currentSchedule = null;
+    
     if (doctorId > 0) {
-      this.isLoading = true;
-      this.currentSchedule = null; // Очищаем текущее расписание
-
-      // Загружаем настройки доктора
+      console.log('Загружаем настройки для врача с ID:', doctorId);
+      // Загружаем настройки для выбранного врача
       this.loadDoctorSettings(doctorId);
+      
+      // Загружаем настройки автоматической генерации для врача
+      this.loadAutoGenerationSettings();
+      
+      // Сохраняем выбранные значения
+      this.saveSelectedValuesToLocalStorage();
     } else {
-      // Очищаем форму если не выбран врач
-      this.initForm();
-      this.currentSchedule = null;
+      console.log('Не выбран врач, сбрасываем форму');
+      this.resetForm();
+      // Строим пустой календарь
       this.buildEmptyCalendar();
     }
   }
 
-  // Изменение больницы
+  // Обработка изменения больницы
   onHospitalChange(hospitalId: number): void {
+    console.log('Выбрана больница с ID:', hospitalId);
     this.selectedHospitalId = hospitalId;
-    this.selectedSpecialityId = 0;
-    this.selectedDoctorId = 0;
     
-    // Очищаем списки специальностей и врачей
+    // Сбрасываем зависимые поля
     this.specialities = [];
-    this.doctors = [];
+    this.selectedSpecialityId = 0;
+    // Не сбрасываем врача, если он уже выбран, только если больница сменилась
     
-    // Загружаем специальности для выбранной больницы
-    this.loadSpecialities(hospitalId);
+    // Только загружаем специальности для выбранной больницы
+    if (hospitalId) {
+      this.loadSpecialities(hospitalId);
+    }
+    
+    // Сохраняем текущие значения, но не сбрасываем ID врача
+    const doctorId = this.selectedDoctorId;
+    this.saveSelectedValuesToLocalStorage();
+    this.selectedDoctorId = doctorId;
+    console.log('После onHospitalChange, doctorId =', this.selectedDoctorId);
   }
 
-  // Изменение специальности
+  // Обработка изменения специальности
   onSpecialityChange(specialityId: number): void {
-    this.selectedSpecialityId = specialityId;
-    this.selectedDoctorId = 0;
+    console.log('Выбрана специальность с ID:', specialityId);
     
-    // Очищаем список врачей
+    // Сохраняем текущее значение doctorId
+    const currentDoctorId = this.selectedDoctorId;
+    
+    this.selectedSpecialityId = specialityId;
+    
+    // Сбрасываем список врачей при изменении специальности
     this.doctors = [];
     
-    // Загружаем врачей для выбранной больницы и специальности
-    this.loadDoctorsBySpeciality(this.selectedHospitalId, specialityId);
+    // Если выбрана специальность, загружаем врачей
+    if (specialityId > 0 && this.selectedHospitalId > 0) {
+      console.log('Загружаем врачей для больницы', this.selectedHospitalId, 'и специальности', specialityId);
+      this.loadDoctorsBySpeciality(this.selectedHospitalId, specialityId);
+    }
+    
+    // Сохраняем выбранные значения
+    this.saveSelectedValuesToLocalStorage();
+    
+    // Если был выбран врач, проверяем, доступен ли он всё ещё
+    if (currentDoctorId > 0) {
+      // Восстанавливаем ID врача, если он всё ещё доступен в новой специальности
+      // Это будет проверено после загрузки списка врачей в методе loadDoctorsBySpeciality
+      console.log('Пытаемся восстановить предыдущее значение doctorId =', currentDoctorId);
+    }
   }
 
   // Фильтрация больниц
   filterHospitals(): void {
-    if (!this.hospitalFilter.trim()) {
+    if (!this.hospitalFilter || this.hospitalFilter.trim() === '') {
       this.hospitals = [...this.allHospitals];
       return;
     }
     
     const filterValue = this.hospitalFilter.toLowerCase().trim();
     this.hospitals = this.allHospitals.filter(
-      hospital => hospital.name.toLowerCase().includes(filterValue)
+      hospital => hospital && hospital.name && hospital.name.toLowerCase().includes(filterValue)
     );
   }
   
   // Фильтрация специальностей
   filterSpecialities(): void {
-    if (!this.specialityFilter.trim()) {
+    if (!this.specialityFilter || this.specialityFilter.trim() === '') {
       this.specialities = [...this.allSpecialities];
       return;
     }
     
     const filterValue = this.specialityFilter.toLowerCase().trim();
     this.specialities = this.allSpecialities.filter(
-      speciality => speciality.name.toLowerCase().includes(filterValue)
+      speciality => speciality && speciality.name && speciality.name.toLowerCase().includes(filterValue)
     );
   }
   
   // Фильтрация врачей
   filterDoctors(): void {
-    if (!this.doctorFilter.trim()) {
-      // Копируем все данные, но с преобразованием типа
-      this.doctors = this.allDoctors.map(doctor => ({
-        id: doctor.doctorId,
-        name: doctor.fullName,
-        specialization: doctor.doctorsSpeciality?.name || ''
-      }));
+    console.log('Фильтрация врачей, текущий фильтр:', this.doctorFilter);
+    console.log('Все врачи перед фильтрацией:', this.allDoctors);
+    
+    if (!this.doctorFilter || this.doctorFilter.trim() === '') {
+      // Копируем все данные с правильным преобразованием типа
+      this.doctors = this.allDoctors.map(doctor => {
+        const mappedDoctor = {
+          id: doctor.doctorId,
+          name: doctor.fullName,
+          specialization: doctor.doctorsSpeciality?.name || ''
+        };
+        console.log('Преобразованный врач:', mappedDoctor);
+        return mappedDoctor;
+      });
+      console.log('Врачи после преобразования:', this.doctors);
       return;
     }
     
     const filterValue = this.doctorFilter.toLowerCase().trim();
     this.doctors = this.allDoctors
-      .filter(doctor => doctor.fullName.toLowerCase().includes(filterValue))
-      .map(doctor => ({
-        id: doctor.doctorId,
-        name: doctor.fullName,
-        specialization: doctor.doctorsSpeciality?.name || ''
-      }));
+      .filter(doctor => doctor && doctor.fullName && doctor.fullName.toLowerCase().includes(filterValue))
+      .map(doctor => {
+        const mappedDoctor = {
+          id: doctor.doctorId,
+          name: doctor.fullName,
+          specialization: doctor.doctorsSpeciality?.name || ''
+        };
+        console.log('Отфильтрованный врач:', mappedDoctor);
+        return mappedDoctor;
+      });
+    console.log('Отфильтрованные врачи:', this.doctors);
   }
 
   // Изменение периода
@@ -1501,5 +1749,759 @@ export class ScheduleManagementComponent implements OnInit {
 
   private buildCreateData() {
     // Implementation of buildCreateData method
+  }
+
+  // Проверка возможности запуска автоматической генерации
+  canStartAutoGeneration(): boolean {
+    // Проверка наличия стартовой даты
+    if (!this.autoGenerateStartDate) {
+      return false;
+    }
+
+    // Проверка корректности выбранной области генерации
+    switch (this.autoGenerateScope) {
+      case 'allHospitals':
+        // Для всех больниц не требуются дополнительные проверки
+        return true;
+      case 'selectedHospital':
+        // Должна быть выбрана больница
+        return !!this.selectedHospitalId;
+      case 'selectedSpeciality':
+        // Должны быть выбраны больница и специальность
+        return !!this.selectedHospitalId && !!this.selectedSpecialityId;
+      case 'selectedDoctor':
+        // Должен быть выбран врач
+        return !!this.selectedDoctorId;
+      default:
+        return false;
+    }
+  }
+
+  // Расчет даты окончания на основе выбранного периода
+  calculateEndDate(): void {
+    if (!this.autoGenerateStartDate) {
+      this.autoGenerateEndDate = '';
+      return;
+    }
+
+    const startDate = new Date(this.autoGenerateStartDate);
+    let endDate = new Date(startDate);
+
+    switch (this.autoGeneratePeriod) {
+      case 'week':
+        // Добавляем 7 дней к начальной дате
+        endDate.setDate(startDate.getDate() + 6); // 7 дней - 1 день = 6 (включая начальный день)
+        break;
+      case 'month':
+        // Добавляем 1 месяц к начальной дате
+        endDate.setMonth(startDate.getMonth() + 1);
+        endDate.setDate(endDate.getDate() - 1); // Последний день месяца
+        break;
+      case 'year':
+        // Добавляем 1 год к начальной дате
+        endDate.setFullYear(startDate.getFullYear() + 1);
+        endDate.setDate(endDate.getDate() - 1); // Последний день года
+        break;
+    }
+
+    this.autoGenerateEndDate = this.formatDate(endDate);
+  }
+
+  // Начать автоматическую генерацию
+  startAutoGenerate(): void {
+    if (!this.canStartAutoGeneration()) {
+      this.autoGenerateResult = 'Невозможно выполнить автоматическую генерацию. Проверьте параметры.';
+      this.autoGenerateSuccess = false;
+      this.generatedDoctorNames = []; // Очищаем список врачей
+      return;
+    }
+
+    // Запрашиваем подтверждение перед созданием новой автогенерации
+    if (!confirm('Вы уверены, что хотите создать новое расписание? Это действие заменит существующее расписание на выбранный период.')) {
+      return;
+    }
+
+    // Отображаем информацию о генерации
+    this.isLoading = true;
+    this.autoGenerateResult = 'Идет генерация расписания...';
+    this.autoGenerateSuccess = false;
+    this.generatedDoctorNames = []; // Очищаем список врачей
+    
+    // Установка времени завершения в 23:00 для текущего дня
+    const currentDate = new Date(this.autoGenerateStartDate);
+    currentDate.setHours(23, 0, 0, 0);
+    this.autoGenerateStartDate = this.formatDate(currentDate);
+    
+    // Создаем настройки расписания на основе формы
+    const settings: ScheduleSettings = {
+      doctorId: this.autoGenerateScope === 'selectedDoctor' ? this.selectedDoctorId : 
+               (this.selectedDoctorId > 0 ? this.selectedDoctorId : 1),
+      hospitalId: this.selectedHospitalId || 1,
+      workdayStart: this.settingsForm.get('workdayStart')?.value,
+      workdayEnd: this.settingsForm.get('workdayEnd')?.value,
+      slotDuration: Number(this.settingsForm.get('slotDuration')?.value),
+      breakDuration: Number(this.settingsForm.get('breakDuration')?.value),
+      lunchStart: this.settingsForm.get('lunchStart')?.value,
+      lunchEnd: this.settingsForm.get('lunchEnd')?.value,
+      workDays: this.getWorkDaysString(),
+      lunchBreak: true
+    };
+    
+    // Создаем объект настроек автогенерации
+    const autoGenSettings: AutoGenerationSettings = {
+      isEnabled: true,
+      scope: this.autoGenerateScope,
+      periodType: this.autoGeneratePeriod,
+      nextGenerationDate: this.autoGenerateStartDate,
+      scheduleSettings: settings,
+      autoGenerationSettingsId: this.autoGenerationInfo?.autoGenerationSettingsId
+    };
+    
+    // Добавляем дополнительные параметры в зависимости от выбранной области применения
+    if (this.autoGenerateScope === 'selectedHospital' && this.selectedHospitalId > 0) {
+      autoGenSettings.hospitalId = this.selectedHospitalId;
+    } else if (this.autoGenerateScope === 'selectedSpeciality' && this.selectedSpecialityId > 0) {
+      autoGenSettings.hospitalId = this.selectedHospitalId;
+      autoGenSettings.specialityId = this.selectedSpecialityId;
+    } else if (this.autoGenerateScope === 'selectedDoctor' && this.selectedDoctorId > 0) {
+      autoGenSettings.doctorId = this.selectedDoctorId;
+    }
+    
+    // Сохраняем настройки автогенерации перед началом процесса генерации
+    this.scheduleService.saveAutoGenerationSettings(autoGenSettings)
+      .subscribe({
+        next: (savedSettings) => {
+          this.autoGenerationInfo = savedSettings;
+          this.autoGenerationActive = savedSettings.isEnabled;
+          
+          // Создаем данные для автогенерации
+          const autoGenerateData = {
+            scope: this.autoGenerateScope,
+            startDate: this.autoGenerateStartDate,
+            endDate: this.autoGenerateEndDate,
+            hospitalId: autoGenSettings.hospitalId,
+            specialityId: autoGenSettings.specialityId,
+            doctorId: autoGenSettings.doctorId,
+            clearExistingSchedule: true, // Флаг для очистки существующего расписания
+            settings: settings
+          };
+          
+          // После сохранения настроек запускаем автогенерацию
+          this.executeAutoGeneration(autoGenerateData);
+        },
+        error: (error) => {
+          this.isLoading = false;
+          let errorMessage = 'Неизвестная ошибка';
+          if (error.error && typeof error.error === 'string') {
+            errorMessage = error.error;
+          } else if (error.message) {
+            errorMessage = error.message;
+          }
+          
+          this.autoGenerateResult = `Ошибка: ${errorMessage}`;
+          this.autoGenerateSuccess = false;
+          console.error('Error saving auto generation settings:', error);
+        }
+      });
+  }
+
+  // Выполнение генерации расписания
+  private executeAutoGeneration(autoGenerateData: any): void {
+    // Отправляем запрос
+    this.scheduleService.autoGenerateSchedule(autoGenerateData)
+      .subscribe({
+        next: (result) => {
+          this.isLoading = false;
+          this.autoGenerateSuccess = true;
+          
+          const totalCount = result.totalCount || 0;
+          const successCount = result.successCount || 0;
+          
+          // Если есть сообщение в ответе, используем его
+          if (result.message) {
+            this.autoGenerateResult = result.message;
+            this.autoGenerateSuccess = false;
+          } 
+          // Если список врачей доступен, добавляем его в сообщение
+          else if (result.doctorNames && Array.isArray(result.doctorNames) && result.doctorNames.length > 0) {
+            // Сохраняем список врачей для отображения
+            this.generatedDoctorNames = result.doctorNames;
+            
+            const doctorList = result.doctorNames.slice(0, 10).join(', ') + 
+                             (result.doctorNames.length > 10 ? ' и ещё ' + (result.doctorNames.length - 10) + '...' : '');
+            
+            // Проверим, что даты не слишком далеко в будущее (проблема с отображением периода)
+            const startDate = result.startDate ? new Date(result.startDate) : new Date(this.autoGenerateStartDate);
+            const endDate = result.endDate ? new Date(result.endDate) : new Date(this.autoGenerateEndDate);
+            
+            // Форматируем даты для отображения
+            const formattedStartDate = startDate.toLocaleDateString('ru-RU');
+            const formattedEndDate = endDate.toLocaleDateString('ru-RU');
+            
+            this.autoGenerateResult = `Успешно создано ${successCount} из ${totalCount} расписаний. ` +
+                                    `Период: ${formattedStartDate} - ${formattedEndDate}.`;
+          }
+          // Базовое сообщение об успехе
+          else {
+            // Форматируем даты для отображения
+            const startDate = new Date(this.autoGenerateStartDate);
+            const endDate = new Date(this.autoGenerateEndDate);
+            const formattedStartDate = startDate.toLocaleDateString('ru-RU');
+            const formattedEndDate = endDate.toLocaleDateString('ru-RU');
+            
+            this.autoGenerateResult = `Успешно создано ${successCount} из ${totalCount} расписаний ` +
+                                    `на период ${formattedStartDate} - ${formattedEndDate}.`;
+          }
+          
+          if (successCount === 0 && totalCount > 0) {
+            this.autoGenerateSuccess = false;
+            this.autoGenerateResult = `Не удалось создать ни одного расписания из ${totalCount} возможных. ` + 
+                                    `Проверьте настройки и наличие врачей.`;
+          }
+          
+          // Обновляем настройки для следующей генерации
+          this.setupNextAutoGeneration();
+          
+          // Обновляем отображение календаря, если у нас выбран конкретный врач
+          if (this.selectedDoctorId > 0 && this.autoGenerateScope === 'selectedDoctor') {
+            this.loadSchedule();
+          }
+        },
+        error: (error) => {
+          this.isLoading = false;
+          this.autoGenerateSuccess = false;
+          
+          let errorMessage = 'Произошла неизвестная ошибка при генерации расписания';
+          
+          if (error.error && typeof error.error === 'string') {
+            errorMessage = error.error;
+          } else if (error.message) {
+            errorMessage = error.message;
+          } else if (error.status === 400 && error.error) {
+            // Попытка извлечь сообщение из ответа ошибки 400
+            if (typeof error.error === 'object' && error.error.message) {
+              errorMessage = error.error.message;
+            } else if (typeof error.error === 'string') {
+              errorMessage = error.error;
+            }
+          }
+          
+          this.autoGenerateResult = `Ошибка: ${errorMessage}`;
+          console.error('Error during auto-generation of schedule:', error);
+        }
+      });
+  }
+  
+  // Настройка следующей автоматической генерации
+  setupNextAutoGeneration(): void {
+    // Определение следующей даты генерации на основе настроек периода
+    const nextStartDate = new Date(this.autoGenerateEndDate);
+    nextStartDate.setDate(nextStartDate.getDate() + 1); // Начинаем со следующего дня после окончания текущего периода
+    
+    let nextEndDate = new Date(nextStartDate);
+    
+    switch (this.autoGeneratePeriod) {
+      case 'week':
+        // Добавляем 7 дней - неделя
+        nextEndDate.setDate(nextStartDate.getDate() + 6); // -1 для включения текущего дня
+        break;
+      case 'month':
+        // Добавляем 1 месяц
+        nextEndDate.setMonth(nextStartDate.getMonth() + 1);
+        nextEndDate.setDate(nextEndDate.getDate() - 1); // Последний день месяца
+        break;
+      case 'year':
+        // Добавляем 1 год
+        nextEndDate.setFullYear(nextStartDate.getFullYear() + 1);
+        nextEndDate.setDate(nextEndDate.getDate() - 1); // Последний день года
+        break;
+    }
+    
+    // Обновление дат для следующей генерации
+    this.autoGenerateStartDate = this.formatDate(nextStartDate);
+    this.autoGenerateEndDate = this.formatDate(nextEndDate);
+    
+    console.log(`Следующая автогенерация расписания запланирована на период ${this.autoGenerateStartDate} - ${this.autoGenerateEndDate}`);
+    
+    // Если существуют настройки автогенерации, обновляем их
+    if (this.autoGenerationInfo && this.autoGenerationInfo.autoGenerationSettingsId) {
+      // Обновляем дату следующей генерации
+      const updatedSettings = {
+        ...this.autoGenerationInfo,
+        nextGenerationDate: this.autoGenerateStartDate
+      };
+      
+      // Сохраняем обновленные настройки
+      this.scheduleService.saveAutoGenerationSettings(updatedSettings)
+        .subscribe({
+          next: (savedSettings) => {
+            this.autoGenerationInfo = savedSettings;
+            console.log('Настройки автогенерации обновлены для следующего периода');
+          },
+          error: (error) => {
+            console.error('Ошибка при обновлении настроек автогенерации:', error);
+          }
+        });
+    }
+  }
+
+  // Загрузка настроек автоматической генерации
+  loadAutoGenerationSettings(): void {
+    // Получаем настройки автогенерации от сервера
+    this.scheduleService.getAutoGenerationSettings()
+      .subscribe({
+        next: (settings: AutoGenerationSettings[]) => {
+          // Проверяем, есть ли настройки
+          if (settings && settings.length > 0) {
+            let activeSettings: AutoGenerationSettings | undefined;
+            
+            // Логика выбора настроек в зависимости от текущего выбора пользователя
+            
+            // 1. Если выбран врач, ищем настройки для него
+            if (this.selectedDoctorId > 0) {
+              // Ищем настройки для конкретного врача
+              activeSettings = settings.find(s => s.isEnabled && s.doctorId === this.selectedDoctorId);
+            }
+            
+            // 2. Если выбрана специальность, ищем для нее
+            if (!activeSettings && this.selectedSpecialityId > 0 && this.selectedHospitalId > 0) {
+              activeSettings = settings.find(s => 
+                s.isEnabled && 
+                s.scope === 'selectedSpeciality' && 
+                s.specialityId === this.selectedSpecialityId &&
+                s.hospitalId === this.selectedHospitalId
+              );
+            }
+            
+            // 3. Если выбрана больница, ищем для нее
+            if (!activeSettings && this.selectedHospitalId > 0) {
+              activeSettings = settings.find(s => 
+                s.isEnabled && 
+                s.scope === 'selectedHospital' && 
+                s.hospitalId === this.selectedHospitalId
+              );
+            }
+            
+            // 4. Если администратор - проверяем глобальные настройки для всех
+            if (!activeSettings && this.userRole === 'Administrator') {
+              activeSettings = settings.find(s => 
+                s.isEnabled && 
+                s.scope === 'allHospitals'
+              );
+            }
+            
+            // 5. Если ничего не найдено, но есть активные настройки - берем первую активную
+            if (!activeSettings) {
+              activeSettings = settings.find(s => s.isEnabled);
+            }
+            
+            // Если нашли активные настройки
+            if (activeSettings) {
+              // Сохраняем информацию о настройках
+              this.autoGenerationInfo = activeSettings;
+              
+              // Устанавливаем значения из настроек
+              this.autoGenerateEnabled = true;
+              this.autoGenerateScope = activeSettings.scope;
+              this.autoGeneratePeriod = activeSettings.periodType;
+              this.autoGenerateStartDate = activeSettings.nextGenerationDate;
+              
+              // Устанавливаем флаг активности
+              this.autoGenerationActive = true;
+              
+              // Устанавливаем настройки расписания, если они есть
+              if (activeSettings.scheduleSettings) {
+                // Заполнение данных формы
+                const workDays = this.parseWorkDays(activeSettings.scheduleSettings.workDays);
+                
+                this.settingsForm.patchValue({
+                  workdayStart: activeSettings.scheduleSettings.workdayStart,
+                  workdayEnd: activeSettings.scheduleSettings.workdayEnd,
+                  slotDuration: activeSettings.scheduleSettings.slotDuration,
+                  breakDuration: activeSettings.scheduleSettings.breakDuration,
+                  lunchStart: activeSettings.scheduleSettings.lunchStart,
+                  lunchEnd: activeSettings.scheduleSettings.lunchEnd,
+                  workDays: workDays
+                });
+              }
+              
+              // Расчет даты окончания на основе даты начала и периода
+              this.calculateEndDate();
+              
+              // Установка конкретных селекторов в соответствии с настройками
+              if (activeSettings.hospitalId && this.hasHospital(activeSettings.hospitalId)) {
+                this.selectedHospitalId = activeSettings.hospitalId;
+                this.onHospitalChange(activeSettings.hospitalId);
+                
+                if (activeSettings.specialityId) {
+                  const hospId = Number(activeSettings.hospitalId);
+                  this.loadSpecialities(hospId);
+                  setTimeout(() => {
+                    this.selectedSpecialityId = activeSettings.specialityId || 0;
+                    this.onSpecialityChange(this.selectedSpecialityId);
+                    
+                    if (activeSettings.doctorId) {
+                      // Проверяем специальность перед использованием
+                      const specId = Number(activeSettings.specialityId || 0);
+                      this.loadDoctorsBySpeciality(hospId, specId);
+                      setTimeout(() => {
+                        this.selectedDoctorId = activeSettings.doctorId || 0;
+                      }, 500);
+                    }
+                  }, 500);
+                }
+              }
+            } else {
+              this.resetAutoGenerationSettings();
+            }
+          } else {
+            this.resetAutoGenerationSettings();
+          }
+        },
+        error: (error: any) => {
+          console.error('Error loading auto generation settings:', error);
+          this.resetAutoGenerationSettings();
+        }
+      });
+  }
+
+  // Сброс настроек автоматической генерации к значениям по умолчанию
+  resetAutoGenerationSettings(): void {
+    this.autoGenerateEnabled = false;
+    this.autoGenerateScope = 'selectedDoctor';
+    this.autoGeneratePeriod = 'month';
+    
+    // Создаем сегодняшнюю дату и убеждаемся, что время установлено в 00:00
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    this.autoGenerateStartDate = this.formatDate(today);
+    this.calculateEndDate();
+    
+    // Сбрасываем статус активности
+    this.autoGenerationActive = false;
+    this.autoGenerationInfo = null;
+  }
+
+  // Отключение автоматической генерации
+  disableAutoGeneration(settingsId: number): void {
+    if (!settingsId) {
+      this.autoGenerateEnabled = false;
+      this.autoGenerationActive = false;
+      this.autoGenerationInfo = null;
+      return;
+    }
+
+    this.isLoading = true;
+    this.scheduleService.disableAutoGeneration(settingsId)
+      .subscribe({
+        next: () => {
+          this.isLoading = false;
+          this.autoGenerateEnabled = false;
+          this.autoGenerateResult = 'Автоматическая генерация отключена.';
+          this.autoGenerateSuccess = true;
+          
+          // Обновляем статус активности
+          this.autoGenerationActive = false;
+          this.autoGenerationInfo = null;
+        },
+        error: (error) => {
+          this.isLoading = false;
+          let errorMessage = 'Неизвестная ошибка';
+          this.generatedDoctorNames = []; // Очищаем список врачей
+          if (error.error && typeof error.error === 'string') {
+            errorMessage = error.error;
+          } else if (error.message) {
+            errorMessage = error.message;
+          }
+          
+          this.autoGenerateResult = `Ошибка при отключении автогенерации: ${errorMessage}`;
+          this.autoGenerateSuccess = false;
+          console.error('Error disabling auto generation:', error);
+        }
+      });
+  }
+
+  // Вспомогательный метод для получения строки рабочих дней
+  getWorkDaysString(): string {
+    const workDaysArray = this.settingsForm.get('workDays')?.value || [];
+    return Array.isArray(workDaysArray) ? workDaysArray.join(',') : workDaysArray.toString();
+  }
+
+  // Сброс формы к значениям по умолчанию
+  resetForm(): void {
+    console.log('Сброс формы к значениям по умолчанию');
+    
+    // Сохраняем текущие значения doctorId и hospitalId
+    const currentDoctorId = this.selectedDoctorId;
+    const currentHospitalId = this.selectedHospitalId;
+    
+    this.settingsForm.patchValue({
+      workdayStart: '08:00',
+      workdayEnd: '17:00',
+      slotDuration: 30,
+      breakDuration: 5,
+      lunchStart: '12:00',
+      lunchEnd: '13:00',
+      workDays: [1, 2, 3, 4, 5], // По умолчанию ПН-ПТ
+      doctorId: currentDoctorId, // Сохраняем текущее значение
+      hospitalId: currentHospitalId // Сохраняем текущее значение
+    });
+    
+    console.log('Форма сброшена, doctorId =', currentDoctorId, 'hospitalId =', currentHospitalId);
+  }
+
+  // Преобразование строки рабочих дней в массив
+  parseWorkDays(workDays: string | any): number[] {
+    let workDaysArray: number[] = [];
+    
+    if (workDays) {
+      // Если workDays - строка, разбиваем по запятой и конвертируем в числа
+      if (typeof workDays === 'string') {
+        workDaysArray = workDays.split(',').map(day => parseInt(day.trim())).filter(day => !isNaN(day));
+      } 
+      // Если workDays уже массив, используем его как есть
+      else if (Array.isArray(workDays)) {
+        workDaysArray = workDays.map(d => Number(d)).filter(day => !isNaN(day));
+      }
+      // По умолчанию - пн-пт
+      else {
+        workDaysArray = [1, 2, 3, 4, 5];
+      }
+    } else {
+      // По умолчанию - пн-пт
+      workDaysArray = [1, 2, 3, 4, 5];
+    }
+    
+    return workDaysArray;
+  }
+
+  // Переключение отображения панели автогенерации
+  toggleAutoGenerationPanel(): void {
+    this.isAutoGenerationPanelOpen = !this.isAutoGenerationPanelOpen;
+    
+    // При первом открытии загружаем настройки автогенерации
+    if (this.isAutoGenerationPanelOpen && !this.autoGenerationInfo) {
+      this.loadAutoGenerationSettings();
+    }
+  }
+
+  // Отображение информации о текущих настройках автогенерации
+  showAutoGenerationInfo(event: Event): void {
+    event.stopPropagation(); // Предотвращаем сворачивание панели при клике на значок
+    
+    if (!this.autoGenerationInfo) {
+      return;
+    }
+    
+    // Формируем сообщение с информацией о настройках
+    let scopeText = '';
+    switch (this.autoGenerationInfo.scope) {
+      case 'allHospitals':
+        scopeText = 'все больницы';
+        break;
+      case 'selectedHospital':
+        const hospitalName = this.findHospitalName(this.autoGenerationInfo.hospitalId);
+        scopeText = `больницу "${hospitalName}"`;
+        break;
+      case 'selectedSpeciality':
+        const hospitalForSpec = this.findHospitalName(this.autoGenerationInfo.hospitalId);
+        const speciality = this.specialities.find(s => s.specialityId === this.autoGenerationInfo.specialityId);
+        scopeText = `специальность "${speciality?.name || ''}" в больнице "${hospitalForSpec}"`;
+        break;
+      case 'selectedDoctor':
+        const doctorName = this.findDoctorName(this.autoGenerationInfo.doctorId);
+        scopeText = `врача "${doctorName}"`;
+        break;
+    }
+    
+    let periodText = '';
+    switch (this.autoGenerationInfo.periodType) {
+      case 'week':
+        periodText = 'неделя';
+        break;
+      case 'month':
+        periodText = 'месяц';
+        break;
+      case 'year':
+        periodText = 'год';
+        break;
+    }
+    
+    // Форматируем дату
+    const nextDate = new Date(this.autoGenerationInfo.nextGenerationDate);
+    const formattedDate = `${nextDate.getDate().toString().padStart(2, '0')}.${(nextDate.getMonth() + 1).toString().padStart(2, '0')}.${nextDate.getFullYear()}`;
+    
+    const infoMessage = `Текущие настройки автогенерации:\n\n` +
+                       `Область применения: ${scopeText}\n` +
+                       `Период генерации: ${periodText}\n` +
+                       `Следующая генерация: ${formattedDate}\n`;
+    
+    alert(infoMessage);
+  }
+
+  // Обработчик изменения типа периода автогенерации (неделя/месяц/год)
+  onPeriodTypeChange(): void {
+    this.calculateEndDate();
+  }
+
+  // Обработчик изменения начальной даты автогенерации
+  onStartDateChange(): void {
+    this.calculateEndDate();
+  }
+
+  // Сохраняет настройки автоматической генерации
+  saveAutoGenerationSettings(): void {
+    if (!this.canStartAutoGeneration()) {
+      this.autoGenerateResult = 'Пожалуйста, заполните все необходимые поля';
+      this.autoGenerateSuccess = false;
+      return;
+    }
+
+    this.isLoading = true;
+    
+    // Создаем объект настроек расписания на основе формы
+    const settings: ScheduleSettings = {
+      doctorId: this.autoGenerateScope === 'selectedDoctor' ? this.selectedDoctorId : 
+               (this.selectedDoctorId > 0 ? this.selectedDoctorId : 1),
+      hospitalId: this.selectedHospitalId || 1,
+      workdayStart: this.settingsForm.get('workdayStart')?.value,
+      workdayEnd: this.settingsForm.get('workdayEnd')?.value,
+      slotDuration: Number(this.settingsForm.get('slotDuration')?.value),
+      breakDuration: Number(this.settingsForm.get('breakDuration')?.value),
+      lunchStart: this.settingsForm.get('lunchStart')?.value,
+      lunchEnd: this.settingsForm.get('lunchEnd')?.value,
+      workDays: this.getWorkDaysString(),
+      lunchBreak: true
+    };
+    
+    // Создаем объект настроек автогенерации
+    const autoGenSettings: AutoGenerationSettings = {
+      isEnabled: true,
+      scope: this.autoGenerateScope,
+      periodType: this.autoGeneratePeriod,
+      nextGenerationDate: this.autoGenerateStartDate,
+      scheduleSettings: settings,
+      autoGenerationSettingsId: this.autoGenerationInfo?.autoGenerationSettingsId
+    };
+    
+    // Добавляем дополнительные параметры в зависимости от выбранной области применения
+    if (this.autoGenerateScope === 'selectedHospital' && this.selectedHospitalId > 0) {
+      autoGenSettings.hospitalId = this.selectedHospitalId;
+    } else if (this.autoGenerateScope === 'selectedSpeciality' && this.selectedSpecialityId > 0) {
+      autoGenSettings.hospitalId = this.selectedHospitalId;
+      autoGenSettings.specialityId = this.selectedSpecialityId;
+    } else if (this.autoGenerateScope === 'selectedDoctor' && this.selectedDoctorId > 0) {
+      autoGenSettings.doctorId = this.selectedDoctorId;
+    }
+    
+    this.scheduleService.saveAutoGenerationSettings(autoGenSettings).subscribe({
+      next: (response: any) => {
+        this.autoGenerateResult = 'Настройки автогенерации успешно сохранены';
+        this.autoGenerateSuccess = true;
+        this.autoGenerationInfo = response;
+        this.autoGenerationActive = response.isEnabled;
+        this.isLoading = false;
+        this.loadAutoGenerationSettings(); // Перезагружаем настройки
+      },
+      error: (error: any) => {
+        this.autoGenerateResult = 'Ошибка при сохранении настроек: ' + (error.message || 'Неизвестная ошибка');
+        this.autoGenerateSuccess = false;
+        this.isLoading = false;
+        console.error('Ошибка сохранения настроек автогенерации:', error);
+      }
+    });
+  }
+
+  // Сброс всех выбранных значений
+  resetSelections(): void {
+    if (this.confirmAction('Вы уверены, что хотите сбросить все выбранные значения?')) {
+      console.log('Сброс всех выбранных значений');
+      
+      this.selectedHospitalId = 0;
+      this.selectedSpecialityId = 0;
+      this.selectedDoctorId = 0;
+      
+      this.hospitals = [];
+      this.specialities = [];
+      this.doctors = [];
+      
+      this.resetForm();
+      
+      // Очищаем текущее расписание
+      this.currentSchedule = null;
+      this.buildEmptyCalendar();
+      
+      // Очищаем localStorage
+      localStorage.removeItem('scheduleManagement_selectedValues');
+      
+      // Сбрасываем сообщения
+      this.errorMessage = '';
+      this.saveSuccess = false;
+      
+      // Если текущий пользователь - администратор, загружаем список больниц
+      if (this.userRole === 'Administrator') {
+        this.loadHospitals();
+      }
+    }
+  }
+
+  // Подтверждение действия через диалог
+  confirmAction(message: string): boolean {
+    return confirm(message);
+  }
+  
+  // Добавляем новый метод для обработки ошибок получения настроек
+  private getDefaultSettings(): ScheduleSettings {
+    return {
+      doctorId: this.selectedDoctorId,
+      hospitalId: this.selectedHospitalId,
+      workdayStart: '08:00',
+      workdayEnd: '17:00',
+      slotDuration: 30,
+      breakDuration: 5,
+      lunchStart: '12:00',
+      lunchEnd: '13:00',
+      workDays: '1,2,3,4,5',
+      lunchBreak: true
+    };
+  }
+
+  // Выбор врача
+  onDoctorSelect(doctorId: number): void {
+    console.log('Выбран врач с ID:', doctorId);
+    
+    // Убедимся, что doctorId не null и не 0
+    if (!doctorId) {
+      console.error('Ошибка: ID врача не передан');
+      return;
+    }
+    
+    // Сохраняем ID врача
+    this.selectedDoctorId = doctorId;
+    console.log('Сохранен ID врача:', this.selectedDoctorId);
+    
+    // Выбор врача на форме
+    this.settingsForm.get('doctorId')?.setValue(doctorId);
+    
+    // Сохраняем значения в localStorage
+    this.saveSelectedValuesToLocalStorage();
+    
+    // Загружаем настройки расписания выбранного врача
+    this.loadDoctorSettings(doctorId);
+  }
+
+  // Установка дефолтных дат для периода расписания
+  private setDefaultDates(): void {
+    const today = new Date();
+    // Начало периода - текущая дата
+    this.startDate = today.toISOString().split('T')[0];
+    
+    // Конец периода - через 2 недели от текущей даты
+    const endDate = new Date(today);
+    endDate.setDate(today.getDate() + 14);
+    this.endDate = endDate.toISOString().split('T')[0];
+    
+    console.log('Установлены дефолтные даты периода:', this.startDate, '-', this.endDate);
   }
 } 
