@@ -20,6 +20,7 @@ namespace DAL
         public DbSet<TimeSlot> TimeSlots { get; set; }
         public DbSet<DoctorScheduleSettings> DoctorScheduleSettings { get; set; }
         public DbSet<AppointmentMedicalDetails> AppointmentMedicalDetails { get; set; }
+        public DbSet<AutoGenerationSettings> AutoGenerationSettings { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

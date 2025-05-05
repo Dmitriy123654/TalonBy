@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using BLL.Services;
-
+using Microsoft.Extensions.Logging;
 
 namespace TalonBy.Controllers
 {
@@ -16,10 +16,12 @@ namespace TalonBy.Controllers
     public class ScheduleController : ControllerBase
     {
         private readonly IScheduleService _scheduleService;
+        private readonly ILogger<ScheduleController> _logger;
 
-        public ScheduleController(IScheduleService scheduleService)
+        public ScheduleController(IScheduleService scheduleService, ILogger<ScheduleController> logger)
         {
             _scheduleService = scheduleService;
+            _logger = logger;
         }
 
         [HttpGet("settings/{doctorId}")]
@@ -233,6 +235,186 @@ namespace TalonBy.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, $"Ошибка при удалении расписания: {ex.Message}");
+            }
+        }
+
+        // Автоматическая генерация расписания для разных областей применения
+        [HttpPost("auto-generate")]
+        [Authorize(Roles = "ChiefDoctor,MedicalStaff,Administrator")]
+        public async Task<IActionResult> AutoGenerateSchedule([FromBody] AutoGenerateScheduleRequestViewModel request)
+        {
+            try
+            {
+                if (request == null || request.Settings == null)
+                {
+                    return BadRequest("Настройки расписания не могут быть пустыми");
+                }
+                
+                if (string.IsNullOrEmpty(request.Scope))
+                {
+                    return BadRequest("Необходимо указать область применения");
+                }
+                
+                // Добавляем проверки для разных областей
+                switch (request.Scope)
+                {
+                    case "selectedHospital":
+                        if (!request.HospitalId.HasValue)
+                        {
+                            return BadRequest("Для области 'selectedHospital' необходимо указать ID больницы");
+                        }
+                        break;
+                        
+                    case "selectedSpeciality":
+                        if (!request.HospitalId.HasValue)
+                        {
+                            return BadRequest("Для области 'selectedSpeciality' необходимо указать ID больницы");
+                        }
+                        if (!request.SpecialityId.HasValue)
+                        {
+                            return BadRequest("Для области 'selectedSpeciality' необходимо указать ID специальности");
+                        }
+                        break;
+                        
+                    case "selectedDoctor":
+                        if (!request.DoctorId.HasValue)
+                        {
+                            return BadRequest("Для области 'selectedDoctor' необходимо указать ID врача");
+                        }
+                        break;
+                }
+                
+                var result = await _scheduleService.AutoGenerateScheduleAsync(request);
+                
+                // Анализируем результат
+                if (result is Dictionary<string, object> resultDict && 
+                    resultDict.TryGetValue("successCount", out var successCount) && 
+                    resultDict.TryGetValue("totalCount", out var totalCount))
+                {
+                    int successCountInt = Convert.ToInt32(successCount);
+                    int totalCountInt = Convert.ToInt32(totalCount);
+                    
+                    // Если не удалось создать ни одного расписания, но врачи были найдены
+                    if (successCountInt == 0 && totalCountInt > 0)
+                    {
+                        return Ok(new {
+                            totalCount = totalCountInt,
+                            successCount = successCountInt,
+                            scope = request.Scope,
+                            startDate = request.StartDate.ToString("yyyy-MM-dd"),
+                            endDate = request.EndDate.ToString("yyyy-MM-dd"),
+                            message = "Не удалось создать ни одного расписания. Проверьте настройки и наличие врачей."
+                        });
+                    }
+                }
+                
+                return Ok(result);
+            }
+            catch (ArgumentNullException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Ошибка при автоматической генерации расписания: {ex.Message}");
+            }
+        }
+        
+        // Установка настроек для периодической автоматической генерации
+        [HttpPost("auto-generate/settings")]
+        [Authorize(Roles = "ChiefDoctor,MedicalStaff,Administrator")]
+        public async Task<IActionResult> SaveAutoGenerationSettings([FromBody] AutoGenerationSettingsViewModel model)
+        {
+            try
+            {
+                if (model == null || model.ScheduleSettings == null)
+                {
+                    return BadRequest("Настройки автоматической генерации не могут быть пустыми");
+                }
+                
+                var settings = await _scheduleService.SaveAutoGenerationSettingsAsync(model);
+                return Ok(settings);
+            }
+            catch (ArgumentNullException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Ошибка при сохранении настроек автоматической генерации: {ex.Message}");
+            }
+        }
+        
+        // Получение настроек автоматической генерации для врача
+        [HttpGet("auto-generate/settings/doctor/{doctorId}")]
+        [Authorize(Roles = "Doctor,ChiefDoctor,MedicalStaff,Administrator")]
+        public async Task<IActionResult> GetAutoGenerationSettingsForDoctor(int doctorId)
+        {
+            try
+            {
+                var settings = await _scheduleService.GetAutoGenerationSettingsForDoctorAsync(doctorId);
+                
+                if (settings == null)
+                {
+                    return NotFound("Настройки автоматической генерации для врача не найдены");
+                }
+                
+                return Ok(settings);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Ошибка при получении настроек автоматической генерации: {ex.Message}");
+            }
+        }
+        
+        // Отключение автоматической генерации
+        [HttpDelete("auto-generate/settings/{settingsId}")]
+        [Authorize(Roles = "ChiefDoctor,MedicalStaff,Administrator")]
+        public async Task<IActionResult> DisableAutoGeneration(int settingsId)
+        {
+            try
+            {
+                var result = await _scheduleService.DisableAutoGenerationAsync(settingsId);
+                
+                if (result)
+                {
+                    return Ok(true);
+                }
+                
+                return NotFound("Настройки автоматической генерации не найдены");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Ошибка при отключении автоматической генерации: {ex.Message}");
+            }
+        }
+        
+        // Получение всех активных настроек автоматической генерации (для админов)
+        [HttpGet("auto-generate/settings")]
+        [Authorize(Roles = "Administrator,ChiefDoctor,Doctor")]
+        public async Task<ActionResult<IEnumerable<AutoGenerationSettingsViewModel>>> GetAutoGenerationSettings()
+        {
+            try
+            {
+                var settings = await _scheduleService.GetAllActiveAutoGenerationSettingsAsync();
+                return Ok(settings);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при получении настроек автоматической генерации");
+                return StatusCode(500, "Ошибка при получении настроек автоматической генерации");
             }
         }
     }
