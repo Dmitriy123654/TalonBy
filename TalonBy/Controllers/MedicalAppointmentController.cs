@@ -85,5 +85,33 @@ namespace TalonBy.Controllers
             var appointments = await _medicalAppointmentService.GetMedicalAppointmentsAsync(parameters);
             return Ok(appointments);
         }
+        
+        [HttpGet("GetByPatientId/{patientId}")]
+        public async Task<ActionResult<IEnumerable<MedicalAppointment>>> GetByPatientId(int patientId)
+        {
+            var appointments = await _medicalAppointmentService.GetMedicalAppointmentsByPatientIdAsync(patientId);
+            return Ok(appointments);
+        }
+        
+        [HttpGet("GetByPatientCardId/{patientCardId}")]
+        public async Task<ActionResult<IEnumerable<MedicalAppointment>>> GetByPatientCardId(int patientCardId)
+        {
+            var appointments = await _medicalAppointmentService.GetMedicalAppointmentsByPatientCardIdAsync(patientCardId);
+            return Ok(appointments);
+        }
+        
+        [HttpPut("UpdatePatientCard/{appointmentId}")]
+        public async Task<IActionResult> UpdatePatientCard(int appointmentId, [FromBody] int patientCardId)
+        {
+            try
+            {
+                await _medicalAppointmentService.UpdateAppointmentPatientCardAsync(appointmentId, patientCardId);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }

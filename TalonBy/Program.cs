@@ -146,6 +146,13 @@ namespace TalonBy
             builder.Services.AddTransient<IAppointmentMedicalDetailsRepository, AppointmentMedicalDetailsRepository>();
             builder.Services.AddScoped<IAutoGenerationSettingsRepository, AutoGenerationSettingsRepository>();
 
+            // Register PatientCard repositories and services
+            builder.Services.AddScoped<IPatientCardRepository, PatientCardRepository>();
+            builder.Services.AddScoped<IPatientAllergyRepository, PatientAllergyRepository>();
+            builder.Services.AddScoped<IPatientChronicConditionRepository, PatientChronicConditionRepository>();
+            builder.Services.AddScoped<IPatientImmunizationRepository, PatientImmunizationRepository>();
+            builder.Services.AddScoped<IPatientCardService, PatientCardService>();
+
             // Создадим новый класс для запланированной очистки refresh токенов
             builder.Services.AddHostedService<BLL.Services.TokenCleanupService>();
             builder.Services.AddHostedService<TalonBy.Services.ScheduleGenerationBackgroundService>();
