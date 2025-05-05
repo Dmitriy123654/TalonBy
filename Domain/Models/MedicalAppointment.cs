@@ -2,8 +2,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Numerics;
 
-
-
 namespace Domain.Models
 {
     public class MedicalAppointment 
@@ -15,6 +13,7 @@ namespace Domain.Models
         public int PatientId { get; set; }
         public int DoctorId { get; set; }
         public int ReceptionStatusId { get; set; }
+        public int? PatientCardId { get; set; }
 
         [Required]
         [Column(TypeName = "date")]
@@ -23,11 +22,16 @@ namespace Domain.Models
         [Required]
         public TimeSpan Time { get; set; }
 
+        public DateTime? NextAppointmentDate { get; set; }
+
         [ForeignKey("HospitalId")]
         public virtual Hospital Hospital { get; set; }
 
         [ForeignKey("PatientId")]
         public virtual Patient Patient { get; set; }
+
+        [ForeignKey("PatientCardId")]
+        public virtual PatientCard PatientCard { get; set; }
 
         [ForeignKey("DoctorId")]
         public virtual Doctor Doctor { get; set; }

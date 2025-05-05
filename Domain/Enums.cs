@@ -26,4 +26,23 @@
         Waiting,
         Cancelled
     }
+
+    public enum BloodType
+    {
+        APositive,
+        ANegative,
+        BPositive, 
+        BNegative,
+        ABPositive,
+        ABNegative,
+        OPositive,
+        ONegative
+    }
+
+    public enum AllergySeverity
+    {
+        Low,
+        Medium,
+        High
+    }
 }
