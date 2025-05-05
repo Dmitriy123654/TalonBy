@@ -60,13 +60,10 @@ namespace TalonBy.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            // Check if patient exists if specified
-            if (viewModel.PatientId.HasValue)
-            {
-                var patientExists = await _patientService.PatientExistsAsync(viewModel.PatientId.Value);
-                if (!patientExists)
-                    return BadRequest("Specified patient does not exist");
-            }
+            // Check if patient exists
+            var patientExists = await _patientService.PatientExistsAsync(viewModel.PatientId);
+            if (!patientExists)
+                return BadRequest("Specified patient does not exist");
 
             var patientCard = MapToModel(viewModel);
             var createdPatientCard = await _patientCardService.AddPatientCardAsync(patientCard);
@@ -296,14 +293,33 @@ namespace TalonBy.Controllers
         // Mapping methods
         private PatientCardViewModel MapToViewModel(PatientCard patientCard)
         {
+            string bloodTypeString = null;
+            if (patientCard.BloodType.HasValue)
+            {
+                // Map enum values to frontend string representation
+                switch (patientCard.BloodType.Value)
+                {
+                    case BloodType.OPositive: bloodTypeString = "O+"; break;
+                    case BloodType.ONegative: bloodTypeString = "O-"; break;
+                    case BloodType.APositive: bloodTypeString = "A+"; break;
+                    case BloodType.ANegative: bloodTypeString = "A-"; break;
+                    case BloodType.BPositive: bloodTypeString = "B+"; break;
+                    case BloodType.BNegative: bloodTypeString = "B-"; break;
+                    case BloodType.ABPositive: bloodTypeString = "AB+"; break;
+                    case BloodType.ABNegative: bloodTypeString = "AB-"; break;
+                    default: bloodTypeString = patientCard.BloodType.ToString(); break;
+                }
+            }
+
             return new PatientCardViewModel
             {
                 PatientCardId = patientCard.PatientCardId,
-                FullName = patientCard.FullName,
-                DateOfBirth = patientCard.DateOfBirth,
-                BloodType = patientCard.BloodType?.ToString(),
+                BloodType = bloodTypeString,
                 LastUpdate = patientCard.LastUpdate,
                 PatientId = patientCard.PatientId,
+                PatientName = patientCard.Patient?.Name,
+                PatientDateOfBirth = patientCard.Patient?.DateOfBirth,
+                PatientGender = patientCard.Patient?.Gender.ToString(),
                 Allergies = patientCard.Allergies?.Select(MapToViewModel).ToList() ?? new List<PatientAllergyViewModel>(),
                 ChronicConditions = patientCard.ChronicConditions?.Select(MapToViewModel).ToList() ?? new List<PatientChronicConditionViewModel>(),
                 Immunizations = patientCard.Immunizations?.Select(MapToViewModel).ToList() ?? new List<PatientImmunizationViewModel>()
@@ -313,18 +329,35 @@ namespace TalonBy.Controllers
         private PatientCard MapToModel(PatientCardViewModel viewModel)
         {
             BloodType? bloodType = null;
-            if (!string.IsNullOrEmpty(viewModel.BloodType) && Enum.TryParse<BloodType>(viewModel.BloodType, out var parsedBloodType))
+            if (!string.IsNullOrEmpty(viewModel.BloodType))
             {
-                bloodType = parsedBloodType;
+                // Map frontend blood type strings to C# enum values
+                switch (viewModel.BloodType)
+                {
+                    case "O+": bloodType = BloodType.OPositive; break;
+                    case "O-": bloodType = BloodType.ONegative; break;
+                    case "A+": bloodType = BloodType.APositive; break;
+                    case "A-": bloodType = BloodType.ANegative; break;
+                    case "B+": bloodType = BloodType.BPositive; break;
+                    case "B-": bloodType = BloodType.BNegative; break;
+                    case "AB+": bloodType = BloodType.ABPositive; break;
+                    case "AB-": bloodType = BloodType.ABNegative; break;
+                    default:
+                        // Fallback to enum parsing if direct mapping fails
+                        if (Enum.TryParse<BloodType>(viewModel.BloodType, out var parsedBloodType))
+                        {
+                            bloodType = parsedBloodType;
+                        }
+                        break;
+                }
             }
 
             return new PatientCard
             {
                 PatientCardId = viewModel.PatientCardId,
-                FullName = viewModel.FullName,
-                DateOfBirth = viewModel.DateOfBirth,
                 BloodType = bloodType,
-                PatientId = viewModel.PatientId
+                PatientId = viewModel.PatientId,
+                LastUpdate = viewModel.LastUpdate != default ? viewModel.LastUpdate : DateTime.Now
             };
         }
 

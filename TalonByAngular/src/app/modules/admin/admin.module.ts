@@ -5,6 +5,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { AdminComponent } from './admin.component';
 import { ScheduleManagementComponent } from './schedule-management/schedule-management.component';
 import { AppointmentsManagementComponent } from './appointments-management/appointments-management.component';
+import { PatientManagementComponent } from './patient-management/patient-management.component';
 
 const routes: Routes = [
   {
@@ -17,7 +18,8 @@ const routes: Routes = [
   declarations: [
     AdminComponent,
     ScheduleManagementComponent,
-    AppointmentsManagementComponent
+    AppointmentsManagementComponent,
+    PatientManagementComponent
   ],
   imports: [
     CommonModule,

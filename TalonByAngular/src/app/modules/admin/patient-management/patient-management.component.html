@@ -1,0 +1,450 @@
+<div class="patient-management">
+  <!-- Сообщения об ошибках и успехе -->
+  <div class="alerts">
+    <div *ngIf="errorMessage" class="alert alert-error">
+      <i class="icon-error"></i>
+      <span>{{ errorMessage }}</span>
+      <button (click)="errorMessage = ''" class="close-btn">×</button>
+    </div>
+    <div *ngIf="successMessage" class="alert alert-success">
+      <i class="icon-success"></i>
+      <span>{{ successMessage }}</span>
+      <button (click)="successMessage = ''" class="close-btn">×</button>
+    </div>
+  </div>
+  
+  <!-- Индикатор загрузки -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="spinner"></div>
+  </div>
+  
+  <!-- Список пациентов -->
+  <div class="patient-list-section" *ngIf="showPatientList">
+    <div class="section-header">
+      <h2>Список пациентов</h2>
+      <div class="search-controls">
+        <form [formGroup]="searchForm" class="search-form">
+          <div class="search-filter-wrapper">
+            <div class="search-group">
+              <input 
+                type="text" 
+                formControlName="searchText" 
+                placeholder="Поиск пациентов..."
+                (input)="applyFilter()"
+                class="search-input"
+              >
+              <i class="icon-search"></i>
+            </div>
+            <div class="filter-group">
+              <label>Поиск по:</label>
+              <select formControlName="filterBy" (change)="applyFilter()" class="filter-select">
+                <option value="name">Имя</option>
+                <option value="gender">Пол</option>
+                <option value="dateOfBirth">Дата рождения</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+    
+    <div class="patient-list">
+      <div class="patient-list-header">
+        <div class="header-column">Имя</div>
+        <div class="header-column">Пол</div>
+        <div class="header-column">Дата рождения</div>
+        <div class="header-column">Адрес</div>
+        <div class="header-column">Действия</div>
+      </div>
+      
+      <div *ngIf="filteredPatients.length === 0" class="no-patients">
+        <p>Пациенты не найдены</p>
+      </div>
+      
+      <div *ngFor="let patient of filteredPatients" class="patient-item" (click)="viewPatientDetails(patient)">
+        <div class="patient-column patient-name">{{ patient.name }}</div>
+        <div class="patient-column">{{ patient.gender }}</div>
+        <div class="patient-column">{{ patient.dateOfBirth | date:'dd.MM.yyyy' }}</div>
+        <div class="patient-column">{{ patient.address }}</div>
+        <div class="patient-column">
+          <button class="btn btn-sm btn-accent">Просмотр</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Детальная информация о пациенте -->
+  <div class="patient-detail-section" *ngIf="showPatientDetails">
+    <div class="back-navigation">
+      <button class="btn btn-secondary" (click)="backToPatientList()">
+        <i class="icon-back"></i> Назад к списку пациентов
+      </button>
+    </div>
+    
+    <div class="patient-info-card">
+      <div class="patient-header">
+        <h2>Информация о пациенте</h2>
+        <div class="patient-info">
+          <div class="info-item">
+            <span class="info-label">Имя:</span>
+            <span class="info-value">{{ selectedPatient?.name }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Пол:</span>
+            <span class="info-value">{{ selectedPatient?.gender }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Дата рождения:</span>
+            <span class="info-value">{{ selectedPatient?.dateOfBirth | date:'dd.MM.yyyy' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Адрес:</span>
+            <span class="info-value">{{ selectedPatient?.address }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Карточка пациента -->
+    <div class="patient-card-section">
+      <h2>Медицинская карта</h2>
+      
+      <!-- Если карточка не найдена -->
+      <div *ngIf="!selectedPatientCard" class="no-patient-card">
+        <p>Медицинская карта не найдена для данного пациента.</p>
+        <button class="btn btn-primary" (click)="openPatientCardModal()">Создать медицинскую карту</button>
+      </div>
+      
+      <!-- Если карточка найдена -->
+      <div *ngIf="selectedPatientCard" class="patient-card">
+        <div class="card-section">
+          <h3>Основная информация</h3>
+          <div class="patient-card-info">
+            <div class="info-item">
+              <span class="info-label">Группа крови:</span>
+              <span class="info-value">{{ selectedPatientCard.bloodType || 'Не указана' }}</span>
+              <button class="btn btn-sm btn-edit" (click)="openBloodTypeModal()">Изменить</button>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Последнее обновление:</span>
+              <span class="info-value">{{ selectedPatientCard.lastUpdate | date:'dd.MM.yyyy HH:mm' }}</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Аллергии -->
+        <div class="card-section">
+          <div class="section-header">
+            <h3>Аллергии</h3>
+            <button class="btn btn-sm btn-add" (click)="openAllergyModal()">Добавить</button>
+          </div>
+          
+          <div *ngIf="!selectedPatientCard.allergies || selectedPatientCard.allergies.length === 0" class="no-data">
+            <p>Информация об аллергиях отсутствует</p>
+          </div>
+          
+          <div *ngIf="selectedPatientCard.allergies && selectedPatientCard.allergies.length > 0" class="data-list">
+            <div class="data-list-header">
+              <div class="header-column">Название</div>
+              <div class="header-column">Степень тяжести</div>
+              <div class="header-column">Действия</div>
+            </div>
+            
+            <div *ngFor="let allergy of selectedPatientCard.allergies" class="data-item">
+              <div class="data-column">{{ allergy.allergyName }}</div>
+              <div class="data-column">
+                <span class="severity-badge" [ngClass]="'severity-' + allergy.severity.toLowerCase()">
+                  {{ getSeverityTranslation(allergy.severity) }}
+                </span>
+              </div>
+              <div class="data-column actions">
+                <button class="btn btn-sm btn-edit" (click)="openAllergyModal(allergy)">
+                  Изменить
+                </button>
+                <button class="btn btn-sm btn-delete" (click)="deleteAllergy(allergy.allergyId)">
+                  Удалить
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Хронические заболевания -->
+        <div class="card-section">
+          <div class="section-header">
+            <h3>Хронические заболевания</h3>
+            <button class="btn btn-sm btn-add" (click)="openChronicConditionModal()">Добавить</button>
+          </div>
+          
+          <div *ngIf="!selectedPatientCard.chronicConditions || selectedPatientCard.chronicConditions.length === 0" class="no-data">
+            <p>Информация о хронических заболеваниях отсутствует</p>
+          </div>
+          
+          <div *ngIf="selectedPatientCard.chronicConditions && selectedPatientCard.chronicConditions.length > 0" class="data-list">
+            <div class="data-list-header">
+              <div class="header-column">Название</div>
+              <div class="header-column">Дата диагностики</div>
+              <div class="header-column">Действия</div>
+            </div>
+            
+            <div *ngFor="let condition of selectedPatientCard.chronicConditions" class="data-item">
+              <div class="data-column">{{ condition.conditionName }}</div>
+              <div class="data-column">{{ condition.diagnosedDate | date:'dd.MM.yyyy' }}</div>
+              <div class="data-column actions">
+                <button class="btn btn-sm btn-edit" (click)="openChronicConditionModal(condition)">
+                  Изменить
+                </button>
+                <button class="btn btn-sm btn-delete" (click)="deleteChronicCondition(condition.conditionId)">
+                  Удалить
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Иммунизации -->
+        <div class="card-section">
+          <div class="section-header">
+            <h3>Иммунизации</h3>
+            <button class="btn btn-sm btn-add" (click)="openImmunizationModal()">Добавить</button>
+          </div>
+          
+          <div *ngIf="!selectedPatientCard.immunizations || selectedPatientCard.immunizations.length === 0" class="no-data">
+            <p>Информация об иммунизациях отсутствует</p>
+          </div>
+          
+          <div *ngIf="selectedPatientCard.immunizations && selectedPatientCard.immunizations.length > 0" class="data-list">
+            <div class="data-list-header">
+              <div class="header-column">Название вакцины</div>
+              <div class="header-column">Дата вакцинации</div>
+              <div class="header-column">Действия</div>
+            </div>
+            
+            <div *ngFor="let immunization of selectedPatientCard.immunizations" class="data-item">
+              <div class="data-column">{{ immunization.vaccineName }}</div>
+              <div class="data-column">{{ immunization.vaccinationDate | date:'dd.MM.yyyy' }}</div>
+              <div class="data-column actions">
+                <button class="btn btn-sm btn-edit" (click)="openImmunizationModal(immunization)">
+                  Изменить
+                </button>
+                <button class="btn btn-sm btn-delete" (click)="deleteImmunization(immunization.immunizationId)">
+                  Удалить
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Модальные окна для создания/редактирования записей -->
+  
+  <!-- Модальное окно для добавления аллергии -->
+  <div class="modal-overlay" *ngIf="showAllergyModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3>{{ editingAllergy ? 'Редактировать аллергию' : 'Добавить аллергию' }}</h3>
+        <button class="modal-close" (click)="cancelAllergyEdit()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form [formGroup]="allergyForm" (ngSubmit)="saveAllergy()">
+          <div class="form-group">
+            <label for="allergyName">Название аллергии</label>
+            <input 
+              type="text" 
+              id="allergyName" 
+              formControlName="allergyName" 
+              placeholder="Введите название аллергии"
+              class="form-control"
+            >
+            <div class="form-error" *ngIf="allergyForm.get('allergyName')?.invalid && allergyForm.get('allergyName')?.touched">
+              Название аллергии обязательно
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="allergySeverity">Степень тяжести</label>
+            <select id="allergySeverity" formControlName="severity" class="form-control">
+              <option value="Low">Низкая</option>
+              <option value="Medium">Средняя</option>
+              <option value="High">Высокая</option>
+            </select>
+            <div class="form-error" *ngIf="allergyForm.get('severity')?.invalid && allergyForm.get('severity')?.touched">
+              Степень тяжести обязательна
+            </div>
+          </div>
+          
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" (click)="cancelAllergyEdit()">Отмена</button>
+            <button type="submit" class="btn btn-primary" [disabled]="allergyForm.invalid">Сохранить</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно для создания карточки пациента -->
+  <div class="modal-overlay" *ngIf="showPatientCardModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3>Создание медицинской карты</h3>
+        <button class="modal-close" (click)="cancelPatientCardCreation()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form [formGroup]="patientCardForm">
+          <div class="form-group">
+            <label for="bloodType">Группа крови</label>
+            <select id="bloodType" formControlName="bloodType" class="form-control" required>
+              <option *ngFor="let type of bloodTypes" [value]="type">{{ type }}</option>
+            </select>
+            <div *ngIf="patientCardForm.get('bloodType')?.invalid && patientCardForm.get('bloodType')?.touched" class="error-message">
+              Группа крови обязательна
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="cancelPatientCardCreation()">Отмена</button>
+        <button class="btn btn-primary" (click)="createPatientCard()" [disabled]="patientCardForm.invalid">Создать</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно для редактирования группы крови -->
+  <div class="modal-overlay" *ngIf="showBloodTypeModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3>Изменение группы крови</h3>
+        <button class="modal-close" (click)="cancelBloodTypeEdit()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form [formGroup]="bloodTypeForm">
+          <div class="form-group">
+            <label for="bloodTypeEdit">Группа крови</label>
+            <select id="bloodTypeEdit" formControlName="bloodType" class="form-control" required>
+              <option *ngFor="let type of bloodTypes" [value]="type">{{ type }}</option>
+            </select>
+            <div *ngIf="bloodTypeForm.get('bloodType')?.invalid && bloodTypeForm.get('bloodType')?.touched" class="error-message">
+              Группа крови обязательна
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="cancelBloodTypeEdit()">Отмена</button>
+        <button class="btn btn-primary" (click)="saveBloodType()" [disabled]="bloodTypeForm.invalid">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно для добавления/редактирования хронического заболевания -->
+  <div class="modal-overlay" *ngIf="showChronicConditionModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3>{{ editingChronicCondition ? 'Редактировать заболевание' : 'Добавить заболевание' }}</h3>
+        <button class="modal-close" (click)="cancelChronicConditionEdit()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form [formGroup]="chronicConditionForm" (ngSubmit)="saveChronicCondition()">
+          <div class="form-group">
+            <label for="conditionName">Название заболевания</label>
+            <input 
+              type="text" 
+              id="conditionName" 
+              formControlName="conditionName" 
+              placeholder="Введите название заболевания"
+              class="form-control"
+            >
+            <div class="form-error" *ngIf="chronicConditionForm.get('conditionName')?.invalid && chronicConditionForm.get('conditionName')?.touched">
+              Название заболевания обязательно
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="diagnosedDate">Дата диагностики</label>
+            <input 
+              type="date" 
+              id="diagnosedDate" 
+              formControlName="diagnosedDate" 
+              class="form-control"
+              [min]="minDate"
+              [max]="today"
+            >
+            <div class="form-error" *ngIf="chronicConditionForm.get('diagnosedDate')?.invalid && chronicConditionForm.get('diagnosedDate')?.touched">
+              <div *ngIf="chronicConditionForm.get('diagnosedDate')?.errors?.['required']">
+                Дата диагностики обязательна
+              </div>
+              <div *ngIf="chronicConditionForm.get('diagnosedDate')?.errors?.['dateBeforeMin']">
+                Дата диагностики не может быть ранее 1980 года
+              </div>
+              <div *ngIf="chronicConditionForm.get('diagnosedDate')?.errors?.['dateAfterMax']">
+                Дата диагностики не может быть позже текущей даты
+              </div>
+            </div>
+          </div>
+          
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" (click)="cancelChronicConditionEdit()">Отмена</button>
+            <button type="submit" class="btn btn-primary" [disabled]="chronicConditionForm.invalid">Сохранить</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно для добавления/редактирования иммунизации -->
+  <div class="modal-overlay" *ngIf="showImmunizationModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3>{{ editingImmunization ? 'Редактировать иммунизацию' : 'Добавить иммунизацию' }}</h3>
+        <button class="modal-close" (click)="cancelImmunizationEdit()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form [formGroup]="immunizationForm" (ngSubmit)="saveImmunization()">
+          <div class="form-group">
+            <label for="vaccineName">Название вакцины</label>
+            <input 
+              type="text" 
+              id="vaccineName" 
+              formControlName="vaccineName" 
+              placeholder="Введите название вакцины"
+              class="form-control"
+            >
+            <div class="form-error" *ngIf="immunizationForm.get('vaccineName')?.invalid && immunizationForm.get('vaccineName')?.touched">
+              Название вакцины обязательно
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="vaccinationDate">Дата вакцинации</label>
+            <input 
+              type="date" 
+              id="vaccinationDate" 
+              formControlName="vaccinationDate" 
+              class="form-control"
+              [min]="minDate"
+              [max]="today"
+            >
+            <div class="form-error" *ngIf="immunizationForm.get('vaccinationDate')?.invalid && immunizationForm.get('vaccinationDate')?.touched">
+              <div *ngIf="immunizationForm.get('vaccinationDate')?.errors?.['required']">
+                Дата вакцинации обязательна
+              </div>
+              <div *ngIf="immunizationForm.get('vaccinationDate')?.errors?.['dateBeforeMin']">
+                Дата вакцинации не может быть ранее 1980 года
+              </div>
+              <div *ngIf="immunizationForm.get('vaccinationDate')?.errors?.['dateAfterMax']">
+                Дата вакцинации не может быть позже текущей даты
+              </div>
+            </div>
+          </div>
+          
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" (click)="cancelImmunizationEdit()">Отмена</button>
+            <button type="submit" class="btn btn-primary" [disabled]="immunizationForm.invalid">Сохранить</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div> 

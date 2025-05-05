@@ -13,8 +13,8 @@
         <li *ngIf="isTabVisible('schedule')" class="tab" [class.active]="activeTab === 'schedule'" (click)="setActiveTab('schedule')">
           Управление расписанием
         </li>
-        <li *ngIf="isTabVisible('personalData')" class="tab" [class.active]="activeTab === 'personalData'" (click)="setActiveTab('personalData')">
-          Личные данные
+        <li *ngIf="isTabVisible('patients')" class="tab" [class.active]="activeTab === 'patients'" (click)="setActiveTab('patients')">
+          Пациенты
         </li>
       </ul>
     </div>
@@ -32,14 +32,10 @@
         <app-schedule-management *ngIf="!isLoading"></app-schedule-management>
       </div>
 
-      <!-- Personal Data tab content -->
-      <div class="personal-data-section" *ngIf="activeTab === 'personalData'">
-        <h2>Управление личными данными</h2>
-        <p class="empty-state">
-          Здесь будет размещена информация для управления личными данными пользователей.
-          <br>
-          Функциональность находится в разработке.
-        </p>
+      <!-- Patients tab content -->
+      <div class="patients-section" *ngIf="activeTab === 'patients'">
+        <h2>Управление пациентами</h2>
+        <app-patient-management *ngIf="!isLoading"></app-patient-management>
       </div>
     </div>
   </div>

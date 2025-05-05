@@ -129,7 +129,7 @@ export class AdminComponent implements OnInit {
         return ['Doctor', 'ChiefDoctor', 'MedicalStaff', 'SystemAnalyst', 'Administrator'].includes(this.userRole);
       case 'schedule':
         return ['Doctor', 'ChiefDoctor', 'MedicalStaff', 'SystemAnalyst', 'Administrator'].includes(this.userRole);
-      case 'personalData':
+      case 'patients':
         return ['Doctor', 'ChiefDoctor', 'MedicalStaff', 'SystemAnalyst', 'Administrator'].includes(this.userRole);
       default:
         return false;

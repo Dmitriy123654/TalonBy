@@ -8,21 +8,13 @@ namespace Domain.Models
         [Key]
         public int PatientCardId { get; set; }
 
-        [Required]
-        [StringLength(100)]
-        public string FullName { get; set; }
-
-        [Required]
-        [Column(TypeName = "date")]
-        public DateTime DateOfBirth { get; set; }
-
         public BloodType? BloodType { get; set; }
 
-        [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
         public DateTime LastUpdate { get; set; } = DateTime.Now;
 
         // Reference to existing Patient
-        public int? PatientId { get; set; }
+        [Required]
+        public int PatientId { get; set; }
 
         [ForeignKey("PatientId")]
         public virtual Patient Patient { get; set; }

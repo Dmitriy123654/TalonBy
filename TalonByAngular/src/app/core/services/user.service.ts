@@ -6,6 +6,7 @@ import { environment } from '../../../environments/environment';
 import { User, Patient } from '../../shared/interfaces/user.interface';
 import { AuthService, UserInfo } from './auth.service';
 import { MedicalAppointmentDTO } from '../../shared/interfaces/medical-appointment.interface';
+import { PatientCardService } from './patient-card.service';
 
 @Injectable({
   providedIn: 'root',
@@ -20,7 +21,8 @@ export class UserService {
   
   constructor(
     private http: HttpClient,
-    private authService: AuthService
+    private authService: AuthService,
+    private patientCardService: PatientCardService
   ) {
     // Инициализируем только при первом запуске, не делаем запрос сразу
     const cachedUser = localStorage.getItem('user_profile_cache');
@@ -229,7 +231,7 @@ export class UserService {
       serverPatient,
       { withCredentials: true }
     ).pipe(
-      map(response => {
+      switchMap(response => {
         // Преобразуем ответ сервера в нашу модель
         const newPatient: Patient = {
           patientId: response.patientId,
@@ -240,25 +242,41 @@ export class UserService {
           address: response.address
         };
         
-        // Сбрасываем кеш, чтобы при следующем запросе получить актуальные данные
-        this.lastProfileFetch = 0;
-        localStorage.removeItem('user_profile_cache');
-        localStorage.removeItem('user_profile_timestamp');
+        // Автоматически создаем медицинскую карту для нового пациента
+        const patientCard = {
+          patientId: newPatient.patientId,
+          bloodType: null
+        };
         
-        // Обновляем состояние - если есть текущие данные
-        const currentUser = this.currentUserSubject.value;
-        if (currentUser) {
-          const updatedPatients = [...(currentUser.patients || []), newPatient];
-          this.currentUserSubject.next({
-            ...currentUser,
-            patients: updatedPatients
-          });
-        }
-        
-        return newPatient;
-      }),
-      catchError(error => {
-        throw error;
+        return this.patientCardService.createPatientCard(patientCard).pipe(
+          map(() => {
+            console.log('Медицинская карта автоматически создана для пациента ID:', newPatient.patientId);
+            return newPatient;
+          }),
+          catchError(error => {
+            console.error('Ошибка при создании медицинской карты:', error);
+            return of(newPatient); // Возвращаем пациента даже в случае ошибки
+          }),
+          tap(() => {
+            // Сбрасываем кеш, чтобы при следующем запросе получить актуальные данные
+            this.lastProfileFetch = 0;
+            localStorage.removeItem('user_profile_cache');
+            localStorage.removeItem('user_profile_timestamp');
+            
+            // Обновляем состояние - если есть текущие данные
+            const currentUser = this.currentUserSubject.value;
+            if (currentUser) {
+              const updatedPatients = currentUser.patients ? [...currentUser.patients, newPatient] : [newPatient];
+              
+              const updatedUser: User = {
+                ...currentUser,
+                patients: updatedPatients
+              };
+              
+              this.currentUserSubject.next(updatedUser);
+            }
+          })
+        );
       })
     );
   }

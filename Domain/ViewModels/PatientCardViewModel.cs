@@ -9,18 +9,17 @@ namespace Domain.ViewModels
     {
         public int PatientCardId { get; set; }
 
-        [Required(ErrorMessage = "Full name is required")]
-        [StringLength(100, ErrorMessage = "Full name cannot be longer than 100 characters")]
-        public string FullName { get; set; }
-
-        [Required(ErrorMessage = "Date of birth is required")]
-        public DateTime DateOfBirth { get; set; }
-
         public string BloodType { get; set; }
 
         public DateTime LastUpdate { get; set; }
 
-        public int? PatientId { get; set; }
+        [Required(ErrorMessage = "Patient is required")]
+        public int PatientId { get; set; }
+        
+        // Дополнительные поля для отображения информации о пациенте
+        public string PatientName { get; set; }
+        public DateTime? PatientDateOfBirth { get; set; }
+        public string PatientGender { get; set; }
 
         public List<PatientAllergyViewModel> Allergies { get; set; } = new List<PatientAllergyViewModel>();
         public List<PatientChronicConditionViewModel> ChronicConditions { get; set; } = new List<PatientChronicConditionViewModel>();
