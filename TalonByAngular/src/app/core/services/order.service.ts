@@ -221,6 +221,6 @@ export class OrderService {
   
   // Обновление статуса слота (делаем недоступным после создания записи)
   updateTimeSlotStatus(slotId: number, isAvailable: boolean): Observable<any> {
-    return this.http.put<any>(`${this.apiUrl}/Schedule/slot/${slotId}`, { isAvailable });
+    return this.http.patch<any>(`${this.apiUrl}/Schedule/slots/${slotId}`, { isAvailable });
   }
 } 

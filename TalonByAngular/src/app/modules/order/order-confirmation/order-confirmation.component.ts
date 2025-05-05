@@ -96,6 +96,30 @@ export class OrderConfirmationComponent implements OnInit, OnDestroy {
   loadOrderDetails(): void {
     this.isLoading = true;
 
+    // Проверяем, была ли успешно создана запись ранее
+    const isConfirmed = localStorage.getItem('appointmentConfirmed') === 'true';
+    if (isConfirmed) {
+      this.isConfirmed = true;
+      this.isSuccess = true;
+      
+      // Загружаем данные о последней созданной записи для отображения
+      try {
+        const lastAppointmentInfo = localStorage.getItem('lastAppointmentInfo');
+        if (lastAppointmentInfo) {
+          const appointmentInfo = JSON.parse(lastAppointmentInfo);
+          // Создаем минимальные объекты для отображения информации
+          this.doctor = { fullName: appointmentInfo.doctorName } as DoctorDetails;
+          this.hospital = { name: appointmentInfo.hospitalName } as Hospital;
+          this.appointmentTime = appointmentInfo.time;
+        }
+      } catch (error) {
+        console.error('Ошибка при загрузке информации о последней записи:', error);
+      }
+      
+      this.isLoading = false;
+      return;
+    }
+
     this.hospital = this.orderService.getSelectedHospital();
     this.doctor = this.orderService.getSelectedDoctor();
     
@@ -230,6 +254,11 @@ export class OrderConfirmationComponent implements OnInit, OnDestroy {
       next: (response) => {
         this.isLoading = false;
         this.isSuccess = true;
+        this.isConfirmed = true;
+        
+        // Сохраняем информацию об успешном создании записи в localStorage
+        localStorage.setItem('appointmentConfirmed', 'true');
+        
         // После успешного создания записи обновляем статус слота (делаем недоступным)
         if (this.timeSlot) {
           this.orderService.updateTimeSlotStatus(this.timeSlot.id, false)
@@ -243,6 +272,15 @@ export class OrderConfirmationComponent implements OnInit, OnDestroy {
               }
             });
         }
+        
+        // Сохраняем минимальную информацию о записи для отображения после обновления страницы
+        const appointmentInfo = {
+          doctorName: this.doctor?.fullName,
+          hospitalName: this.hospital?.name,
+          date: this.formatSelectedDate(),
+          time: this.formatSelectedTime()
+        };
+        localStorage.setItem('lastAppointmentInfo', JSON.stringify(appointmentInfo));
         
         // Очищаем данные заказа из localStorage
         localStorage.removeItem('selectedPatient');
@@ -259,10 +297,18 @@ export class OrderConfirmationComponent implements OnInit, OnDestroy {
   }
 
   viewAppointments(): void {
+    // Очищаем информацию о подтверждении предыдущей записи
+    localStorage.removeItem('appointmentConfirmed');
+    localStorage.removeItem('lastAppointmentInfo');
+    
     this.router.navigate(['/profile'], { queryParams: { tab: 'appointments' } });
   }
 
   createNewAppointment(): void {
+    // Очищаем информацию о подтверждении предыдущей записи
+    localStorage.removeItem('appointmentConfirmed');
+    localStorage.removeItem('lastAppointmentInfo');
+    
     this.orderService.clearOrderData();
     this.router.navigate(['/order']);
   }

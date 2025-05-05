@@ -608,13 +608,16 @@ export class AppointmentsManagementComponent implements OnInit, OnDestroy {
     if (!dateString) return '';
     
     try {
-      // Parse the date string (which should be in YYYY-MM-DD format)
-      const [year, month, day] = dateString.split('-').map(Number);
+      // Используем сразу new Date с датой в формате ISO (YYYY-MM-DD), она корректно парсится
+      const date = new Date(dateString);
       
-      // Create a date object using local timezone
-      const date = new Date(year, month - 1, day);
+      // Проверяем валидность даты
+      if (isNaN(date.getTime())) {
+        console.error('Invalid date:', dateString);
+        return dateString;
+      }
       
-      // Format as DD.MM.YYYY
+      // Форматируем в DD.MM.YYYY
       return date.toLocaleDateString('ru-RU', {
         day: '2-digit',
         month: '2-digit',
