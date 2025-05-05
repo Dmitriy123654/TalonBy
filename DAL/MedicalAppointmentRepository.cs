@@ -40,7 +40,13 @@ namespace DAL
 
         public async Task<MedicalAppointment> GetByIdAsync(int id)
         {
-            return await _dbContext.MedicalAppointments.FindAsync(id);
+            return await _dbContext.MedicalAppointments
+                .Include(a => a.Hospital)
+                .Include(a => a.Patient)
+                .Include(a => a.Doctor)
+                .Include(a => a.ReceptionStatus)
+                .Include(a => a.PatientCard)
+                .FirstOrDefaultAsync(a => a.MedicalAppointmentId == id);
         }
 
         public async Task<IEnumerable<MedicalAppointmentDTO>> GetAllAsync(MedicalAppointmentSearchParameters parameters)
@@ -50,6 +56,7 @@ namespace DAL
                 .Include(a => a.Patient)
                 .Include(a => a.Doctor)
                 .Include(a => a.ReceptionStatus)
+                .Include(a => a.PatientCard)
                 .AsQueryable();
 
             if (parameters.HospitalId.HasValue)
@@ -85,10 +92,45 @@ namespace DAL
                 DoctorSpecialty = a.Doctor.DoctorsSpeciality.Name,
                 ReceptionStatus = a.ReceptionStatus.Status.ToString(),
                 Date = a.Date,
-                Time = a.Time
+                Time = a.Time,
+                PatientCardId = a.PatientCardId
             }).ToListAsync();
 
             return result;
+        }
+
+        public async Task<IEnumerable<MedicalAppointment>> GetByPatientIdAsync(int patientId)
+        {
+            return await _dbContext.MedicalAppointments
+                .Include(a => a.Hospital)
+                .Include(a => a.Patient)
+                .Include(a => a.Doctor)
+                .Include(a => a.ReceptionStatus)
+                .Include(a => a.PatientCard)
+                .Where(a => a.PatientId == patientId)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<MedicalAppointment>> GetByPatientCardIdAsync(int patientCardId)
+        {
+            return await _dbContext.MedicalAppointments
+                .Include(a => a.Hospital)
+                .Include(a => a.Patient)
+                .Include(a => a.Doctor)
+                .Include(a => a.ReceptionStatus)
+                .Include(a => a.PatientCard)
+                .Where(a => a.PatientCardId == patientCardId)
+                .ToListAsync();
+        }
+
+        public async Task UpdatePatientCardAsync(int appointmentId, int patientCardId)
+        {
+            var appointment = await _dbContext.MedicalAppointments.FindAsync(appointmentId);
+            if (appointment != null)
+            {
+                appointment.PatientCardId = patientCardId;
+                await _dbContext.SaveChangesAsync();
+            }
         }
     }
 }
