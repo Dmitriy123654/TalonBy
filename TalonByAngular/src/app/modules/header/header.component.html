@@ -1,15 +1,15 @@
 <header>
   <div class="wrapper">
-    <a class="logo" routerLink="/">ТалонBy</a>
+    <a class="logo" routerLink="/">ОнлайMed</a>
     
     <nav class="menu-container">
       <ul class="header-menu">
         <li><a routerLink="/order">Талоны</a></li>
-        <li><a routerLink="/paid-services">Платные услуги</a></li>
+        <!-- <li><a routerLink="/paid-services">Платные услуги</a></li> -->
         <li><a routerLink="/medical-institutions">Медучреждения</a></li>
-        <li><a routerLink="/analyses">Анализы</a></li>
+        <!-- <li><a routerLink="/analyses">Анализы</a></li> -->
         <li><a routerLink="/medicines">Лекарства</a></li>
-        <li><a routerLink="/blog">Блог</a></li>
+        <!-- <li><a routerLink="/blog">Блог</a></li> -->
       </ul>
     </nav>
 
@@ -51,11 +51,11 @@
         <!-- Add admin settings as first item when logged in and has admin access -->
         <li *ngIf="isLoggedIn && hasAdminAccess"><a routerLink="/admin">Настройки</a></li>
         <li><a routerLink="/order">Талоны</a></li>
-        <li><a routerLink="/paid-services">Платные услуги</a></li>
+        <!-- <li><a routerLink="/paid-services">Платные услуги</a></li> -->
         <li><a routerLink="/medical-institutions">Медучреждения</a></li>
-        <li><a routerLink="/analyses">Анализы</a></li>
+        <!-- <li><a routerLink="/analyses">Анализы</a></li> -->
         <li><a routerLink="/medicines">Лекарства</a></li>
-        <li><a routerLink="/blog">Блог</a></li>
+        <!-- <li><a routerLink="/blog">Блог</a></li> -->
         <li *ngIf="isLoggedIn"><a routerLink="/profile">Профиль</a></li>
         <li *ngIf="isLoggedIn"><a href="#" (click)="logout(); $event.preventDefault()">Выйти</a></li>
         <li *ngIf="!isLoggedIn"><a routerLink="/login">Войти</a></li>
