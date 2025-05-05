@@ -17,6 +17,9 @@ namespace BLL.Services
         Task DeleteMedicalAppointmentAsync(int id);
         Task<MedicalAppointment> GetMedicalAppointmentByIdAsync(int id);
         Task<IEnumerable<MedicalAppointmentDTO>> GetMedicalAppointmentsAsync(MedicalAppointmentSearchParameters parameters);
+        Task<IEnumerable<MedicalAppointment>> GetMedicalAppointmentsByPatientIdAsync(int patientId);
+        Task<IEnumerable<MedicalAppointment>> GetMedicalAppointmentsByPatientCardIdAsync(int patientCardId);
+        Task UpdateAppointmentPatientCardAsync(int appointmentId, int patientCardId);
     }
 
     public class MedicalAppointmentService : IMedicalAppointmentService
@@ -41,7 +44,8 @@ namespace BLL.Services
                 DoctorId = model.DoctorId,
                 ReceptionStatusId = model.ReceptionStatusId,
                 Date = model.Date,
-                Time = model.Time
+                Time = model.Time,
+                PatientCardId = model.PatientCardId
             };
             return await _medicalAppointmentRepository.CreateAsync(appointment);
         }
@@ -57,25 +61,26 @@ namespace BLL.Services
 
             try
             {
-            // Создаем запись о приеме
-            var appointment = new MedicalAppointment
-            {
-                HospitalId = timeSlot.HospitalId ?? throw new Exception("В TimeSlot отсутствует HospitalId"),
-                PatientId = patientId,
-                DoctorId = timeSlot.DoctorId,
+                // Создаем запись о приеме
+                var appointment = new MedicalAppointment
+                {
+                    HospitalId = timeSlot.HospitalId ?? throw new Exception("В TimeSlot отсутствует HospitalId"),
+                    PatientId = patientId,
+                    DoctorId = timeSlot.DoctorId,
                     // Статус ожидания (Waiting) имеет ID=4 в базе
                     ReceptionStatusId = 4, // Status.Waiting - жестко задаем ID=4, так как это точно существует в БД
-                Date = timeSlot.Date,
+                    Date = timeSlot.Date,
                     Time = timeSlot.Time
-            };
+                    // PatientCardId будет установлен позже, если необходимо
+                };
 
-            // Создаем запись и обновляем timeSlot (помечаем как занятый)
-            var createdAppointment = await _medicalAppointmentRepository.CreateAsync(appointment);
+                // Создаем запись и обновляем timeSlot (помечаем как занятый)
+                var createdAppointment = await _medicalAppointmentRepository.CreateAsync(appointment);
             
-            timeSlot.IsAvailable = false;
-            await _timeSlotRepository.UpdateTimeSlotAsync(timeSlot);
+                timeSlot.IsAvailable = false;
+                await _timeSlotRepository.UpdateTimeSlotAsync(timeSlot);
 
-            return createdAppointment;
+                return createdAppointment;
             }
             catch (Exception ex)
             {
@@ -95,6 +100,7 @@ namespace BLL.Services
             appointment.ReceptionStatusId = model.ReceptionStatusId;
             appointment.Date = model.Date;
             appointment.Time = model.Time;
+            appointment.PatientCardId = model.PatientCardId;
 
             await _medicalAppointmentRepository.UpdateAsync(appointment);
         }
@@ -129,6 +135,21 @@ namespace BLL.Services
         public async Task<IEnumerable<MedicalAppointmentDTO>> GetMedicalAppointmentsAsync(MedicalAppointmentSearchParameters parameters)
         {
             return await _medicalAppointmentRepository.GetAllAsync(parameters);
+        }
+
+        public async Task<IEnumerable<MedicalAppointment>> GetMedicalAppointmentsByPatientIdAsync(int patientId)
+        {
+            return await _medicalAppointmentRepository.GetByPatientIdAsync(patientId);
+        }
+
+        public async Task<IEnumerable<MedicalAppointment>> GetMedicalAppointmentsByPatientCardIdAsync(int patientCardId)
+        {
+            return await _medicalAppointmentRepository.GetByPatientCardIdAsync(patientCardId);
+        }
+
+        public async Task UpdateAppointmentPatientCardAsync(int appointmentId, int patientCardId)
+        {
+            await _medicalAppointmentRepository.UpdatePatientCardAsync(appointmentId, patientCardId);
         }
     }
 }
