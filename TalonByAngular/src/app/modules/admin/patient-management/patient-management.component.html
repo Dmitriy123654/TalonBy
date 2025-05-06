@@ -63,7 +63,7 @@
       
       <div *ngFor="let patient of filteredPatients" class="patient-item" (click)="viewPatientDetails(patient)">
         <div class="patient-column patient-name">{{ patient.name }}</div>
-        <div class="patient-column">{{ patient.gender }}</div>
+        <div class="patient-column">{{ getGenderDisplayName(patient.gender) }}</div>
         <div class="patient-column">{{ patient.dateOfBirth | date:'dd.MM.yyyy' }}</div>
         <div class="patient-column">{{ patient.address }}</div>
         <div class="patient-column">
@@ -84,23 +84,26 @@
     <div class="patient-info-card">
       <div class="patient-header">
         <h2>Информация о пациенте</h2>
-        <div class="patient-info">
-          <div class="info-item">
-            <span class="info-label">Имя:</span>
-            <span class="info-value">{{ selectedPatient?.name }}</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">Пол:</span>
-            <span class="info-value">{{ selectedPatient?.gender }}</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">Дата рождения:</span>
-            <span class="info-value">{{ selectedPatient?.dateOfBirth | date:'dd.MM.yyyy' }}</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">Адрес:</span>
-            <span class="info-value">{{ selectedPatient?.address }}</span>
-          </div>
+        <button class="btn btn-edit" (click)="openPatientEditModal()">
+          <i class="icon-edit"></i> Редактировать
+        </button>
+      </div>
+      <div class="patient-info">
+        <div class="info-item">
+          <span class="info-label">Имя:</span>
+          <span class="info-value">{{ selectedPatient?.name }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Пол:</span>
+          <span class="info-value">{{ selectedPatient?.gender === 0 ? 'Мужской' : 'Женский' }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Дата рождения:</span>
+          <span class="info-value">{{ selectedPatient?.dateOfBirth | date:'dd.MM.yyyy' }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Адрес:</span>
+          <span class="info-value">{{ selectedPatient?.address || 'Не указан' }}</span>
         </div>
       </div>
     </div>
@@ -442,6 +445,79 @@
           <div class="modal-actions">
             <button type="button" class="btn btn-secondary" (click)="cancelImmunizationEdit()">Отмена</button>
             <button type="submit" class="btn btn-primary" [disabled]="immunizationForm.invalid">Сохранить</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно для редактирования пациента -->
+  <div class="modal-overlay" *ngIf="showPatientEditModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3>Редактировать информацию о пациенте</h3>
+        <button class="modal-close" (click)="cancelPatientEdit()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form [formGroup]="patientEditForm" (ngSubmit)="savePatientEdit()">
+          <div class="form-group">
+            <label for="patientName">Полное имя*</label>
+            <input 
+              type="text" 
+              id="patientName" 
+              formControlName="name" 
+              class="form-control"
+              [class.is-invalid]="patientNameInvalid"
+            >
+            <div class="error-feedback" *ngIf="patientNameInvalid">
+              Имя пациента обязательно
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="patientGender">Пол*</label>
+            <select 
+              id="patientGender" 
+              formControlName="gender" 
+              class="form-control"
+            >
+              <option value="0">Мужской</option>
+              <option value="1">Женский</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="patientDateOfBirth">Дата рождения*</label>
+            <input 
+              type="date" 
+              id="patientDateOfBirth" 
+              formControlName="dateOfBirth" 
+              class="form-control"
+              [max]="today"
+              [class.is-invalid]="patientBirthDateInvalid"
+            >
+            <div class="error-feedback" *ngIf="patientBirthDateInvalid">
+              Выберите корректную дату рождения
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="patientAddress">Адрес</label>
+            <input 
+              type="text" 
+              id="patientAddress" 
+              formControlName="address" 
+              class="form-control"
+              [class.is-invalid]="patientAddressInvalid"
+            >
+            <div class="error-feedback" *ngIf="patientAddressInvalid">
+              Адрес слишком длинный (макс. 200 символов)
+            </div>
+          </div>
+          
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" (click)="cancelPatientEdit()">Отмена</button>
+            <button type="submit" class="btn btn-primary">Сохранить</button>
           </div>
         </form>
       </div>

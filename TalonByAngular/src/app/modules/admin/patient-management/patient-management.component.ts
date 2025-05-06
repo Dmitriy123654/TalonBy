@@ -47,6 +47,11 @@ export class PatientManagementComponent implements OnInit {
   today = new Date().toISOString().split('T')[0]; // Used to limit date inputs
   minDate = '1980-01-01'; // Minimum date for validation
   
+  // Patient edit form
+  patientEditForm: FormGroup;
+  isPatientFormSubmitted: boolean = false;
+  showPatientEditModal: boolean = false;
+  
   constructor(
     private patientService: PatientService,
     private patientCardService: PatientCardService,
@@ -94,6 +99,17 @@ export class PatientManagementComponent implements OnInit {
         ]
       ]
     });
+
+    // Add patient edit form
+    this.patientEditForm = this.fb.group({
+      name: ['', [Validators.required, Validators.maxLength(100)]],
+      gender: ['0'],
+      dateOfBirth: ['', [
+        Validators.required,
+        this.dateRangeValidator(new Date('1900-01-01'), new Date())
+      ]],
+      address: ['', Validators.maxLength(200)]
+    });
   }
 
   ngOnInit(): void {
@@ -134,8 +150,7 @@ export class PatientManagementComponent implements OnInit {
         case 'name':
           return (patient.name || '').toLowerCase().includes(searchText);
         case 'gender':
-          const gender = (patient.gender || '').toString().toLowerCase();
-          return gender.includes(searchText);
+          return this.getGenderDisplayName(patient.gender).toLowerCase().includes(searchText);
         case 'dateOfBirth':
           if (!patient.dateOfBirth) return false;
           try {
@@ -148,6 +163,18 @@ export class PatientManagementComponent implements OnInit {
           return (patient.name || '').toLowerCase().includes(searchText);
       }
     });
+  }
+
+  // Helper method to convert gender value to display text
+  getGenderDisplayName(gender: number): string {
+    if (gender === undefined || gender === null) return '';
+    
+    // Convert numeric gender to string
+    switch(gender) {
+      case 0: return 'Мужской';
+      case 1: return 'Женский';
+      default: return `Пол ${gender}`;
+    }
   }
 
   viewPatientDetails(patient: any): void {
@@ -762,5 +789,105 @@ export class PatientManagementComponent implements OnInit {
     this.showPatientDetails = false;
     this.selectedPatient = null;
     this.selectedPatientCard = null;
+  }
+
+  // Open modal to edit patient
+  openPatientEditModal(): void {
+    if (!this.selectedPatient) return;
+    
+    this.isPatientFormSubmitted = false;
+    
+    // Reset and fill the form with patient data
+    this.patientEditForm.reset({
+      name: this.selectedPatient.name || '',
+      gender: this.selectedPatient.gender?.toString() || '0',
+      dateOfBirth: this.formatDateForInput(this.selectedPatient.dateOfBirth) || '',
+      address: this.selectedPatient.address || ''
+    });
+    
+    this.showPatientEditModal = true;
+  }
+  
+  // Cancel patient edit
+  cancelPatientEdit(): void {
+    this.showPatientEditModal = false;
+    this.isPatientFormSubmitted = false;
+  }
+  
+  // Save patient edit
+  savePatientEdit(): void {
+    this.isPatientFormSubmitted = true;
+    
+    if (this.patientEditForm.invalid) {
+      return;
+    }
+    
+    this.isLoading = true;
+    
+    const updatedPatient = {
+      patientId: this.selectedPatient.patientId,
+      name: this.patientEditForm.get('name')?.value,
+      gender: parseInt(this.patientEditForm.get('gender')?.value, 10),
+      dateOfBirth: new Date(this.patientEditForm.get('dateOfBirth')?.value),
+      address: this.patientEditForm.get('address')?.value
+    };
+    
+    this.patientService.updatePatient(updatedPatient).subscribe({
+      next: (response) => {
+        console.log('Patient updated:', response);
+        
+        // Update the selected patient with new data
+        this.selectedPatient = response;
+        
+        // Also update the patient in the patients array
+        const index = this.patients.findIndex(p => p.patientId === this.selectedPatient.patientId);
+        if (index !== -1) {
+          this.patients[index] = response;
+          this.filteredPatients = [...this.patients];
+        }
+        
+        this.showPatientEditModal = false;
+        this.isPatientFormSubmitted = false;
+        this.successMessage = 'Данные пациента успешно обновлены.';
+        setTimeout(() => this.successMessage = '', 3000);
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('Error updating patient:', error);
+        this.errorMessage = 'Ошибка при обновлении данных пациента.';
+        if (error.error && typeof error.error === 'string') {
+          this.errorMessage += ` ${error.error}`;
+        }
+        setTimeout(() => this.errorMessage = '', 5000);
+        this.isLoading = false;
+      }
+    });
+  }
+  
+  // Helper method to format date for input fields
+  formatDateForInput(dateString: string): string {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      return date.toISOString().split('T')[0];
+    } catch (e) {
+      return '';
+    }
+  }
+  
+  // Form validation getters
+  get patientNameInvalid(): boolean {
+    const control = this.patientEditForm.get('name');
+    return control?.invalid && (control?.touched || this.isPatientFormSubmitted) ? true : false;
+  }
+  
+  get patientBirthDateInvalid(): boolean {
+    const control = this.patientEditForm.get('dateOfBirth');
+    return control?.invalid && (control?.touched || this.isPatientFormSubmitted) ? true : false;
+  }
+  
+  get patientAddressInvalid(): boolean {
+    const control = this.patientEditForm.get('address');
+    return control?.invalid && (control?.touched || this.isPatientFormSubmitted) ? true : false;
   }
 } 
