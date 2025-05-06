@@ -1,0 +1,153 @@
+<div class="user-management">
+  <!-- Сообщения об ошибках и успехе -->
+  <div class="alerts">
+    <div *ngIf="errorMessage" class="alert alert-error">
+      <i class="icon-error"></i>
+      <span>{{ errorMessage }}</span>
+      <button (click)="errorMessage = ''" class="close-btn">×</button>
+    </div>
+    <div *ngIf="successMessage" class="alert alert-success">
+      <i class="icon-success"></i>
+      <span>{{ successMessage }}</span>
+      <button (click)="successMessage = ''" class="close-btn">×</button>
+    </div>
+  </div>
+  
+  <!-- Индикатор загрузки -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <div class="spinner"></div>
+  </div>
+  
+  <!-- Список пользователей -->
+  <div class="user-list-section" *ngIf="showUserList">
+    <div class="section-header">
+      <h2>Список пользователей</h2>
+      <div class="search-controls">
+        <form [formGroup]="searchForm" class="search-form">
+          <div class="search-filter-wrapper">
+            <div class="search-group">
+              <input 
+                type="text" 
+                formControlName="searchText" 
+                placeholder="Поиск пользователей..."
+                (input)="applyFilter()"
+                class="search-input"
+              >
+              <i class="icon-search"></i>
+            </div>
+            <div class="filter-group">
+              <label>Поиск по:</label>
+              <select formControlName="filterBy" (change)="applyFilter()" class="filter-select">
+                <option value="email">Email</option>
+                <option value="role">Роль</option>
+                <option value="phone">Телефон</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+    
+    <div class="user-list">
+      <div class="user-list-header">
+        <div class="header-column">Email</div>
+        <div class="header-column">Роль</div>
+        <div class="header-column">Телефон</div>
+        <div class="header-column">Действия</div>
+      </div>
+      
+      <div *ngIf="filteredUsers.length === 0" class="no-users">
+        <p>Пользователи не найдены</p>
+      </div>
+      
+      <div *ngFor="let user of filteredUsers" class="user-item" (click)="viewUserDetails(user)">
+        <div class="user-column user-email">{{ user.email }}</div>
+        <div class="user-column">{{ getRoleDisplayName(user.role) }}</div>
+        <div class="user-column">{{ user.phone || 'Не указано' }}</div>
+        <div class="user-column">
+          <button class="btn btn-sm btn-accent">Просмотр</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Детальная информация о пользователе -->
+  <div class="user-detail-section" *ngIf="showUserDetails">
+    <div class="back-navigation">
+      <button class="btn btn-secondary" (click)="backToUserList()">
+        <i class="icon-back"></i> Назад к списку пользователей
+      </button>
+    </div>
+    
+    <div class="user-info-card">
+      <div class="user-header">
+        <h2>Информация о пользователе</h2>
+      </div>
+      
+      <div class="user-edit-form">
+        <form [formGroup]="editUserForm">
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" formControlName="email" class="form-control" required 
+                   pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$" 
+                   [class.is-invalid]="emailInvalid && isUserFormSubmitted">
+            <div class="error-feedback" *ngIf="emailInvalid && isUserFormSubmitted">
+              Введите корректный email
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="phone">Телефон</label>
+            <input type="tel" id="phone" formControlName="phone" class="form-control" 
+                   [mask]="'(00)000-00-00'"
+                   prefix="+375"
+                   [showMaskTyped]="true"
+                   [dropSpecialCharacters]="false"
+                   [clearIfNotMatch]="false"
+                   [class.is-invalid]="phoneInvalid && isUserFormSubmitted">
+            <div class="error-feedback" *ngIf="phoneInvalid && isUserFormSubmitted">
+              Формат: +375 (XX) XXX-XX-XX
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="role">Роль</label>
+            <select id="role" formControlName="role" class="form-control">
+              <option value="Patient">Пациент</option>
+              <option value="Doctor">Врач</option>
+              <option value="ChiefDoctor">Главный врач</option>
+              <option value="Administrator">Администратор</option>
+              <option value="SystemAnalyst">Системный аналитик</option>
+              <option value="MedicalStaff">Медицинский персонал</option>
+            </select>
+          </div>
+          
+          <div class="form-actions">
+            <button type="button" class="btn btn-primary" (click)="saveUserSettings()">Сохранить изменения</button>
+          </div>
+        </form>
+      </div>
+      
+      <div class="password-section">
+        <h3>Изменение пароля</h3>
+        <div class="form-group">
+          <label for="newPassword">Новый пароль</label>
+          <input type="password" id="newPassword" [(ngModel)]="passwordChange.newPassword" class="form-control"
+                 [class.is-invalid]="newPasswordInvalid && isPasswordFormSubmitted">
+          <div class="error-feedback" *ngIf="newPasswordInvalid && isPasswordFormSubmitted">
+            Пароль должен содержать минимум 6 символов, хотя бы одну заглавную букву и цифру
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="confirmPassword">Подтверждение пароля</label>
+          <input type="password" id="confirmPassword" [(ngModel)]="passwordChange.confirmPassword" class="form-control"
+                 [class.is-invalid]="confirmPasswordInvalid && isPasswordFormSubmitted">
+          <div class="error-feedback" *ngIf="confirmPasswordInvalid && isPasswordFormSubmitted">
+            Пароли не совпадают
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-primary" (click)="changeUserPassword()">Изменить пароль</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div> 
