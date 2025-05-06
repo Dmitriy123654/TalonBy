@@ -80,7 +80,7 @@ export class UserService {
           
           // Then get detailed profile data
           return this.http.get<any>(
-            `${environment.apiUrl}/users/profile`,
+            `${environment.apiUrl}/auth/profile`,
             { withCredentials: true }
           ).pipe(
             map(profileData => {
@@ -149,7 +149,7 @@ export class UserService {
     
     // Send the profile update request
     return this.http.put<any>(
-      `${environment.apiUrl}/users/profile`,
+      `${environment.apiUrl}/auth/profile`,
       userData,
       { withCredentials: true }
     ).pipe(
@@ -186,19 +186,45 @@ export class UserService {
   }
   
   updateUserSettings(settings: { email?: string; phone?: string }): Observable<boolean> {
-    console.log('Updating user settings:', settings);
+    console.log('Original settings before formatting:', JSON.stringify(settings));
     
     // Clear cache to ensure we get fresh data after update
     localStorage.removeItem('user_profile_cache');
     localStorage.removeItem('user_profile_timestamp');
     this.lastProfileFetch = 0;
     
-    return this.http.put<any>(`${environment.apiUrl}/users/profile`, settings).pipe(
+    // Format phone number correctly for storage (remove formatting characters)
+    if (settings.phone) {
+      const originalPhone = settings.phone;
+      settings.phone = settings.phone.replace(/[\s\(\)\-]/g, '');
+      console.log(`Formatted phone from "${originalPhone}" to "${settings.phone}"`);
+    }
+    
+    console.log('Sending settings to API:', JSON.stringify(settings));
+    
+    return this.http.put<any>(`${environment.apiUrl}/auth/profile`, settings).pipe(
       tap(response => {
         console.log('Settings update response:', response);
         
-        // Refresh user data after successful update
-        setTimeout(() => this.refreshAllUserData().subscribe(), 500);
+        // After updating settings, refresh the token to get the updated phone number
+        this.http.post<any>(
+          `${environment.apiUrl}/auth/refresh-token`,
+          { refreshToken: this.authService.getRefreshToken() },
+          { withCredentials: true }
+        ).subscribe(refreshResponse => {
+          if (refreshResponse.token) {
+            console.log('Refreshed token after settings update');
+            this.authService.handleAuthentication(refreshResponse.token);
+            if (refreshResponse.refreshToken) {
+              localStorage.setItem('talonby_refreshToken', refreshResponse.refreshToken);
+            }
+            
+            // Now refresh user data with the updated token
+            setTimeout(() => this.refreshAllUserData().subscribe(user => {
+              console.log('User data after refresh with new token:', user);
+            }), 500);
+          }
+        });
       }),
       map(() => true),
       catchError(error => {
@@ -393,5 +419,152 @@ export class UserService {
     }
     
     return this.http.get<MedicalAppointmentDTO[]>(`${environment.apiUrl}/MedicalAppointment/GetByParameters${queryParams}`);
+  }
+  
+  // Admin User Management methods
+  
+  /**
+   * Get all users (Admin only)
+   */
+  getAllUsers(): Observable<User[]> {
+    return this.http.get<any[]>(
+      `${environment.apiUrl}/auth/users`,
+      { withCredentials: true }
+    ).pipe(
+      map(users => users.map(u => ({
+        userId: u.userId || u.id,
+        email: u.email || '',
+        fullName: u.fullName || '',
+        phone: u.phone || '',
+        role: u.role || 'Patient'
+      }))),
+      catchError(error => {
+        console.error('Error fetching users:', error);
+        return of([]);
+      })
+    );
+  }
+  
+  // Helper method to update a user's role
+  updateUserRole(userId: number, role: string): Observable<boolean> {
+    // Convert the role string to a numeric value based on the enum
+    // This fixes the conversion issue in the backend
+    let roleValue: number;
+    
+    console.log(`Converting role string "${role}" to numeric value`);
+    
+    switch (role) {
+      case 'Patient':
+        roleValue = 0;
+        break;
+      case 'Doctor':
+        roleValue = 1;
+        break;
+      case 'ChiefDoctor':
+        roleValue = 2;
+        break;
+      case 'Administrator':
+        roleValue = 3;
+        break;
+      case 'SystemAnalyst':
+        roleValue = 4;
+        break;
+      case 'MedicalStaff':
+        roleValue = 5;
+        break;
+      default:
+        console.warn(`Unknown role "${role}", defaulting to Patient (0)`);
+        roleValue = 0; // Default to Patient if unknown
+    }
+    
+    console.log(`Sending role update request with roleValue: ${roleValue}`);
+    
+    return this.http.post<any>(
+      `${environment.apiUrl}/auth/users/${userId}/change-role`,
+      { Role: roleValue }, // Use the proper field name and numeric value
+      { withCredentials: true }
+    ).pipe(
+      map(response => {
+        console.log('Role update successful:', response);
+        return true;
+      }),
+      catchError(error => {
+        console.error('Error updating user role:', error);
+        return of(false);
+      })
+    );
+  }
+
+  /**
+   * Update user by admin
+   */
+  updateUserByAdmin(userData: {
+    userId?: number;
+    email?: string; 
+    phone?: string;
+    role?: string;
+  }): Observable<boolean> {
+    // Save the role to use after basic profile update
+    const userRole = userData.role;
+    const userId = userData.userId;
+    
+    // Create copy without role for the standard update
+    const basicUserData = { 
+      userId: userData.userId,
+      email: userData.email,
+      phone: userData.phone
+    };
+    
+    // Format phone number if needed
+    if (basicUserData.phone) {
+      basicUserData.phone = basicUserData.phone.replace(/[\s\(\)\-]/g, '');
+    }
+    
+    // First update the email and phone which are supported by the backend model
+    return this.http.put<any>(
+      `${environment.apiUrl}/auth/users/${basicUserData.userId}`,
+      basicUserData,
+      { withCredentials: true }
+    ).pipe(
+      // If role is provided and different from current, update it separately
+      switchMap(user => {
+        if (userRole && userRole !== user.role && userId) {
+          console.log(`Updating user role from ${user.role} (${typeof user.role}) to ${userRole} (${typeof userRole})`);
+          
+          // Use the dedicated endpoint for role updates
+          return this.updateUserRole(userId, userRole);
+        }
+        return of(true);
+      }),
+      map(() => true),
+      catchError(error => {
+        console.error('Error updating user:', error);
+        return of(false);
+      })
+    );
+  }
+  
+  /**
+   * Reset user password by admin
+   */
+  resetUserPasswordByAdmin(data: { 
+    userId?: number; 
+    newPassword: string; 
+  }): Observable<boolean> {
+    // We need to send a direct POST request with the newPassword field
+    return this.http.post<any>(
+      `${environment.apiUrl}/auth/change-password-admin`,
+      { 
+        userId: data.userId,
+        newPassword: data.newPassword 
+      },
+      { withCredentials: true }
+    ).pipe(
+      map(() => true),
+      catchError(error => {
+        console.error('Error resetting password:', error);
+        return of(false);
+      })
+    );
   }
 } 

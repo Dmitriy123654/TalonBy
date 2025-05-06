@@ -459,6 +459,75 @@ namespace TalonBy.Controllers
                 return BadRequest(new { message = $"Ошибка обновления токена: {ex.Message}" });
             }
         }
+
+        [HttpPost("change-password-admin")]
+        [Authorize(Roles = "Administrator,ChiefDoctor")]
+        public async Task<IActionResult> ChangePasswordByAdmin([FromBody] AdminPasswordChangeModel model)
+        {
+            try
+            {
+                if (model.UserId <= 0 || string.IsNullOrEmpty(model.NewPassword))
+                {
+                    return BadRequest("Invalid user ID or password");
+                }
+                
+                var user = await _authService.GetUserByIdAsync(model.UserId);
+                
+                if (user == null)
+                {
+                    return NotFound("Пользователь не найден");
+                }
+                
+                // Update the password
+                user.Password = BCrypt.Net.BCrypt.HashPassword(model.NewPassword);
+                await _authService.UpdateUserAsync(user);
+                
+                return Ok(new { message = "Пароль пользователя успешно изменен" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPost("users/{id}/change-role")]
+        [Authorize(Roles = "Administrator")]
+        public async Task<IActionResult> ChangeUserRole(int id, [FromBody] ChangeRoleModel model)
+        {
+            try
+            {
+                _logger.LogInformation($"Attempting to change role for user {id}. Model: {model?.Role.ToString() ?? "null"}");
+                
+                if (model == null)
+                {
+                    return BadRequest("Request body is missing");
+                }
+                
+                if (!Enum.IsDefined(typeof(Domain.RoleOfUser), model.Role))
+                {
+                    _logger.LogWarning($"Invalid role value: {model.Role}");
+                    return BadRequest($"Invalid role specified: {model.Role}");
+                }
+                
+                var user = await _authService.GetUserByIdAsync(id);
+                
+                if (user == null)
+                {
+                    return NotFound($"Пользователь с ID {id} не найден");
+                }
+                
+                _logger.LogInformation($"Changing user {id} role from {user.Role} to {(Domain.RoleOfUser)model.Role}");
+                user.Role = (Domain.RoleOfUser)model.Role;
+                await _authService.UpdateUserAsync(user);
+                
+                return Ok(new { message = "Роль пользователя успешно обновлена" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error changing role for user {id}");
+                return BadRequest(ex.Message);
+            }
+        }
     }
 
     public class AuthResponse
@@ -481,5 +550,18 @@ namespace TalonBy.Controllers
     public class LogoutRequest
     {
         public string RefreshToken { get; set; }
+    }
+
+    // Model for admin password change
+    public class AdminPasswordChangeModel
+    {
+        public int UserId { get; set; }
+        public string NewPassword { get; set; }
+    }
+
+    // Model for role change
+    public class ChangeRoleModel
+    {
+        public int Role { get; set; }
     }
 }
