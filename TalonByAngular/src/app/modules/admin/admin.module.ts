@@ -6,6 +6,8 @@ import { AdminComponent } from './admin.component';
 import { ScheduleManagementComponent } from './schedule-management/schedule-management.component';
 import { AppointmentsManagementComponent } from './appointments-management/appointments-management.component';
 import { PatientManagementComponent } from './patient-management/patient-management.component';
+import { UserManagementComponent } from './user-management/user-management.component';
+import { NgxMaskDirective, provideNgxMask } from 'ngx-mask';
 
 const routes: Routes = [
   {
@@ -19,13 +21,18 @@ const routes: Routes = [
     AdminComponent,
     ScheduleManagementComponent,
     AppointmentsManagementComponent,
-    PatientManagementComponent
+    PatientManagementComponent,
+    UserManagementComponent
   ],
   imports: [
     CommonModule,
     RouterModule.forChild(routes),
     FormsModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    NgxMaskDirective
+  ],
+  providers: [
+    provideNgxMask()
   ],
   exports: [
     AdminComponent
