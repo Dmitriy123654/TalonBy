@@ -104,8 +104,21 @@ export class ProfileComponent implements OnInit, OnDestroy {
         // Обновляем настройки пользователя из профиля
         if (user) {
           this.userSettings.email = user.email || '';
-          this.userSettings.phone = user.phone || '';
-          console.log('User settings updated:', this.userSettings);
+          
+          // Format phone number for display in the UI
+          if (user.phone) {
+            // If the phone is in raw format (e.g. +375291234567), format it for display
+            if (user.phone.match(/^\+375\d{9}$/)) {
+              const phoneDigits = user.phone.substring(4); // Remove +375
+              this.userSettings.phone = `+375(${phoneDigits.substring(0,2)})${phoneDigits.substring(2,5)}-${phoneDigits.substring(5,7)}-${phoneDigits.substring(7,9)}`;
+            } else {
+              this.userSettings.phone = user.phone;
+            }
+          } else {
+            this.userSettings.phone = '';
+          }
+          
+          console.log('User settings updated with formatted phone:', this.userSettings);
         }
         
         // Обновляем информацию о пользователе из AuthService
