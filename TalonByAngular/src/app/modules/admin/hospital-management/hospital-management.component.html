@@ -1,0 +1,232 @@
+<div class="hospital-management">
+  <!-- Загрузка и сообщения об ошибках -->
+  <div *ngIf="isLoading" class="loading">
+    <div class="spinner"></div>
+  </div>
+
+  <div *ngIf="errorMessage" class="alert alert-danger">
+    {{ errorMessage }}
+  </div>
+
+  <div *ngIf="successMessage" class="alert alert-success">
+    {{ successMessage }}
+  </div>
+
+  <!-- Представление списка больниц -->
+  <div class="hospital-list-container" *ngIf="showHospitalList">
+    <div class="admin-controls">
+      <div class="search-section">
+        <div class="search-filters">
+          <div class="search-bar">
+            <input type="text" [(ngModel)]="searchQuery" placeholder="Введите текст для поиска..." (input)="applyFilters()">
+            <!-- <button class="btn-primary" (click)="applyFilters()">Поиск</button> -->
+          </div>
+          
+          <!-- Фильтр по полю поиска -->
+          <div class="filter-item">
+            <label for="searchFieldFilter">Поле для поиска:</label>
+            <select 
+              id="searchFieldFilter" 
+              [(ngModel)]="searchField" 
+              (change)="applyFilters()"
+              class="form-select"
+            >
+              <option *ngFor="let field of searchFields" [value]="field.value">{{ field.label }}</option>
+            </select>
+          </div>
+          
+          <!-- Фильтр по типу больницы -->
+          <div class="filter-item">
+            <label for="hospitalTypeFilter">Тип учреждения:</label>
+            <select 
+              id="hospitalTypeFilter" 
+              [(ngModel)]="selectedHospitalType" 
+              (change)="applyFilters()"
+              class="form-select"
+            >
+              <option [ngValue]="null">Все типы</option>
+              <option [ngValue]="0">Взрослое</option>
+              <option [ngValue]="1">Детское</option>
+              <option [ngValue]="2">Специализированное</option>
+            </select>
+          </div>
+          
+          <button class="btn-secondary reset-button" (click)="resetFilters()">
+            Сбросить фильтры
+          </button>
+        </div>
+      </div>
+      <div class="action-buttons">
+        <button class="btn-success" (click)="openHospitalModal()">Добавить медицинское учреждение</button>
+      </div>
+    </div>
+
+    <div class="hospital-list">
+      <div class="hospital-list-header">
+        <div class="header-column">Название</div>
+        <div class="header-column">Тип</div>
+        <div class="header-column">Адрес</div>
+        <div class="header-column">Телефоны</div>
+        <div class="header-column">Действия</div>
+      </div>
+      
+      <div *ngIf="filteredHospitals.length === 0" class="no-hospitals">
+        <p>Медицинские учреждения не найдены</p>
+      </div>
+      
+      <div *ngFor="let hospital of filteredHospitals" class="hospital-item" (click)="viewHospitalDetails(hospital)">
+        <div class="hospital-column hospital-name" data-label="Название:">{{ hospital.name }}</div>
+        <div class="hospital-column" data-label="Тип:">{{ getHospitalTypeDisplay(hospital.type) }}</div>
+        <div class="hospital-column" data-label="Адрес:">{{ hospital.address }}</div>
+        <div class="hospital-column" data-label="Телефоны:">{{ hospital.phones }}</div>
+        <div class="hospital-column">
+          <button class="btn-accent">Просмотр</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Просмотр деталей больницы -->
+  <div class="hospital-detail-container" *ngIf="showHospitalDetails">
+    <div class="back-button">
+      <button class="btn-secondary" (click)="backToHospitalList()">
+        <i class="fas fa-arrow-left"></i> Назад к списку
+      </button>
+    </div>
+
+    <div class="hospital-header">
+      <h3>{{ selectedHospital?.name }}</h3>
+      <div class="hospital-actions">
+        <button class="btn-primary" (click)="selectedHospital && openHospitalModal(selectedHospital)">Редактировать</button>
+        <button class="btn-danger" (click)="selectedHospital && deleteHospital(selectedHospital.hospitalId)">Удалить</button>
+      </div>
+    </div>
+
+    <div class="hospital-details">
+      <div class="hospital-info">
+        <div class="info-item">
+          <span class="label">Название:</span>
+          <span class="value">{{ selectedHospital?.name }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Тип учреждения:</span>
+          <span class="value">{{ selectedHospital ? getHospitalTypeDisplay(selectedHospital.type) : '' }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Адрес:</span>
+          <span class="value">{{ selectedHospital?.address }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Рабочие часы:</span>
+          <span class="value">{{ selectedHospital?.workingHours }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Телефоны:</span>
+          <span class="value">{{ selectedHospital?.phones }}</span>
+        </div>
+        <div class="info-item" *ngIf="selectedHospital?.email">
+          <span class="label">Email:</span>
+          <span class="value">{{ selectedHospital?.email }}</span>
+        </div>
+        <div class="info-item" *ngIf="selectedHospital?.description">
+          <span class="label">Описание:</span>
+          <span class="value">{{ selectedHospital?.description }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно добавления/редактирования больницы -->
+  <div class="modal" *ngIf="showHospitalModal">
+    <div class="modal-backdrop" (click)="closeHospitalModal()"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4>{{ hospitalForm.get('hospitalId')?.value ? 'Редактировать учреждение' : 'Добавить учреждение' }}</h4>
+        <button type="button" class="close-btn" (click)="closeHospitalModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form [formGroup]="hospitalForm" (ngSubmit)="saveHospital()">
+          <div class="form-group">
+            <label for="name">Название *</label>
+            <input type="text" id="name" formControlName="name" class="form-control" 
+                   [class.is-invalid]="hospitalForm.get('name')?.invalid && hospitalForm.get('name')?.touched">
+            <div *ngIf="hospitalForm.get('name')?.invalid && hospitalForm.get('name')?.touched" class="invalid-feedback">
+              <div *ngIf="hospitalForm.get('name')?.errors?.['required']">Название обязательно</div>
+              <div *ngIf="hospitalForm.get('name')?.errors?.['maxlength']">Название не должно превышать 200 символов</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="type">Тип учреждения *</label>
+            <select id="type" formControlName="type" class="form-control"
+                   [class.is-invalid]="hospitalForm.get('type')?.invalid && hospitalForm.get('type')?.touched">
+              <option value="">Выберите тип</option>
+              <option [ngValue]="0">Взрослое</option>
+              <option [ngValue]="1">Детское</option>
+              <option [ngValue]="2">Специализированное</option>
+            </select>
+            <div *ngIf="hospitalForm.get('type')?.invalid && hospitalForm.get('type')?.touched" class="invalid-feedback">
+              <div *ngIf="hospitalForm.get('type')?.errors?.['required']">Тип учреждения обязателен</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="address">Адрес *</label>
+            <input type="text" id="address" formControlName="address" class="form-control"
+                   [class.is-invalid]="hospitalForm.get('address')?.invalid && hospitalForm.get('address')?.touched">
+            <div *ngIf="hospitalForm.get('address')?.invalid && hospitalForm.get('address')?.touched" class="invalid-feedback">
+              <div *ngIf="hospitalForm.get('address')?.errors?.['required']">Адрес обязателен</div>
+              <div *ngIf="hospitalForm.get('address')?.errors?.['maxlength']">Адрес не должен превышать 500 символов</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="workingHours">Рабочие часы *</label>
+            <input type="text" id="workingHours" formControlName="workingHours" class="form-control"
+                   [class.is-invalid]="hospitalForm.get('workingHours')?.invalid && hospitalForm.get('workingHours')?.touched">
+            <div *ngIf="hospitalForm.get('workingHours')?.invalid && hospitalForm.get('workingHours')?.touched" class="invalid-feedback">
+              <div *ngIf="hospitalForm.get('workingHours')?.errors?.['required']">Рабочие часы обязательны</div>
+              <div *ngIf="hospitalForm.get('workingHours')?.errors?.['maxlength']">Рабочие часы не должны превышать 200 символов</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="phones">Телефоны *</label>
+            <input type="text" id="phones" formControlName="phones" class="form-control"
+                   [class.is-invalid]="hospitalForm.get('phones')?.invalid && hospitalForm.get('phones')?.touched">
+            <div *ngIf="hospitalForm.get('phones')?.invalid && hospitalForm.get('phones')?.touched" class="invalid-feedback">
+              <div *ngIf="hospitalForm.get('phones')?.errors?.['required']">Телефоны обязательны</div>
+              <div *ngIf="hospitalForm.get('phones')?.errors?.['maxlength']">Телефоны не должны превышать 100 символов</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="email">Email *</label>
+            <input type="email" id="email" formControlName="email" class="form-control"
+                   [class.is-invalid]="hospitalForm.get('email')?.invalid && hospitalForm.get('email')?.touched">
+            <div *ngIf="hospitalForm.get('email')?.invalid && hospitalForm.get('email')?.touched" class="invalid-feedback">
+              <div *ngIf="hospitalForm.get('email')?.errors?.['required']">Email обязателен</div>
+              <div *ngIf="hospitalForm.get('email')?.errors?.['email']">Неверный формат email</div>
+              <div *ngIf="hospitalForm.get('email')?.errors?.['maxlength']">Email не должен превышать 100 символов</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="description">Описание *</label>
+            <textarea id="description" formControlName="description" class="form-control" rows="3"
+                    [class.is-invalid]="hospitalForm.get('description')?.invalid && hospitalForm.get('description')?.touched"></textarea>
+            <div *ngIf="hospitalForm.get('description')?.invalid && hospitalForm.get('description')?.touched" class="invalid-feedback">
+              <div *ngIf="hospitalForm.get('description')?.errors?.['required']">Описание обязательно</div>
+              <div *ngIf="hospitalForm.get('description')?.errors?.['maxlength']">Описание не должно превышать 1000 символов</div>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" (click)="closeHospitalModal()">Отмена</button>
+            <button type="submit" class="btn-primary">Сохранить</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div> 

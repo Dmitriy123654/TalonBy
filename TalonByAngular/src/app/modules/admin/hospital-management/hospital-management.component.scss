@@ -1,0 +1,416 @@
+.hospital-management {
+  position: relative;
+  padding: 20px;
+  width: 100%;
+  overflow-x: hidden;
+
+  .alert {
+    margin-bottom: 20px;
+    padding: 10px 15px;
+    border-radius: 4px;
+    font-weight: 500;
+    
+    &.alert-danger {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    
+    &.alert-success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+  }
+
+  .loading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-left-color: var(--primary-color);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  }
+
+  // Общие стили для кнопок
+  button {
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-weight: 500;
+    
+    &.btn-primary {
+      background-color: var(--primary-color);
+      color: white;
+      &:hover { background-color: var(--primary-hover); }
+    }
+    
+    &.btn-secondary {
+      background-color: #6c757d;
+      color: white;
+      &:hover { background-color: #5a6268; }
+    }
+    
+    &.btn-success {
+      background-color: var(--primary-color);
+      color: white;
+      &:hover { background-color: #218838; }
+    }
+    
+    &.btn-danger {
+      background-color: #dc3545;
+      color: white;
+      &:hover { background-color: #c82333; }
+    }
+    
+    &.btn-accent {
+      background-color: var(--primary-color);
+      color: white;
+      &:hover { background-color: var(--primary-hover); }
+    }
+  }
+
+  // Стили для списка больниц
+  .hospital-list-container {
+    .admin-controls {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      margin-bottom: 20px;
+      
+      .search-section {
+        width: 100%;
+        max-width: 800px;
+        margin-bottom: 15px;
+        
+        .search-filters {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 15px;
+          
+          .search-bar {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            max-width: 400px;
+            
+            input {
+              flex: 1;
+              padding: 8px 12px;
+              border: 1px solid var(--border-color);
+              border-radius: 4px;
+              background-color: var(--card-bg);
+              color: var(--text-color);
+            }
+          }
+          
+          .filter-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            min-width: 200px;
+            
+            label {
+              font-weight: 500;
+              font-size: 14px;
+              color: var(--text-color);
+            }
+            
+            select {
+              padding: 8px 12px;
+              border: 1px solid var(--border-color);
+              border-radius: 4px;
+              background-color: var(--card-bg);
+              color: var(--text-color);
+            }
+          }
+          
+          .reset-button {
+            align-self: flex-end;
+          }
+        }
+      }
+      
+      .action-buttons {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+        
+        button {
+          width: auto;
+          min-width: 250px;
+          max-width: 450px;
+        }
+        
+        @media (max-width: 768px) {
+          width: 100%;
+          
+          button {
+            width: 100%;
+            max-width: none;
+          }
+        }
+      }
+    }
+
+    .hospital-list {
+      background-color: var(--card-bg);
+      border-radius: 6px;
+      box-shadow: 0 2px 5px var(--shadow-color);
+      overflow-x: auto;
+      
+      .hospital-list-header {
+        display: flex;
+        background-color: var(--header-footer-bg);
+        border-bottom: 1px solid var(--border-color);
+        font-weight: 600;
+        color: var(--text-color);
+        min-width: 750px;
+        
+        .header-column {
+          padding: 15px;
+          flex: 1;
+          
+          &:last-child {
+            flex: 0 0 100px;
+            text-align: center;
+          }
+        }
+      }
+      
+      .no-hospitals {
+        padding: 30px;
+        text-align: center;
+        color: var(--text-light);
+        font-style: italic;
+      }
+      
+      .hospital-item {
+        display: flex;
+        border-bottom: 1px solid var(--border-color);
+        cursor: pointer;
+        transition: background-color 0.2s;
+        color: var(--text-color);
+        min-width: 750px;
+        
+        &:hover {
+          background-color: var(--background-color);
+        }
+        
+        .hospital-column {
+          padding: 15px;
+          flex: 1;
+          white-space: normal;
+          word-break: break-word;
+          overflow-wrap: break-word;
+          
+          &.hospital-name {
+            font-weight: 500;
+          }
+          
+          &:last-child {
+            flex: 0 0 100px;
+            text-align: center;
+          }
+        }
+      }
+    }
+  }
+
+  // Стили для страницы деталей больницы
+  .hospital-detail-container {
+    background-color: var(--card-bg);
+    border-radius: 6px;
+    box-shadow: 0 2px 5px var(--shadow-color);
+    padding: 20px;
+    
+    .back-button {
+      margin-bottom: 20px;
+    }
+    
+    .hospital-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 15px;
+      
+      h3 {
+        margin: 0;
+        font-weight: 600;
+        color: var(--text-color);
+      }
+      
+      .hospital-actions {
+        display: flex;
+        gap: 10px;
+      }
+    }
+    
+    .hospital-details {
+      display: flex;
+      gap: 30px;
+      
+      .hospital-info {
+        flex: 1;
+        
+        .info-item {
+          margin-bottom: 15px;
+          
+          .label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--text-light);
+            font-size: 14px;
+          }
+          
+          .value {
+            font-size: 16px;
+            line-height: 1.5;
+            color: var(--text-color);
+          }
+        }
+      }
+    }
+  }
+
+  // Стили для модального окна
+  .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1050;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: -1;
+    }
+    
+    .modal-content {
+      background-color: var(--card-bg);
+      border-radius: 6px;
+      box-shadow: 0 5px 15px var(--shadow-color);
+      width: 600px;
+      max-width: 90%;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        border-bottom: 1px solid var(--border-color);
+        
+        h4 {
+          margin: 0;
+          font-weight: 600;
+          color: var(--text-color);
+        }
+        
+        .close-btn {
+          background: none;
+          border: none;
+          font-size: 24px;
+          line-height: 1;
+          padding: 0;
+          color: var(--text-light);
+          cursor: pointer;
+          &:hover { color: var(--text-color); }
+        }
+      }
+      
+      .modal-body {
+        padding: 20px;
+        overflow-y: auto;
+        
+        form {
+          .form-group {
+            margin-bottom: 15px;
+            
+            label {
+              display: block;
+              margin-bottom: 5px;
+              font-weight: 500;
+              color: var(--text-color);
+            }
+            
+            .form-control {
+              width: 100%;
+              padding: 8px 12px;
+              border: 1px solid var(--border-color);
+              border-radius: 4px;
+              transition: border-color 0.15s ease-in-out;
+              background-color: var(--card-bg);
+              color: var(--text-color);
+              
+              &:focus {
+                border-color: var(--primary-color);
+                outline: 0;
+                box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+              }
+              
+              &.is-invalid {
+                border-color: #dc3545;
+              }
+            }
+            
+            .invalid-feedback {
+              display: block;
+              color: #dc3545;
+              font-size: 12px;
+              margin-top: 5px;
+              font-weight: 500;
+              
+              div {
+                margin-bottom: 3px;
+                
+                &:last-child {
+                  margin-bottom: 0;
+                }
+              }
+            }
+          }
+          
+          .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+          }
+        }
+      }
+    }
+  }
+} 
