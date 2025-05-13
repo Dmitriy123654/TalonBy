@@ -8,6 +8,7 @@ import { AppointmentsManagementComponent } from './appointments-management/appoi
 import { PatientManagementComponent } from './patient-management/patient-management.component';
 import { UserManagementComponent } from './user-management/user-management.component';
 import { DoctorManagementComponent } from './doctor-management/doctor-management.component';
+import { HospitalManagementComponent } from './hospital-management/hospital-management.component';
 import { NgxMaskDirective, provideNgxMask } from 'ngx-mask';
 
 const routes: Routes = [
@@ -24,7 +25,8 @@ const routes: Routes = [
     AppointmentsManagementComponent,
     PatientManagementComponent,
     UserManagementComponent,
-    DoctorManagementComponent
+    DoctorManagementComponent,
+    HospitalManagementComponent
   ],
   imports: [
     CommonModule,
