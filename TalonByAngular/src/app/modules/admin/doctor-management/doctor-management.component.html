@@ -1,0 +1,290 @@
+<div class="doctor-management">
+  <!-- Loading and Error Messages -->
+  <div *ngIf="isLoading" class="loading">
+    <div class="spinner"></div>
+  </div>
+
+  <div *ngIf="errorMessage" class="alert alert-danger">
+    {{ errorMessage }}
+  </div>
+
+  <div *ngIf="successMessage" class="alert alert-success">
+    {{ successMessage }}
+  </div>
+
+  <!-- Doctor List View -->
+  <div class="doctor-list-container" *ngIf="showDoctorList">
+    <div class="admin-controls">
+      <div class="search-section">
+        <div class="search-filters">
+          <div class="search-bar">
+            <input type="text" [(ngModel)]="searchQuery" placeholder="Поиск по ФИО..." (input)="applyFilters()">
+            <button class="btn-primary" (click)="applyFilters()">Поиск</button>
+          </div>
+          
+          <!-- Hospital filter (admin only) -->
+          <div class="filter-item" *ngIf="userRole === 'Administrator'">
+            <label for="hospitalFilter">Больница:</label>
+            <select 
+              id="hospitalFilter" 
+              [(ngModel)]="selectedHospitalId" 
+              (change)="onHospitalChange()"
+              class="form-select"
+            >
+              <option [ngValue]="null">Все больницы</option>
+              <option *ngFor="let hospital of hospitals" [value]="hospital.hospitalId">
+                {{ hospital.name }}
+              </option>
+            </select>
+          </div>
+          
+          <!-- Specialty filter -->
+          <div class="filter-item">
+            <label for="specialityFilter">Специальность:</label>
+            <select 
+              id="specialityFilter" 
+              [(ngModel)]="selectedSpecialityId" 
+              (change)="onSpecialityChange()"
+              class="form-select"
+              [disabled]="userRole === 'Administrator' && !selectedHospitalId"
+            >
+              <option [ngValue]="null">Все специальности</option>
+              <option *ngFor="let speciality of filteredSpecialities" [value]="speciality.doctorsSpecialityId">
+                {{ speciality.name }}
+              </option>
+            </select>
+          </div>
+          
+          <button class="btn-secondary reset-button" (click)="resetFilters()">
+            Сбросить фильтры
+          </button>
+        </div>
+      </div>
+      <div class="action-buttons">
+        <button class="btn-success" (click)="openDoctorModal()">Добавить врача</button>
+      </div>
+    </div>
+
+    <div class="doctor-list">
+      <div class="doctor-list-header">
+        <div class="header-column">ФИО</div>
+        <div class="header-column">Специальность</div>
+        <div class="header-column">Больница</div>
+        <div class="header-column">Пользователь</div>
+        <div class="header-column">Действия</div>
+      </div>
+      
+      <div *ngIf="filteredDoctors.length === 0" class="no-doctors">
+        <p>Врачи не найдены</p>
+      </div>
+      
+      <div *ngFor="let doctor of filteredDoctors" class="doctor-item" (click)="viewDoctorDetails(doctor)">
+        <div class="doctor-column doctor-name">{{ doctor.fullName }}</div>
+        <div class="doctor-column">{{ doctor.doctorsSpeciality?.name || 'Не указана' }}</div>
+        <div class="doctor-column">{{ doctor.hospital?.name || 'Не указана' }}</div>
+        <div class="doctor-column">
+          <ng-container *ngIf="doctor.user && doctor.user.email">
+            {{ doctor.user.email }}
+          </ng-container>
+          <ng-container *ngIf="!doctor.user || !doctor.user.email">
+            {{ 'Не указан' }}
+          </ng-container>
+        </div>
+        <div class="doctor-column">
+          <button class="btn-accent">Просмотр</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Doctor Details View -->
+  <div class="doctor-detail-container" *ngIf="showDoctorDetails">
+    <div class="back-button">
+      <button class="btn-secondary" (click)="backToDoctorList()">
+        <i class="fas fa-arrow-left"></i> Назад к списку
+      </button>
+    </div>
+
+    <div class="doctor-header">
+      <h3>{{ selectedDoctor.fullName }}</h3>
+      <div class="doctor-actions">
+        <button class="btn-primary" (click)="openDoctorModal(selectedDoctor)">Редактировать</button>
+        <button class="btn-danger" (click)="deleteDoctor(selectedDoctor.doctorId)">Удалить</button>
+      </div>
+    </div>
+
+    <div class="doctor-details">
+      <div class="doctor-info">
+        <div class="info-item">
+          <span class="label">Специальность:</span>
+          <span class="value">{{ selectedDoctor.doctorsSpeciality?.name || 'Не указана' }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Больница:</span>
+          <span class="value">{{ selectedDoctor.hospital?.name || 'Не указана' }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Кабинет:</span>
+          <span class="value">{{ selectedDoctor.office || 'Не указан' }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Рабочие часы:</span>
+          <span class="value">{{ selectedDoctor.workingHours || 'Не указаны' }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Дополнительная информация:</span>
+          <span class="value">{{ selectedDoctor.additionalInfo || 'Не указана' }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">Пользователь системы:</span>
+          <span class="value" *ngIf="selectedDoctor.user">
+            {{ selectedDoctor.user.fullName || 'Имя не указано' }} 
+            <span class="user-details" *ngIf="selectedDoctor.user.email || selectedDoctor.user.phoneNumber">
+              ({{ selectedDoctor.user.email || selectedDoctor.user.phoneNumber }})
+            </span>
+          </span>
+          <span class="value" *ngIf="!selectedDoctor.user">
+            {{ 'Не привязан' }}
+          </span>
+        </div>
+      </div>
+      <div class="doctor-photo" *ngIf="selectedDoctor.photo">
+        <img [src]="selectedDoctor.photo" alt="{{ selectedDoctor.fullName }}">
+      </div>
+    </div>
+  </div>
+
+  <!-- Doctor Add/Edit Modal -->
+  <div class="modal" *ngIf="showDoctorModal">
+    <div class="modal-backdrop" (click)="closeDoctorModal()"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4>{{ selectedDoctor ? 'Редактировать врача' : 'Добавить врача' }}</h4>
+        <button type="button" class="close-btn" (click)="closeDoctorModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form [formGroup]="doctorForm" (ngSubmit)="saveDoctor()">
+          <div class="form-group">
+            <label for="fullName">ФИО *</label>
+            <input type="text" id="fullName" formControlName="fullName" class="form-control" 
+                   [class.is-invalid]="doctorForm.get('fullName')?.invalid && doctorForm.get('fullName')?.touched">
+            <div *ngIf="doctorForm.get('fullName')?.invalid && doctorForm.get('fullName')?.touched" class="invalid-feedback">
+              ФИО обязательно
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="doctorsSpecialityId">Специальность *</label>
+            <select id="doctorsSpecialityId" formControlName="doctorsSpecialityId" class="form-control"
+                   [class.is-invalid]="doctorForm.get('doctorsSpecialityId')?.invalid && doctorForm.get('doctorsSpecialityId')?.touched">
+              <option value="">Выберите специальность</option>
+              <option *ngFor="let specialty of specialities" [value]="specialty.doctorsSpecialityId">
+                {{ specialty.name }}
+              </option>
+            </select>
+            <div *ngIf="doctorForm.get('doctorsSpecialityId')?.invalid && doctorForm.get('doctorsSpecialityId')?.touched" class="invalid-feedback">
+              Специальность обязательна
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="hospitalId">Больница *</label>
+            <select id="hospitalId" formControlName="hospitalId" class="form-control"
+                   [class.is-invalid]="doctorForm.get('hospitalId')?.invalid && doctorForm.get('hospitalId')?.touched">
+              <option value="">Выберите больницу</option>
+              <option *ngFor="let hospital of hospitals" [value]="hospital.hospitalId">
+                {{ hospital.name }}
+              </option>
+            </select>
+            <div *ngIf="doctorForm.get('hospitalId')?.invalid && doctorForm.get('hospitalId')?.touched" class="invalid-feedback">
+              Больница обязательна
+            </div>
+          </div>
+
+          <!-- User selection section -->
+          <div class="form-group">
+            <label>Пользователь системы *</label>
+            <div class="user-selection">
+              <div class="selected-user-container">
+                <span *ngIf="selectedDoctor?.user?.email || selectedDoctor?.user?.fullName" class="selected-user-info">
+                  {{ selectedDoctor.user?.fullName || selectedDoctor.user?.email }}
+                </span>
+                <button type="button" class="btn-secondary" (click)="toggleUserList()">
+                  {{ showUserList ? 'Скрыть список' : 'Выбрать пользователя' }}
+                </button>
+              </div>
+              <div *ngIf="doctorForm.get('userId')?.invalid && doctorForm.get('userId')?.touched" class="invalid-feedback">
+                Необходимо выбрать пользователя системы
+              </div>
+              <!-- User list container (hidden by default) -->
+              <div class="user-list-container" *ngIf="showUserList">
+                <div class="user-search">
+                  <input 
+                    type="text" 
+                    [(ngModel)]="userSearchQuery" 
+                    [ngModelOptions]="{standalone: true}"
+                    placeholder="Поиск по email или имени..." 
+                    class="form-control user-search-input"
+                    (input)="onUserSearchInput()"
+                  >
+                </div>
+                <h5>Доступные пользователи:</h5>
+                <!-- Search results or all users -->
+                <div class="user-list">
+                  <div *ngFor="let user of (filteredUsers.length > 0 ? filteredUsers : users)" class="user-list-item" (click)="selectUser(user)">
+                    <div class="user-email">{{ user.email || 'Нет email' }}</div>
+                    <div class="user-name" *ngIf="user.fullName">{{ user.fullName }}</div>
+                  </div>
+                  <div *ngIf="!users || users.length === 0" class="no-users">
+                    Нет доступных пользователей
+                  </div>
+                  <div *ngIf="users && users.length > 0 && filteredUsers.length === 0 && userSearchQuery" class="no-users">
+                    Нет пользователей, соответствующих запросу
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="office">Кабинет *</label>
+            <input type="text" id="office" formControlName="office" class="form-control"
+                   [class.is-invalid]="doctorForm.get('office')?.invalid && doctorForm.get('office')?.touched">
+            <div *ngIf="doctorForm.get('office')?.invalid && doctorForm.get('office')?.touched" class="invalid-feedback">
+              Кабинет обязателен
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="workingHours">Рабочие часы *</label>
+            <input type="text" id="workingHours" formControlName="workingHours" class="form-control"
+                   placeholder="Например: Пн-Пт: 9:00-17:00"
+                   [class.is-invalid]="doctorForm.get('workingHours')?.invalid && doctorForm.get('workingHours')?.touched">
+            <div *ngIf="doctorForm.get('workingHours')?.invalid && doctorForm.get('workingHours')?.touched" class="invalid-feedback">
+              Рабочие часы обязательны
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="additionalInfo">Дополнительная информация</label>
+            <textarea id="additionalInfo" formControlName="additionalInfo" class="form-control" rows="3"
+                     [class.is-invalid]="doctorForm.get('additionalInfo')?.invalid && doctorForm.get('additionalInfo')?.touched"></textarea>
+            <div *ngIf="doctorForm.get('additionalInfo')?.invalid && doctorForm.get('additionalInfo')?.touched" class="invalid-feedback">
+              Введите корректную дополнительную информацию
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="photo">Фото (URL)</label>
+            <input type="text" id="photo" formControlName="photo" class="form-control">
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn-secondary" (click)="closeDoctorModal()">Отмена</button>
+            <button type="submit" class="btn-primary" [disabled]="doctorForm.invalid">Сохранить</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div> 
