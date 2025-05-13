@@ -13,6 +13,7 @@ namespace Domain.ViewModels
     {
         public int HospitalId { get; set; }
         public int DoctorsSpecialityId { get; set; }
+        public int? UserId { get; set; }
         public string FullName { get; set; }
         public string? Photo { get; set; }
         public string WorkingHours { get; set; }

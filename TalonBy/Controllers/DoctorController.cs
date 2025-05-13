@@ -23,8 +23,20 @@ namespace TalonBy.Controllers
         [HttpGet("GetAll")]
         public async Task<IActionResult> GetAllDoctors()
         {
-            var doctors = await _doctorService.GetAllDoctorsAsync();
+            try
+            {
+                // Use the new simplified method that avoids circular references
+                var doctors = await _doctorService.GetAllDoctorsSimplifiedAsync();
             return Ok(doctors);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception details (in production, use proper logging)
+                Console.WriteLine($"Error in GetAllDoctors: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                
+                return StatusCode(500, new { message = "Произошла ошибка при получении списка врачей", error = ex.Message });
+            }
         }
 
         [HttpGet("GetById {id}")]

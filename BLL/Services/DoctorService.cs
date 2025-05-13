@@ -12,6 +12,7 @@ namespace BLL.Services
     public interface IDoctorService
     {
         Task<List<Doctor>> GetAllDoctorsAsync();
+        Task<List<DoctorDto>> GetAllDoctorsSimplifiedAsync();
         Task<Doctor> GetDoctorByIdAsync(int id);
         Task CreateDoctorAsync(DoctorModel doctorModel);
         Task UpdateDoctorAsync(int id, DoctorModel doctorModel);
@@ -38,6 +39,40 @@ namespace BLL.Services
             return await _doctorRepository.GetAllAsync();
         }
 
+        public async Task<List<DoctorDto>> GetAllDoctorsSimplifiedAsync()
+        {
+            var doctors = await _doctorRepository.GetAllAsync();
+            
+            return doctors.Select(d => new DoctorDto
+            {
+                DoctorId = d.DoctorId,
+                FullName = d.FullName,
+                HospitalId = d.HospitalId,
+                DoctorsSpecialityId = d.DoctorsSpecialityId,
+                WorkingHours = d.WorkingHours ?? "",
+                Office = d.Office ?? "",
+                AdditionalInfo = d.AdditionalInfo ?? "",
+                Photo = d.Photo ?? "",
+                UserId = d.UserId,
+                
+                DoctorsSpeciality = d.DoctorsSpeciality != null 
+                    ? new DoctorDto.SpecialtyDto 
+                    { 
+                        DoctorsSpecialityId = d.DoctorsSpeciality.DoctorsSpecialityId,
+                        Name = d.DoctorsSpeciality.Name 
+                    } 
+                    : null,
+                    
+                Hospital = d.Hospital != null 
+                    ? new DoctorDto.HospitalDto 
+                    { 
+                        HospitalId = d.Hospital.HospitalId,
+                        Name = d.Hospital.Name
+                    } 
+                    : null
+            }).ToList();
+        }
+
         public async Task<Doctor> GetDoctorByIdAsync(int id)
         {
             return await _doctorRepository.GetByIdAsync(id);
@@ -49,6 +84,7 @@ namespace BLL.Services
             {
                 HospitalId = doctorModel.HospitalId,
                 DoctorsSpecialityId = doctorModel.DoctorsSpecialityId,
+                UserId = doctorModel.UserId,
                 FullName = doctorModel.FullName,
                 Photo = doctorModel.Photo,
                 WorkingHours = doctorModel.WorkingHours,
@@ -66,12 +102,12 @@ namespace BLL.Services
             {
                 doctor.HospitalId = doctorModel.HospitalId;
                 doctor.DoctorsSpecialityId = doctorModel.DoctorsSpecialityId;
+                doctor.UserId = doctorModel.UserId;
                 doctor.FullName = doctorModel.FullName;
                 doctor.Photo = doctorModel.Photo;
                 doctor.WorkingHours = doctorModel.WorkingHours;
                 doctor.Office = doctorModel.Office;
                 doctor.AdditionalInfo = doctorModel.AdditionalInfo;
-
 
                 await _doctorRepository.UpdateAsync(doctor);
             }
@@ -164,6 +200,34 @@ namespace BLL.Services
                 Console.WriteLine($"Ошибка при получении главврача по UserId {userId}: {ex.Message}");
                 return null;
             }
+        }
+    }
+
+    public class DoctorDto
+    {
+        public int DoctorId { get; set; }
+        public string FullName { get; set; }
+        public int HospitalId { get; set; }
+        public int DoctorsSpecialityId { get; set; }
+        public string WorkingHours { get; set; }
+        public string Office { get; set; }
+        public string AdditionalInfo { get; set; }
+        public string Photo { get; set; }
+        public int? UserId { get; set; }
+        
+        public SpecialtyDto DoctorsSpeciality { get; set; }
+        public HospitalDto Hospital { get; set; }
+        
+        public class SpecialtyDto
+        {
+            public int DoctorsSpecialityId { get; set; }
+            public string Name { get; set; }
+        }
+        
+        public class HospitalDto
+        {
+            public int HospitalId { get; set; }
+            public string Name { get; set; }
         }
     }
 }
