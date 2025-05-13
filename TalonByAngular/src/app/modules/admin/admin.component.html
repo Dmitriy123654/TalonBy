@@ -16,6 +16,9 @@
         <li *ngIf="isTabVisible('patients')" class="tab" [class.active]="activeTab === 'patients'" (click)="setActiveTab('patients')">
           Пациенты
         </li>
+        <li *ngIf="isTabVisible('doctors')" class="tab" [class.active]="activeTab === 'doctors'" (click)="setActiveTab('doctors')">
+          Врачи
+        </li>
         <li *ngIf="isTabVisible('users')" class="tab" [class.active]="activeTab === 'users'" (click)="setActiveTab('users')">
           Пользователи
         </li>
@@ -39,6 +42,12 @@
       <div class="patients-section" *ngIf="activeTab === 'patients'">
         <h2>Управление пациентами</h2>
         <app-patient-management *ngIf="!isLoading"></app-patient-management>
+      </div>
+      
+      <!-- Doctors tab content -->
+      <div class="doctors-section" *ngIf="activeTab === 'doctors'">
+        <h2>Управление врачами</h2>
+        <app-doctor-management *ngIf="!isLoading"></app-doctor-management>
       </div>
       
       <!-- Users tab content -->

@@ -9,7 +9,7 @@ import { DoctorsSpeciality } from '../../shared/interfaces/doctors-speciality.in
   providedIn: 'root'
 })
 export class DoctorService {
-  private apiUrl = environment.apiUrl;
+  private apiUrl = `${environment.apiUrl}/doctors`;
 
   constructor(private http: HttpClient) { }
 
@@ -27,7 +27,7 @@ export class DoctorService {
    * @param specialtyId - ID of specialty
    */
   getDoctorsByHospitalAndSpecialty(hospitalId: number, specialtyId: number): Observable<Doctor[]> {
-    return this.http.get<Doctor[]>(`${this.apiUrl}/doctors/by-hospital-specialty`, {
+    return this.http.get<Doctor[]>(`${this.apiUrl}/by-hospital-specialty`, {
       params: {
         hospitalId: hospitalId.toString(),
         specialtyId: specialtyId.toString()
@@ -39,6 +39,53 @@ export class DoctorService {
    * Get information about the currently logged-in doctor
    */
   getCurrentDoctorInfo(): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/doctors/current`);
+    return this.http.get<any>(`${this.apiUrl}/current`);
+  }
+
+  // Get all doctors
+  getAllDoctors(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/GetAll`);
+  }
+
+  // Get doctor by ID
+  getDoctorById(id: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/GetById ${id}`);
+  }
+
+  // Create new doctor
+  createDoctor(doctorData: any): Observable<any> {
+    console.log('Creating doctor with data:', doctorData);
+    return this.http.post<any>(`${this.apiUrl}/Create`, doctorData);
+  }
+
+  // Update existing doctor
+  updateDoctor(id: number, doctorData: any): Observable<any> {
+    console.log('Updating doctor ID', id, 'with data:', doctorData);
+    return this.http.put<any>(`${this.apiUrl}/Update ${id}`, doctorData);
+  }
+
+  // Delete doctor
+  deleteDoctor(id: number): Observable<any> {
+    return this.http.delete<any>(`${this.apiUrl}/Delete ${id}`);
+  }
+
+  // Get doctors by speciality
+  getDoctorsBySpeciality(specialityId: number): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/GetBySpeciality/${specialityId}`);
+  }
+
+  // Get doctors by hospital
+  getDoctorsByHospital(hospitalId: number): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/GetByHospital/${hospitalId}`);
+  }
+
+  // Get all specialities
+  getAllSpecialities(): Observable<any[]> {
+    return this.http.get<any[]>(`${environment.apiUrl}/DoctorsSpeciality/GetAll`);
+  }
+
+  // Get all hospitals
+  getAllHospitals(): Observable<any[]> {
+    return this.http.get<any[]>(`${environment.apiUrl}/Hospital/GetAllHospitals`);
   }
 } 

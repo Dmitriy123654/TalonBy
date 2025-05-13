@@ -445,6 +445,45 @@ export class UserService {
     );
   }
   
+  // Get users with search parameters
+  getUsers(params: any = {}): Observable<User[]> {
+    let queryParams = new URLSearchParams();
+    
+    // Add all provided params to query string
+    Object.keys(params).forEach(key => {
+      if (params[key] !== null && params[key] !== undefined) {
+        queryParams.append(key, params[key]);
+      }
+    });
+    
+    const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
+    
+    return this.http.get<any[]>(
+      `${environment.apiUrl}/auth/users${queryString}`,
+      { withCredentials: true }
+    ).pipe(
+      map(users => users.map(u => ({
+        userId: u.userId || u.id,
+        email: u.email || '',
+        fullName: u.fullName || '',
+        phone: u.phone || '',
+        role: u.role || 'Patient'
+      }))),
+      catchError(error => {
+        console.error('Error fetching users with params:', error, params);
+        return of([]);
+      })
+    );
+  }
+  
+  // Search users by a specific key and value
+  searchUsersByKey(value: string | number, keyName: string = 'userId'): Observable<User[]> {
+    const params: any = {};
+    params[keyName] = value;
+    
+    return this.getUsers(params);
+  }
+  
   // Helper method to update a user's role
   updateUserRole(userId: number, role: string): Observable<boolean> {
     // Convert the role string to a numeric value based on the enum

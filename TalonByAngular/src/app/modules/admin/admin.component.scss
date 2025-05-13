@@ -3,6 +3,7 @@
   min-height: 100vh;
   padding-top: 5px; // For fixed header
   padding-bottom: 40px;
+  overflow-x: hidden;
 }
 
 .container {
@@ -79,6 +80,8 @@
     font-size: 16px;
     line-height: 1.6;
   }
+  
+  overflow-x: hidden;
 }
 
 // Loading and error states - reused from profile component
