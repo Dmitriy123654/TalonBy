@@ -3,6 +3,7 @@
   min-height: 100%;
   position: relative;
   padding: 20px;
+  overflow-x: hidden;
   
   // Alerts
   .alerts {
@@ -327,7 +328,8 @@
           .error-feedback {
             margin-top: 5px;
             color: #dc3545;
-            font-size: 0.875rem;
+            font-size: 14px;
+            font-weight: 600;
           }
         }
         
