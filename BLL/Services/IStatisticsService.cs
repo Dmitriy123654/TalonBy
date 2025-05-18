@@ -32,5 +32,19 @@ namespace BLL.Services
         /// <param name="period">Период статистики</param>
         /// <returns>Статистика по загруженности больницы</returns>
         Task<ScheduleStatisticsViewModel> GetHospitalOccupancyStatisticsAsync(int hospitalId, StatisticsPeriodEnum period);
+        
+        /// <summary>
+        /// Анализ загруженности и формирование рекомендаций по оптимизации расписания
+        /// </summary>
+        /// <param name="request">Параметры для анализа</param>
+        /// <returns>Рекомендации по оптимизации расписания</returns>
+        Task<ScheduleOptimizationViewModel> AnalyzeScheduleOptimizationAsync(StatisticsRequestViewModel request);
+        
+        /// <summary>
+        /// Анализ трендов загруженности для более точных рекомендаций
+        /// </summary>
+        /// <param name="currentRequest">Параметры для анализа текущего периода</param>
+        /// <returns>Информация о трендах загруженности</returns>
+        Task<OptimizationTrendsViewModel> AnalyzeTrendsAsync(StatisticsRequestViewModel currentRequest);
     }
 } 

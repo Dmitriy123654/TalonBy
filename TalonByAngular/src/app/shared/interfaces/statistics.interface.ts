@@ -28,6 +28,48 @@ export interface WeekdayDistribution {
   rate: number;               // Загруженность в процентах
 }
 
+// Интерфейсы для оптимизации расписания
+export interface ScheduleOptimization {
+  hasHighOccupancyPeriods: boolean;           // Наличие периодов высокой загруженности (80%+)
+  hasLowOccupancyPeriods: boolean;            // Наличие периодов низкой загруженности (менее 20%)
+  hourlyOptimizations: HourlyOptimization[];  // Рекомендации по часам с высокой загруженностью
+  weekdayOptimizations: WeekdayOptimization[]; // Рекомендации по дням недели с высокой загруженностью
+  slotDurationOptimization: SlotDurationOptimization; // Общие рекомендации по оптимизации длительности приема
+  estimatedImpactPercentage: number;          // Эффект от применения оптимизаций (в процентах)
+  impactDescription: string;                  // Текстовое описание эффекта от оптимизации
+  currentSlotDuration: number;                // Текущая средняя длительность приема в минутах
+  recommendedSlotDuration: number;            // Рекомендуемая длительность приема в минутах
+}
+
+export interface HourlyOptimization {
+  hour: string;                     // Часовой интервал
+  currentOccupancyRate: number;     // Текущая загруженность (%)
+  recommendedSlotDuration: number;  // Рекомендуемая длительность приема в минутах
+  expectedOccupancyRate: number;    // Прогнозируемая загруженность после оптимизации (%)
+}
+
+export interface WeekdayOptimization {
+  dayOfWeek: number;                // День недели (номер 1-7)
+  name: string;                     // Название дня недели
+  currentOccupancyRate: number;     // Текущая загруженность (%)
+  recommendedSlotDuration: number;  // Рекомендуемая длительность приема в минутах
+  expectedOccupancyRate: number;    // Прогнозируемая загруженность после оптимизации (%)
+}
+
+export interface SlotDurationOptimization {
+  optimizationRequired: boolean;    // Требуется ли изменение длительности приема
+  currentDuration: number;          // Текущая длительность приема в минутах
+  recommendedDuration: number;      // Рекомендуемая длительность приема в минутах
+  type: OptimizationType;           // Тип оптимизации
+  description: string;              // Описание рекомендации на естественном языке
+}
+
+export enum OptimizationType {
+  Decrease = 'decrease',            // Уменьшение длительности приема
+  Increase = 'increase',            // Увеличение длительности приема
+  NoChange = 'noChange'             // Оптимизация не требуется
+}
+
 export enum StatisticsPeriod {
   Day = 'day',
   Week = 'week',
@@ -59,4 +101,30 @@ export interface StatisticsRequest {
   fromDate?: string;
   toDate?: string;
   startFromToday?: boolean; // Флаг для начала периода с сегодняшнего дня
+}
+
+export interface OptimizationTrends {
+  occupancyTrend: number;           // Изменение общей загруженности в процентах
+  description: string;              // Описание тенденции на естественном языке
+  hourlyTrends: HourlyTrend[];      // Тренды по часам
+  weekdayTrends: WeekdayTrend[];    // Тренды по дням недели
+}
+
+export interface HourlyTrend {
+  hour: string;                     // Часовой интервал
+  trend: number;                    // Изменение загруженности в процентах
+  isGrowing: boolean;               // Флаг роста загруженности
+  isDecreasing: boolean;            // Флаг снижения загруженности
+  stableHighLoad: boolean;          // Флаг стабильно высокой загруженности
+  stableLowLoad: boolean;           // Флаг стабильно низкой загруженности
+}
+
+export interface WeekdayTrend {
+  dayOfWeek: number;                // День недели (номер 1-7)
+  name: string;                     // Название дня недели
+  trend: number;                    // Изменение загруженности в процентах
+  isGrowing: boolean;               // Флаг роста загруженности
+  isDecreasing: boolean;            // Флаг снижения загруженности
+  stableHighLoad: boolean;          // Флаг стабильно высокой загруженности
+  stableLowLoad: boolean;           // Флаг стабильно низкой загруженности
 } 

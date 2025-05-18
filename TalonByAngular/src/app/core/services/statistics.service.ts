@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
+import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { ScheduleStatistics, StatisticsRequest } from '../../shared/interfaces/statistics.interface';
-import { catchError, map } from 'rxjs/operators';
+import { ScheduleStatistics, ScheduleOptimization, StatisticsRequest, OptimizationTrends } from '../../shared/interfaces/statistics.interface';
+import { catchError } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
@@ -44,77 +44,103 @@ export class StatisticsService {
       params = params.append('toDate', request.toDate);
     }
     
-    // В реальном приложении здесь будет вызов API на бэкенд
-    // Однако для демонстрационных целей генерируем моковые данные
-    return this.http.get<ScheduleStatistics>(`${this.apiUrl}/statistics/schedule`, { params })
-      .pipe(
-        catchError(() => {
-          // В случае ошибки или отсутствия API, возвращаем моковые данные
-          console.log('Использую моковые данные для статистики');
-          return of(this.generateMockStatistics(request));
-        })
-      );
+    // Делаем запрос к API
+    return this.http.get<ScheduleStatistics>(`${this.apiUrl}/statistics/schedule`, { params });
   }
 
   /**
-   * Генерация моковых данных для статистики
-   * @param request - параметры запроса
+   * Получение рекомендаций по оптимизации расписания
+   * @param request - параметры запроса статистики
    */
-  private generateMockStatistics(request: StatisticsRequest): ScheduleStatistics {
-    // Базовые значения статистики
-    const baseStatistics = {
-      totalSlots: 100,
-      totalAppointments: 65,
-      completedAppointments: 30,
-      waitingAppointments: 25,
-      cancelledAppointments: 10,
-      occupancyRate: 65,
-      hourlyDistribution: [
-        { hour: '08:00-09:00', totalAppointments: 5, rate: 50 },
-        { hour: '09:00-10:00', totalAppointments: 8, rate: 80 },
-        { hour: '10:00-11:00', totalAppointments: 10, rate: 100 },
-        { hour: '11:00-12:00', totalAppointments: 7, rate: 70 },
-        { hour: '12:00-13:00', totalAppointments: 3, rate: 30 },
-        { hour: '13:00-14:00', totalAppointments: 2, rate: 20 },
-        { hour: '14:00-15:00', totalAppointments: 6, rate: 60 },
-        { hour: '15:00-16:00', totalAppointments: 9, rate: 90 },
-        { hour: '16:00-17:00', totalAppointments: 8, rate: 80 },
-        { hour: '17:00-18:00', totalAppointments: 7, rate: 70 }
-      ]
-    };
+  getScheduleOptimization(request: StatisticsRequest): Observable<ScheduleOptimization> {
+    let params = new HttpParams();
     
-    // Модифицируем значения в зависимости от периода
-    const multiplier = this.getPeriodMultiplier(request.period);
+    // Добавляем параметры в запрос
+    params = params.append('scope', request.scope);
+    params = params.append('period', request.period);
     
-    return {
-      ...baseStatistics,
-      totalSlots: baseStatistics.totalSlots * multiplier,
-      totalAppointments: Math.floor(baseStatistics.totalAppointments * multiplier),
-      completedAppointments: Math.floor(baseStatistics.completedAppointments * multiplier),
-      waitingAppointments: Math.floor(baseStatistics.waitingAppointments * multiplier),
-      cancelledAppointments: Math.floor(baseStatistics.cancelledAppointments * multiplier),
-      // Загруженность оставляем примерно такой же
-      occupancyRate: Math.min(100, baseStatistics.occupancyRate * (1 + (Math.random() * 0.2 - 0.1)))
-    };
-  }
-
-  /**
-   * Получение множителя статистики в зависимости от выбранного периода
-   */
-  private getPeriodMultiplier(period: string): number {
-    switch (period) {
-      case 'day': 
-        return 1;
-      case 'week': 
-        return 7;
-      case 'month': 
-        return 30;
-      case 'threeMonths': 
-        return 90;
-      case 'year': 
-        return 365;
-      default: 
-        return 1;
+    if (request.hospitalId) {
+      params = params.append('hospitalId', request.hospitalId.toString());
     }
+    
+    if (request.specialtyId) {
+      params = params.append('specialtyId', request.specialtyId.toString());
+    }
+    
+    if (request.doctorId) {
+      params = params.append('doctorId', request.doctorId.toString());
+    }
+    
+    if (request.fromDate) {
+      params = params.append('fromDate', request.fromDate);
+    }
+    
+    if (request.toDate) {
+      params = params.append('toDate', request.toDate);
+    }
+    
+    if (request.startFromToday !== undefined) {
+      params = params.append('startFromToday', request.startFromToday.toString());
+    }
+    
+    // Делаем запрос к API
+    return this.http.get<ScheduleOptimization>(`${this.apiUrl}/statistics/schedule/optimization`, { params });
+  }
+
+  /**
+   * Анализ трендов загруженности для более точных рекомендаций
+   * @param request - параметры запроса статистики
+   */
+  getScheduleTrends(request: StatisticsRequest): Observable<OptimizationTrends> {
+    let params = new HttpParams();
+    
+    // Добавляем параметры в запрос
+    params = params.append('scope', request.scope);
+    params = params.append('period', request.period);
+    
+    if (request.hospitalId) {
+      params = params.append('hospitalId', request.hospitalId.toString());
+    }
+    
+    if (request.specialtyId) {
+      params = params.append('specialtyId', request.specialtyId.toString());
+    }
+    
+    if (request.doctorId) {
+      params = params.append('doctorId', request.doctorId.toString());
+    }
+    
+    if (request.startFromToday !== undefined) {
+      params = params.append('startFromToday', request.startFromToday.toString());
+    }
+    
+    // Делаем запрос к API
+    return this.http.get<OptimizationTrends>(`${this.apiUrl}/statistics/schedule/trends`, { params });
+  }
+
+  /**
+   * Получение статистики по доступности слотов для конкретного врача
+   * @param doctorId - идентификатор врача
+   * @param fromDate - начальная дата
+   * @param toDate - конечная дата
+   */
+  getDoctorSlotStatistics(doctorId: number, fromDate: string, toDate: string): Observable<ScheduleStatistics> {
+    let params = new HttpParams()
+      .append('fromDate', fromDate)
+      .append('toDate', toDate);
+    
+    return this.http.get<ScheduleStatistics>(`${this.apiUrl}/statistics/doctor/${doctorId}/slots`, { params });
+  }
+
+  /**
+   * Получение статистики по загруженности больницы
+   * @param hospitalId - идентификатор больницы
+   * @param period - период статистики
+   */
+  getHospitalOccupancyStatistics(hospitalId: number, period: string): Observable<ScheduleStatistics> {
+    let params = new HttpParams()
+      .append('period', period);
+    
+    return this.http.get<ScheduleStatistics>(`${this.apiUrl}/statistics/hospital/${hospitalId}/occupancy`, { params });
   }
 } 

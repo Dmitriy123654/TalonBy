@@ -202,5 +202,59 @@ namespace BLL.Services
             
             return (fromDate, toDate);
         }
+
+        /// <summary>
+        /// Анализ загруженности и формирование рекомендаций по оптимизации расписания
+        /// </summary>
+        /// <param name="request">Параметры для анализа</param>
+        /// <returns>Рекомендации по оптимизации расписания</returns>
+        public async Task<ScheduleOptimizationViewModel> AnalyzeScheduleOptimizationAsync(StatisticsRequestViewModel request)
+        {
+            // Проверяем и вычисляем даты на основе периода, учитывая StartFromToday
+            if (!request.FromDate.HasValue || !request.ToDate.HasValue)
+            {
+                // Получаем даты из периода
+                (DateTime fromDate, DateTime toDate) = CalculatePeriodDates(request.Period, request.StartFromToday);
+                request.FromDate = fromDate;
+                request.ToDate = toDate;
+            }
+
+            ValidateStatisticsRequest(request);
+
+            return await _statisticsRepository.AnalyzeScheduleOptimizationAsync(request);
+        }
+
+        /// <summary>
+        /// Анализ трендов загруженности для более точных рекомендаций
+        /// </summary>
+        /// <param name="currentRequest">Параметры для анализа текущего периода</param>
+        /// <returns>Информация о трендах загруженности</returns>
+        public async Task<OptimizationTrendsViewModel> AnalyzeTrendsAsync(StatisticsRequestViewModel currentRequest)
+        {
+            // Проверяем и вычисляем даты на основе периода для текущего запроса
+            if (!currentRequest.FromDate.HasValue || !currentRequest.ToDate.HasValue)
+            {
+                // Получаем даты из периода
+                (DateTime fromDate, DateTime toDate) = CalculatePeriodDates(currentRequest.Period, currentRequest.StartFromToday);
+                currentRequest.FromDate = fromDate;
+                currentRequest.ToDate = toDate;
+            }
+
+            ValidateStatisticsRequest(currentRequest);
+            
+            // Создаем запрос для исторического периода (трехмесячный период)
+            var historicalRequest = new StatisticsRequestViewModel
+            {
+                Scope = currentRequest.Scope,
+                Period = StatisticsPeriodEnum.ThreeMonths,
+                HospitalId = currentRequest.HospitalId,
+                SpecialtyId = currentRequest.SpecialtyId,
+                DoctorId = currentRequest.DoctorId,
+                StartFromToday = false // Для исторических данных используем полный период
+            };
+            
+            // Анализируем тренды
+            return await _statisticsRepository.AnalyzeTrendsAsync(currentRequest, historicalRequest);
+        }
     }
 } 

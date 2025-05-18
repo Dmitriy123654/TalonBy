@@ -1,4 +1,26 @@
 <div class="schedule-management">
+  <!-- Уведомление об оптимизации -->
+  <div *ngIf="showOptimizationNotification && scheduleOptimization && scheduleOptimization.slotDurationOptimization.optimizationRequired" 
+       class="optimization-notification-top">
+    <div class="optimization-notification-content">
+      <div class="optimization-icon">
+        <i class="icon-warning"></i>
+      </div>
+      <div class="optimization-message">
+        <h4>Рекомендуется оптимизация расписания</h4>
+        <p>{{ scheduleOptimization.slotDurationOptimization.description }}</p>
+      </div>
+      <div class="optimization-actions">
+        <button class="btn btn-primary" (click)="applyOptimization()" [disabled]="optimizationApplied">
+          <span *ngIf="!optimizationApplied">Применить</span>
+          <span *ngIf="optimizationApplied">Применено</span>
+        </button>
+        <button class="btn btn-secondary" (click)="toggleOptimizationPanel()">Подробнее</button>
+        <button class="btn btn-close" (click)="closeOptimizationNotification()">×</button>
+      </div>
+    </div>
+  </div>
+  
   <!-- Сообщения об ошибках и успехе -->
   <div class="alerts">
     <div *ngIf="errorMessage" class="alert alert-error">
@@ -15,6 +37,9 @@
   <!-- Заголовок и кнопка статистики -->
   <div class="header-with-actions">
     <div class="spacer"></div>
+    <button class="btn btn-optimization" (click)="toggleOptimizationPanel()">
+      <i class="icon-optimize"></i> {{ showOptimizationPanel ? 'Скрыть оптимизацию' : 'Оптимизация' }}
+    </button>
     <button class="btn btn-statistics" (click)="toggleStatisticsPanel()">
       <i class="icon-chart"></i> {{ isStatisticsPanelOpen ? 'Скрыть статистику' : 'Статистика' }}
     </button>
@@ -73,13 +98,19 @@
             <span>Год</span>
           </label>
         </div>
+        <div class="start-from-today-option">
+          <label class="checkbox-option">
+            <input type="checkbox" [(ngModel)]="startFromToday" (change)="onStartFromTodayChange()">
+            <span>Начинать с сегодняшнего дня</span>
+          </label>
+        </div>
       </div>
     </div>
 
     <!-- Данные статистики -->
     <div class="statistics-data" *ngIf="!isLoadingStatistics && statistics">
       <div class="statistics-title">
-        <h3>Статистика для {{ getSelectedScopeTitle() }} за {{ getSelectedPeriodTitle() }}</h3>
+        <h3>Статистика для {{ getSelectedScopeTitle() }} за {{ getSelectedPeriodTitle() }} <span class="date-range">({{ statisticsDateRange }})</span></h3>
       </div>
       
       <!-- Карточки с основными показателями -->
@@ -139,8 +170,8 @@
             <i class="icon-chart"></i>
           </div>
           <div class="stat-content">
-            <div class="stat-value">{{ formatPercentage(statistics.occupancyRate) }}%</div>
-            <div class="stat-label">Загруженность</div>
+            <div class="stat-value" title="Процент выполненных записей относительно общего количества доступных талонов">{{ formatPercentage(statistics.occupancyRate) }}%</div>
+            <div class="stat-label" title="Выполненные записи / Общее количество доступных талонов">Загруженность</div>
           </div>
         </div>
       </div>
@@ -188,43 +219,323 @@
       <div class="statistics-charts">
         <div class="chart-container">
           <h4>Распределение записей по часам</h4>
+          
+          <!-- Фильтры для графика по типам статусов -->
+          <div class="status-filter-options">
+            <div class="filter-button" 
+                 [class.active]="selectedStatusFilter === AppointmentStatusFilter.All"
+                 (click)="changeStatusFilter(AppointmentStatusFilter.All)">
+              Все записи
+            </div>
+            <div class="filter-button completed" 
+                 [class.active]="selectedStatusFilter === AppointmentStatusFilter.Completed"
+                 (click)="changeStatusFilter(AppointmentStatusFilter.Completed)">
+              Выполненные
+            </div>
+            <div class="filter-button waiting" 
+                 [class.active]="selectedStatusFilter === AppointmentStatusFilter.Waiting"
+                 (click)="changeStatusFilter(AppointmentStatusFilter.Waiting)">
+              Ожидаются
+            </div>
+            <div class="filter-button cancelled" 
+                 [class.active]="selectedStatusFilter === AppointmentStatusFilter.Cancelled"
+                 (click)="changeStatusFilter(AppointmentStatusFilter.Cancelled)">
+              Отмененные
+            </div>
+          </div>
+          
+          <!-- Chart Y-axis for the hourly chart -->
           <div class="chart-scroll-container">
-            <div class="hourly-chart" [style.width.px]="getFilteredHourlyDistribution().length * 80">
-              <div class="chart-bars">
-                <div class="bar-container" *ngFor="let hour of getFilteredHourlyDistribution()">
-                  <div class="bar-label">{{ hour.hour }}</div>
+            <div class="statistics-chart">
+              <!-- Y-axis scale -->
+              <div class="y-axis">
+                <div class="y-value" *ngFor="let mark of getYAxisMarks()">{{ mark }}</div>
+              </div>
+              
+              <!-- Chart content -->
+              <div class="chart-content">
+                <div class="chart-column" *ngFor="let hour of getFilteredHourlyDistribution()">
                   <div class="bar-wrapper">
-                    <div class="bar" [style.height.%]="hour.rate">
-                      <div class="bar-value">{{ hour.totalAppointments }}</div>
-                    </div>
+                    <!-- Показываем стек из разных типов приемов, если выбран фильтр "Все" -->
+                    <ng-container *ngIf="selectedStatusFilter === AppointmentStatusFilter.All">
+                      <!-- Цветные метки с количеством талонов каждого типа -->
+                      <div class="appointment-counts">
+                        <span class="count-value completed" *ngIf="hour.completedAppointments > 0">
+                          {{hour.completedAppointments}}
+                        </span>
+                        <span class="count-value waiting" *ngIf="hour.waitingAppointments > 0">
+                          {{hour.waitingAppointments}}
+                        </span>
+                        <span class="count-value cancelled" *ngIf="hour.cancelledAppointments > 0">
+                          {{hour.cancelledAppointments}}
+                        </span>
+                      </div>
+                      
+                      <!-- Выполненные приемы (зеленый) - снизу -->
+                      <div class="bar completed-bar" 
+                           [style.height.%]="getBarHeight(hour, AppointmentStatusFilter.Completed)"
+                           [style.bottom.%]="0"
+                           [title]="hour.completedAppointments + ' выполненных записей'"></div>
+                      
+                      <!-- Ожидающиеся приемы (оранжевый) - посередине -->
+                      <div class="bar waiting-bar" 
+                           [style.height.%]="getBarHeight(hour, AppointmentStatusFilter.Waiting)" 
+                           [style.bottom.%]="getBarHeight(hour, AppointmentStatusFilter.Completed)"
+                           [title]="hour.waitingAppointments + ' ожидаемых записей'"></div>
+                      
+                      <!-- Отмененные приемы (красный) - сверху -->
+                      <div class="bar cancelled-bar" 
+                           [style.height.%]="getBarHeight(hour, AppointmentStatusFilter.Cancelled)" 
+                           [style.bottom.%]="getBarHeight(hour, AppointmentStatusFilter.Completed) + getBarHeight(hour, AppointmentStatusFilter.Waiting)"
+                           [title]="hour.cancelledAppointments + ' отмененных записей'"></div>
+                    </ng-container>
+                    
+                    <!-- Для остальных фильтров показываем только выбранный тип -->
+                    <ng-container *ngIf="selectedStatusFilter !== AppointmentStatusFilter.All">
+                      <div class="bar" 
+                           [ngClass]="{
+                             'completed-bar': selectedStatusFilter === AppointmentStatusFilter.Completed,
+                             'waiting-bar': selectedStatusFilter === AppointmentStatusFilter.Waiting,
+                             'cancelled-bar': selectedStatusFilter === AppointmentStatusFilter.Cancelled
+                           }"
+                           [style.height.%]="getBarHeightPercentage(hour, selectedStatusFilter)"
+                           [style.bottom.%]="0">
+                      </div>
+                      <div class="appointment-counts">
+                        <span class="count-value" 
+                              [ngClass]="{
+                                'completed': selectedStatusFilter === AppointmentStatusFilter.Completed,
+                                'waiting': selectedStatusFilter === AppointmentStatusFilter.Waiting,
+                                'cancelled': selectedStatusFilter === AppointmentStatusFilter.Cancelled
+                              }">
+                          {{ getFilteredAppointmentsCount(hour) }}
+                        </span>
+                      </div>
+                    </ng-container>
                   </div>
+                  <div class="x-label">{{ hour.hour }}</div>
                 </div>
               </div>
+            </div>
+          </div>
+          
+          <!-- Кнопка для отображения/скрытия таблицы -->
+          <div class="table-toggle">
+            <button class="btn-toggle" (click)="toggleHourlyTable()">
+              {{ showHourlyTable ? 'Скрыть детальные данные' : 'Показать детальные данные' }}
+              <i class="icon" [class.icon-arrow-down]="!showHourlyTable" [class.icon-arrow-up]="showHourlyTable"></i>
+            </button>
+          </div>
+
+          <!-- Таблица с данными по часам -->
+          <div class="statistics-table-container" *ngIf="showHourlyTable">
+            <h5>Детальные данные по часам</h5>
+            
+            <div class="table-scroll-container">
+              <table class="statistics-table">
+                <thead>
+                  <tr>
+                    <th>Часы</th>
+                    <th *ngIf="selectedStatusFilter === AppointmentStatusFilter.All">Всего записей</th>
+                    <th *ngIf="selectedStatusFilter === AppointmentStatusFilter.All">Выполненные</th>
+                    <th *ngIf="selectedStatusFilter === AppointmentStatusFilter.All">Ожидаются</th>
+                    <th *ngIf="selectedStatusFilter === AppointmentStatusFilter.All">Отмененные</th>
+                    <th *ngIf="selectedStatusFilter === AppointmentStatusFilter.Completed">Выполненные</th>
+                    <th *ngIf="selectedStatusFilter === AppointmentStatusFilter.Waiting">Ожидаются</th>
+                    <th *ngIf="selectedStatusFilter === AppointmentStatusFilter.Cancelled">Отмененные</th>
+                    <th title="Выполненные записи / Общее количество доступных талонов в этот час">Загруженность (%)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let hour of getFilteredHourlyDistribution()">
+                    <td>{{ hour.hour }}</td>
+                    <td *ngIf="selectedStatusFilter === AppointmentStatusFilter.All">{{ hour.totalAppointments }}</td>
+                    <td *ngIf="selectedStatusFilter === AppointmentStatusFilter.All">{{ hour.completedAppointments }}</td>
+                    <td *ngIf="selectedStatusFilter === AppointmentStatusFilter.All">{{ hour.waitingAppointments }}</td>
+                    <td *ngIf="selectedStatusFilter === AppointmentStatusFilter.All">{{ hour.cancelledAppointments }}</td>
+                    <td *ngIf="selectedStatusFilter === AppointmentStatusFilter.Completed">{{ hour.completedAppointments }}</td>
+                    <td *ngIf="selectedStatusFilter === AppointmentStatusFilter.Waiting">{{ hour.waitingAppointments }}</td>
+                    <td *ngIf="selectedStatusFilter === AppointmentStatusFilter.Cancelled">{{ hour.cancelledAppointments }}</td>
+                    <td>{{ formatPercentage(hour.rate) }}%</td>
+                  </tr>
+                  <!-- Строка с итогами -->
+                  <tr class="totals-row">
+                    <td>Итого:</td>
+                    <td *ngIf="selectedStatusFilter === AppointmentStatusFilter.All">{{ getHourlyTotal('totalAppointments') }}</td>
+                    <td *ngIf="selectedStatusFilter === AppointmentStatusFilter.All">{{ getHourlyTotal('completedAppointments') }}</td>
+                    <td *ngIf="selectedStatusFilter === AppointmentStatusFilter.All">{{ getHourlyTotal('waitingAppointments') }}</td>
+                    <td *ngIf="selectedStatusFilter === AppointmentStatusFilter.All">{{ getHourlyTotal('cancelledAppointments') }}</td>
+                    <td *ngIf="selectedStatusFilter === AppointmentStatusFilter.Completed">{{ getHourlyTotal('completedAppointments') }}</td>
+                    <td *ngIf="selectedStatusFilter === AppointmentStatusFilter.Waiting">{{ getHourlyTotal('waitingAppointments') }}</td>
+                    <td *ngIf="selectedStatusFilter === AppointmentStatusFilter.Cancelled">{{ getHourlyTotal('cancelledAppointments') }}</td>
+                    <td>{{ formatPercentage(getHourlyAverageRate()) }}%</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
       </div>
       
-      <!-- Таблица с данными -->
-      <div class="statistics-table-container">
-        <h4>Детальные данные по часам</h4>
-        <div class="table-scroll-container">
-          <table class="statistics-table">
-            <thead>
-              <tr>
-                <th>Часы</th>
-                <th>Количество записей</th>
-                <th>Загруженность (%)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let hour of getFilteredHourlyDistribution()">
-                <td>{{ hour.hour }}</td>
-                <td>{{ hour.totalAppointments }}</td>
-                <td>{{ formatPercentage(hour.rate) }}%</td>
-              </tr>
-            </tbody>
-          </table>
+      <!-- График загруженности по дням недели -->
+      <div class="statistics-charts" *ngIf="!isLoadingStatistics && statistics">
+        <div class="chart-container">
+          <h4>Распределение записей по дням недели</h4>
+          
+          <!-- Фильтры для графика по типам статусов - дублируем из первого графика -->
+          <div class="status-filter-options">
+            <div class="filter-button" 
+                 [class.active]="selectedStatusFilter === AppointmentStatusFilter.All"
+                 (click)="changeStatusFilter(AppointmentStatusFilter.All)">
+              Все записи
+            </div>
+            <div class="filter-button completed" 
+                 [class.active]="selectedStatusFilter === AppointmentStatusFilter.Completed"
+                 (click)="changeStatusFilter(AppointmentStatusFilter.Completed)">
+              Выполненные
+            </div>
+            <div class="filter-button waiting" 
+                 [class.active]="selectedStatusFilter === AppointmentStatusFilter.Waiting"
+                 (click)="changeStatusFilter(AppointmentStatusFilter.Waiting)">
+              Ожидаются
+            </div>
+            <div class="filter-button cancelled" 
+                 [class.active]="selectedStatusFilter === AppointmentStatusFilter.Cancelled"
+                 (click)="changeStatusFilter(AppointmentStatusFilter.Cancelled)">
+              Отмененные
+            </div>
+          </div>
+          
+          <!-- Chart Y-axis for the weekday chart -->
+          <div class="chart-scroll-container">
+            <div class="statistics-chart">
+              <!-- Y-axis scale -->
+              <div class="y-axis">
+                <div class="y-value" *ngFor="let mark of getYAxisMarks()">{{ mark }}</div>
+              </div>
+              
+              <!-- Chart content -->
+              <div class="chart-content">
+                <div class="chart-column" *ngFor="let day of getWeekdayDistribution()">
+                  <div class="bar-wrapper">
+                    <!-- Показываем стек из разных типов приемов, если выбран фильтр "Все" -->
+                    <ng-container *ngIf="selectedStatusFilter === AppointmentStatusFilter.All">
+                      <!-- Цветные метки с количеством талонов каждого типа -->
+                      <div class="appointment-counts">
+                        <span class="count-value completed" *ngIf="day.completedAppointments > 0">
+                          {{day.completedAppointments}}
+                        </span>
+                        <span class="count-value waiting" *ngIf="day.waitingAppointments > 0">
+                          {{day.waitingAppointments}}
+                        </span>
+                        <span class="count-value cancelled" *ngIf="day.cancelledAppointments > 0">
+                          {{day.cancelledAppointments}}
+                        </span>
+                      </div>
+                      
+                      <!-- Выполненные приемы (зеленый) - снизу -->
+                      <div class="bar completed-bar" 
+                           [style.height.%]="getBarHeightForWeekday(day, AppointmentStatusFilter.Completed)"
+                           [style.bottom.%]="0"
+                           [title]="day.completedAppointments + ' выполненных записей'"></div>
+                      
+                      <!-- Ожидающиеся приемы (оранжевый) - посередине -->
+                      <div class="bar waiting-bar" 
+                           [style.height.%]="getBarHeightForWeekday(day, AppointmentStatusFilter.Waiting)" 
+                           [style.bottom.%]="getBarHeightForWeekday(day, AppointmentStatusFilter.Completed)"
+                           [title]="day.waitingAppointments + ' ожидаемых записей'"></div>
+                      
+                      <!-- Отмененные приемы (красный) - сверху -->
+                      <div class="bar cancelled-bar" 
+                           [style.height.%]="getBarHeightForWeekday(day, AppointmentStatusFilter.Cancelled)" 
+                           [style.bottom.%]="getBarHeightForWeekday(day, AppointmentStatusFilter.Completed) + getBarHeightForWeekday(day, AppointmentStatusFilter.Waiting)"
+                           [title]="day.cancelledAppointments + ' отмененных записей'"></div>
+                    </ng-container>
+                    
+                    <!-- Для остальных фильтров показываем только выбранный тип -->
+                    <ng-container *ngIf="selectedStatusFilter !== AppointmentStatusFilter.All">
+                      <div class="bar" 
+                           [ngClass]="{
+                             'completed-bar': selectedStatusFilter === AppointmentStatusFilter.Completed,
+                             'waiting-bar': selectedStatusFilter === AppointmentStatusFilter.Waiting,
+                             'cancelled-bar': selectedStatusFilter === AppointmentStatusFilter.Cancelled
+                           }"
+                           [style.height.%]="getBarHeightPercentageForWeekday(day, selectedStatusFilter)"
+                           [style.bottom.%]="0">
+                      </div>
+                      <div class="appointment-counts">
+                        <span class="count-value" 
+                              [ngClass]="{
+                                'completed': selectedStatusFilter === AppointmentStatusFilter.Completed,
+                                'waiting': selectedStatusFilter === AppointmentStatusFilter.Waiting,
+                                'cancelled': selectedStatusFilter === AppointmentStatusFilter.Cancelled
+                              }">
+                          {{ getFilteredAppointmentsCountForWeekday(day) }}
+                        </span>
+                      </div>
+                    </ng-container>
+                  </div>
+                  <div class="x-label">{{ day.name }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Кнопка для отображения/скрытия таблицы по дням недели -->
+          <div class="table-toggle">
+            <button class="btn-toggle" (click)="toggleWeekdayTable()">
+              {{ showWeekdayTable ? 'Скрыть детальные данные' : 'Показать детальные данные' }}
+              <i class="icon" [class.icon-arrow-down]="!showWeekdayTable" [class.icon-arrow-up]="showWeekdayTable"></i>
+            </button>
+          </div>
+
+          <!-- Таблица с данными по дням недели -->
+          <div class="statistics-table-container" *ngIf="showWeekdayTable">
+            <h5>Детальные данные по дням недели</h5>
+            
+            <div class="table-scroll-container">
+              <table class="statistics-table">
+                <thead>
+                  <tr>
+                    <th>День недели</th>
+                    <th *ngIf="selectedStatusFilter === AppointmentStatusFilter.All">Всего записей</th>
+                    <th *ngIf="selectedStatusFilter === AppointmentStatusFilter.All">Выполненные</th>
+                    <th *ngIf="selectedStatusFilter === AppointmentStatusFilter.All">Ожидаются</th>
+                    <th *ngIf="selectedStatusFilter === AppointmentStatusFilter.All">Отмененные</th>
+                    <th *ngIf="selectedStatusFilter === AppointmentStatusFilter.Completed">Выполненные</th>
+                    <th *ngIf="selectedStatusFilter === AppointmentStatusFilter.Waiting">Ожидаются</th>
+                    <th *ngIf="selectedStatusFilter === AppointmentStatusFilter.Cancelled">Отмененные</th>
+                    <th title="Выполненные записи / Общее количество доступных талонов в этот день недели">Загруженность (%)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let day of getWeekdayDistribution()">
+                    <td>{{ getWeekdayName(day.dayOfWeek) }}</td>
+                    <td *ngIf="selectedStatusFilter === AppointmentStatusFilter.All">{{ day.totalAppointments }}</td>
+                    <td *ngIf="selectedStatusFilter === AppointmentStatusFilter.All">{{ day.completedAppointments }}</td>
+                    <td *ngIf="selectedStatusFilter === AppointmentStatusFilter.All">{{ day.waitingAppointments }}</td>
+                    <td *ngIf="selectedStatusFilter === AppointmentStatusFilter.All">{{ day.cancelledAppointments }}</td>
+                    <td *ngIf="selectedStatusFilter === AppointmentStatusFilter.Completed">{{ day.completedAppointments }}</td>
+                    <td *ngIf="selectedStatusFilter === AppointmentStatusFilter.Waiting">{{ day.waitingAppointments }}</td>
+                    <td *ngIf="selectedStatusFilter === AppointmentStatusFilter.Cancelled">{{ day.cancelledAppointments }}</td>
+                    <td>{{ formatPercentage(day.rate) }}%</td>
+                  </tr>
+                  <!-- Строка с итогами -->
+                  <tr class="totals-row">
+                    <td>Итого:</td>
+                    <td *ngIf="selectedStatusFilter === AppointmentStatusFilter.All">{{ getWeekdayTotal('totalAppointments') }}</td>
+                    <td *ngIf="selectedStatusFilter === AppointmentStatusFilter.All">{{ getWeekdayTotal('completedAppointments') }}</td>
+                    <td *ngIf="selectedStatusFilter === AppointmentStatusFilter.All">{{ getWeekdayTotal('waitingAppointments') }}</td>
+                    <td *ngIf="selectedStatusFilter === AppointmentStatusFilter.All">{{ getWeekdayTotal('cancelledAppointments') }}</td>
+                    <td *ngIf="selectedStatusFilter === AppointmentStatusFilter.Completed">{{ getWeekdayTotal('completedAppointments') }}</td>
+                    <td *ngIf="selectedStatusFilter === AppointmentStatusFilter.Waiting">{{ getWeekdayTotal('waitingAppointments') }}</td>
+                    <td *ngIf="selectedStatusFilter === AppointmentStatusFilter.Cancelled">{{ getWeekdayTotal('cancelledAppointments') }}</td>
+                    <td>{{ formatPercentage(getWeekdayAverageRate()) }}%</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -242,413 +553,594 @@
     </div>
   </div>
 
-  <!-- Выбор больницы (только для администраторов) -->
-  <div class="selection-row" *ngIf="userRole === 'Administrator'">
-    <div class="hospital-selection">
-      <h3>Выберите больницу</h3>
-      <div class="search-input">
-        <input 
-          type="text" 
-          [(ngModel)]="hospitalFilter" 
-          (input)="filterHospitals()" 
-          placeholder="Поиск больницы..."
-          class="filter-input"
-        >
-        <i class="icon-search"></i>
+  <!-- Уведомление о необходимости оптимизации расписания -->
+  <div class="optimization-notification" *ngIf="showOptimizationNotification && scheduleOptimization && scheduleOptimization.slotDurationOptimization.optimizationRequired">
+    <div class="notification-content" [ngClass]="{
+      'high-occupancy': scheduleOptimization.slotDurationOptimization.type === OptimizationType.Decrease,
+      'low-occupancy': scheduleOptimization.slotDurationOptimization.type === OptimizationType.Increase
+    }">
+      <div class="notification-icon">
+        <i class="icon-optimization"></i>
       </div>
-      <select [(ngModel)]="selectedHospitalId" (change)="onHospitalChange(selectedHospitalId)">
-        <option [ngValue]="0">Выберите больницу</option>
-        <option *ngFor="let hospital of hospitals" [ngValue]="hospital.hospitalId">
-          {{ hospital.name }}
-        </option>
-      </select>
+      <div class="notification-text">
+        <h4>Рекомендация по оптимизации расписания</h4>
+        <p>{{ scheduleOptimization.slotDurationOptimization.description }}</p>
+      </div>
+      <div class="notification-actions">
+        <button class="btn btn-apply" (click)="applyOptimization()">Применить</button>
+        <button class="btn btn-details" (click)="toggleOptimizationPanel()">Детали</button>
+        <button class="btn btn-close" (click)="closeOptimizationNotification()">×</button>
+      </div>
     </div>
   </div>
 
-  <!-- Выбор специальности (для администраторов и главврачей) -->
-  <div class="selection-row" *ngIf="(userRole === 'Administrator' && selectedHospitalId && specialities.length > 0) || (userRole === 'ChiefDoctor' && specialities.length > 0)">
-    <div class="speciality-selection">
-      <h3>Выберите специальность</h3>
-      <div class="search-input">
-        <input 
-          type="text" 
-          [(ngModel)]="specialityFilter" 
-          (input)="filterSpecialities()" 
-          placeholder="Поиск специальности..."
-          class="filter-input"
-        >
-        <i class="icon-search"></i>
+  <!-- Блок оптимизации расписания -->
+  <div class="optimization-section" *ngIf="showOptimizationPanel">
+    <h3>Рекомендации по оптимизации расписания</h3>
+    
+    <div class="optimization-loading" *ngIf="isLoadingOptimization">
+      <div class="spinner"></div>
+      <p>Анализ расписания и формирование рекомендаций...</p>
+    </div>
+
+    <div class="optimization-content" *ngIf="!isLoadingOptimization && scheduleOptimization">
+      <!-- Общие рекомендации -->
+      <div class="optimization-general">
+        <h4>Общие рекомендации</h4>
+        <div class="recommendation-card" [ngClass]="{
+          'high-occupancy': scheduleOptimization.slotDurationOptimization.type === OptimizationType.Decrease,
+          'low-occupancy': scheduleOptimization.slotDurationOptimization.type === OptimizationType.Increase,
+          'no-change': scheduleOptimization.slotDurationOptimization.type === OptimizationType.NoChange
+        }">
+          <div class="recommendation-header">
+            <div class="recommendation-icon">
+              <i class="icon-clock"></i>
+            </div>
+            <div class="recommendation-title">
+              <h5>Длительность приема</h5>
+              <div class="current-value">
+                Текущее значение: <strong>{{ scheduleOptimization.currentSlotDuration }} мин.</strong>
+              </div>
+            </div>
+          </div>
+          <div class="recommendation-body">
+            <p>{{ scheduleOptimization.slotDurationOptimization.description }}</p>
+            <div class="recommended-value" *ngIf="scheduleOptimization.slotDurationOptimization.optimizationRequired">
+              Рекомендуемое значение: <strong>{{ scheduleOptimization.recommendedSlotDuration }} мин.</strong>
+            </div>
+          </div>
+          <div class="recommendation-impact" *ngIf="scheduleOptimization.slotDurationOptimization.optimizationRequired">
+            <h5>Ожидаемый эффект</h5>
+            <p>{{ scheduleOptimization.impactDescription }}</p>
+          </div>
+          <div class="recommendation-actions" *ngIf="scheduleOptimization.slotDurationOptimization.optimizationRequired">
+            <button class="btn btn-primary" (click)="applyOptimization()" [disabled]="optimizationApplied">
+              <span *ngIf="!optimizationApplied">Применить рекомендацию</span>
+              <span *ngIf="optimizationApplied">Рекомендация применена</span>
+            </button>
+            <button class="btn btn-info ml-2" (click)="analyzeTrends()" [disabled]="isLoadingOptimization || !statistics">
+              <span *ngIf="!isLoadingOptimization">Анализировать тренды</span>
+              <span *ngIf="isLoadingOptimization">Анализ...</span>
+            </button>
+          </div>
+          
+          <!-- Отображение информации о трендах -->
+          <div class="trend-analysis" *ngIf="optimizationTrendInfo">
+            <h5>Анализ тенденций загруженности</h5>
+            <p class="trend-description">{{ optimizationTrendInfo.description }}</p>
+            
+            <div class="trend-details" *ngIf="optimizationTrendInfo.trends">
+              <!-- Основная тенденция -->
+              <div class="trend-indicator" [ngClass]="{
+                'trend-increasing': optimizationTrendInfo.trends.occupancyTrend > 5,
+                'trend-decreasing': optimizationTrendInfo.trends.occupancyTrend < -5,
+                'trend-stable': optimizationTrendInfo.trends.occupancyTrend >= -5 && optimizationTrendInfo.trends.occupancyTrend <= 5
+              }">
+                <span class="trend-value">{{ optimizationTrendInfo.trends.occupancyTrend | number:'1.2-2' }}%</span>
+                <span class="trend-label">Изменение общей загруженности</span>
+              </div>
+              
+              <!-- Наиболее критичные часы -->
+              <div class="critical-hours" *ngIf="optimizationTrendInfo.trends.hourlyTrends && optimizationTrendInfo.trends.hourlyTrends.length > 0">
+                <h6>Наиболее значимые изменения по часам:</h6>
+                <ul>
+                  <li *ngFor="let hourTrend of optimizationTrendInfo.trends.hourlyTrends.slice(0, 3)" [ngClass]="{
+                    'trend-increasing': hourTrend.isGrowing,
+                    'trend-decreasing': hourTrend.isDecreasing
+                  }">
+                    {{ hourTrend.hour }}: {{ hourTrend.trend | number:'1.2-2' }}% 
+                    <span *ngIf="hourTrend.isGrowing">(рост)</span>
+                    <span *ngIf="hourTrend.isDecreasing">(снижение)</span>
+                    <span *ngIf="hourTrend.stableHighLoad">(стабильно высокая загрузка)</span>
+                    <span *ngIf="hourTrend.stableLowLoad">(стабильно низкая загрузка)</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      <select [(ngModel)]="selectedSpecialityId" (change)="onSpecialityChange(selectedSpecialityId)">
-        <option [ngValue]="0">Выберите специальность</option>
-        <option *ngFor="let speciality of specialities" [ngValue]="speciality.doctorsSpecialityId">
-          {{ speciality.name }}
-        </option>
-      </select>
+
+      <!-- Детальные рекомендации по часам -->
+      <div class="optimization-hourly" *ngIf="scheduleOptimization.hourlyOptimizations && scheduleOptimization.hourlyOptimizations.length > 0">
+        <h4>Рекомендации по часам</h4>
+        <table class="optimization-table">
+          <thead>
+            <tr>
+              <th>Время</th>
+              <th>Текущая загруженность</th>
+              <th>Рекомендуемая длительность</th>
+              <th>Ожидаемая загруженность</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let hour of scheduleOptimization.hourlyOptimizations" [ngClass]="{
+              'high-occupancy': hour.currentOccupancyRate >= 80,
+              'low-occupancy': hour.currentOccupancyRate <= 20
+            }">
+              <td>{{ hour.hour }}</td>
+              <td>{{ hour.currentOccupancyRate | number:'1.2-2' }}%</td>
+              <td>{{ hour.recommendedSlotDuration }} мин.</td>
+              <td>{{ hour.expectedOccupancyRate | number:'1.2-2' }}%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Детальные рекомендации по дням недели -->
+      <div class="optimization-weekday" *ngIf="scheduleOptimization.weekdayOptimizations && scheduleOptimization.weekdayOptimizations.length > 0">
+        <h4>Рекомендации по дням недели</h4>
+        <table class="optimization-table">
+          <thead>
+            <tr>
+              <th>День недели</th>
+              <th>Текущая загруженность</th>
+              <th>Рекомендуемая длительность</th>
+              <th>Ожидаемая загруженность</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let day of scheduleOptimization.weekdayOptimizations" [ngClass]="{
+              'high-occupancy': day.currentOccupancyRate >= 80,
+              'low-occupancy': day.currentOccupancyRate <= 20
+            }">
+              <td>{{ day.name }}</td>
+              <td>{{ day.currentOccupancyRate | number:'1.2-2' }}%</td>
+              <td>{{ day.recommendedSlotDuration }} мин.</td>
+              <td>{{ day.expectedOccupancyRate | number:'1.2-2' }}%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Если нет рекомендаций -->
+      <div class="no-optimizations" *ngIf="!scheduleOptimization.hasHighOccupancyPeriods && !scheduleOptimization.hasLowOccupancyPeriods && !scheduleOptimization.slotDurationOptimization.optimizationRequired">
+        <div class="success-icon">
+          <i class="icon-check-circle"></i>
+        </div>
+        <p>Текущее расписание оптимально. Нет рекомендаций по изменению длительности приема.</p>
+      </div>
+    </div>
+
+    <!-- Нет данных для анализа -->
+    <div class="no-data" *ngIf="!isLoadingOptimization && !scheduleOptimization">
+      <p>Нет данных для анализа. Выберите врача, специальность или больницу и загрузите статистику.</p>
     </div>
   </div>
 
-  <!-- Выбор врача и периода -->
-  <div class="selection-row">
-    <!-- Выбор врача (для администраторов и главврачей) -->
-    <div class="doctor-selection" *ngIf="(userRole === 'Administrator' && selectedSpecialityId) || (userRole === 'ChiefDoctor' && selectedSpecialityId)">
-      <h3>Выберите врача</h3>
-      <div class="search-input">
-        <input 
-          type="text" 
-          [(ngModel)]="doctorFilter" 
-          (input)="filterDoctors()" 
-          placeholder="Поиск врача..."
-          class="filter-input"
-        >
-        <i class="icon-search"></i>
-      </div>
-      <div *ngIf="doctors.length > 0" class="select-wrapper">
-        <select 
-          [(ngModel)]="selectedDoctorId" 
-          (ngModelChange)="onDoctorChange($event)"
-          class="doctor-select"
-        >
-          <option [ngValue]="0">Выберите врача</option>
-          <option *ngFor="let doctor of doctors" [ngValue]="doctor.id">
-            {{ doctor.name }} ({{ doctor.specialization }})
+  <!-- Основной контент (настройки расписания) -->
+  <div class="schedule-settings">
+    <!-- Выбор больницы (только для администраторов) -->
+    <div class="selection-row" *ngIf="userRole === 'Administrator'">
+      <div class="hospital-selection">
+        <h3>Выберите больницу</h3>
+        <div class="search-input">
+          <input 
+            type="text" 
+            [(ngModel)]="hospitalFilter" 
+            (input)="filterHospitals()" 
+            placeholder="Поиск больницы..."
+            class="filter-input"
+          >
+          <i class="icon-search"></i>
+        </div>
+        <select [(ngModel)]="selectedHospitalId" (change)="onHospitalChange(selectedHospitalId)">
+          <option [ngValue]="0">Выберите больницу</option>
+          <option *ngFor="let hospital of hospitals" [ngValue]="hospital.hospitalId">
+            {{ hospital.name }}
           </option>
         </select>
       </div>
-      <div *ngIf="doctors.length === 0" class="no-doctors-message">
-        <p>Нет доступных врачей для выбранной специальности</p>
+    </div>
+
+    <!-- Выбор специальности (для администраторов и главврачей) -->
+    <div class="selection-row" *ngIf="(userRole === 'Administrator' && selectedHospitalId && specialities.length > 0) || (userRole === 'ChiefDoctor' && specialities.length > 0)">
+      <div class="speciality-selection">
+        <h3>Выберите специальность</h3>
+        <div class="search-input">
+          <input 
+            type="text" 
+            [(ngModel)]="specialityFilter" 
+            (input)="filterSpecialities()" 
+            placeholder="Поиск специальности..."
+            class="filter-input"
+          >
+          <i class="icon-search"></i>
+        </div>
+        <select [(ngModel)]="selectedSpecialityId" (change)="onSpecialityChange(selectedSpecialityId)">
+          <option [ngValue]="0">Выберите специальность</option>
+          <option *ngFor="let speciality of specialities" [ngValue]="speciality.doctorsSpecialityId">
+            {{ speciality.name }}
+          </option>
+        </select>
       </div>
     </div>
 
-    <!-- Выбор периода (для всех) -->
-    <div class="period-selection" [ngClass]="{'full-width': userRole === 'Doctor' || userRole === 'ChiefDoctor'}">
-      <h3>Выберите период</h3>
-      <div class="date-range">
-        <div class="date-input">
-          <label for="startDate">С:</label>
+    <!-- Выбор врача и периода -->
+    <div class="selection-row">
+      <!-- Выбор врача (для администраторов и главврачей) -->
+      <div class="doctor-selection" *ngIf="(userRole === 'Administrator' && selectedSpecialityId) || (userRole === 'ChiefDoctor' && selectedSpecialityId)">
+        <h3>Выберите врача</h3>
+        <div class="search-input">
           <input 
-            type="date" 
-            id="startDate" 
-            [(ngModel)]="startDate" 
-            [ngModelOptions]="{standalone: true}"
-            (change)="onPeriodChange()"
-            [min]="startDate"
+            type="text" 
+            [(ngModel)]="doctorFilter" 
+            (input)="filterDoctors()" 
+            placeholder="Поиск врача..."
+            class="filter-input"
           >
+          <i class="icon-search"></i>
         </div>
-        <div class="date-input">
-          <label for="endDate">По:</label>
-          <input 
-            type="date" 
-            id="endDate" 
-            [(ngModel)]="endDate" 
-            [ngModelOptions]="{standalone: true}"
-            (change)="onPeriodChange()"
-            [min]="startDate"
-            [max]="maxEndDate"
-          >
-          <div class="date-hint">Не более 3 месяцев от текущей даты</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Настройки расписания -->
-  <div class="settings-section">
-    <h3>Настройки расписания</h3>
-    <form [formGroup]="settingsForm" (ngSubmit)="saveSettings()">
-      <div class="settings-grid">
-        <div class="form-group">
-          <label for="workdayStart">Начало рабочего дня:</label>
-          <input 
-            type="time" 
-            id="workdayStart" 
-            formControlName="workdayStart"
-          >
-          <div *ngIf="settingsForm.controls['workdayStart'].invalid && settingsForm.controls['workdayStart'].touched" class="error">
-            Укажите корректное время
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="workdayEnd">Конец рабочего дня:</label>
-          <input 
-            type="time" 
-            id="workdayEnd" 
-            formControlName="workdayEnd"
-          >
-          <div *ngIf="settingsForm.controls['workdayEnd'].invalid && settingsForm.controls['workdayEnd'].touched" class="error">
-            Укажите корректное время
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="slotDuration">Длительность приема (мин):</label>
-          <input 
-            type="number" 
-            id="slotDuration" 
-            formControlName="slotDuration"
-            min="5" 
-            max="60"
-          >
-          <div *ngIf="settingsForm.controls['slotDuration'].invalid && settingsForm.controls['slotDuration'].touched" class="error">
-            Длительность должна быть от 5 до 60 минут
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="breakDuration">Перерыв между приемами (мин):</label>
+        <div *ngIf="doctors.length > 0" class="select-wrapper">
           <select 
-            id="breakDuration" 
-            formControlName="breakDuration"
+            [(ngModel)]="selectedDoctorId" 
+            (ngModelChange)="onDoctorChange($event)"
+            class="doctor-select"
           >
-            <option *ngFor="let duration of breakOptions" [value]="duration">{{ duration }}</option>
+            <option [ngValue]="0">Выберите врача</option>
+            <option *ngFor="let doctor of doctors" [ngValue]="doctor.id">
+              {{ doctor.name }} ({{ doctor.specialization }})
+            </option>
           </select>
-          <div *ngIf="settingsForm.controls['breakDuration'].invalid && settingsForm.controls['breakDuration'].touched" class="error">
-            Выберите значение из списка
-          </div>
         </div>
-
-        <div class="form-group">
-          <label for="lunchStart">Начало обеденного перерыва:</label>
-          <input 
-            type="time" 
-            id="lunchStart" 
-            formControlName="lunchStart"
-          >
-          <div *ngIf="settingsForm.controls['lunchStart'].invalid && settingsForm.controls['lunchStart'].touched" class="error">
-            Укажите корректное время
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="lunchEnd">Конец обеденного перерыва:</label>
-          <input 
-            type="time" 
-            id="lunchEnd" 
-            formControlName="lunchEnd"
-          >
-          <div *ngIf="settingsForm.controls['lunchEnd'].invalid && settingsForm.controls['lunchEnd'].touched" class="error">
-            Укажите корректное время
-          </div>
+        <div *ngIf="doctors.length === 0" class="no-doctors-message">
+          <p>Нет доступных врачей для выбранной специальности</p>
         </div>
       </div>
 
-      <div class="workdays-section">
-        <label>Рабочие дни:</label>
-        <div class="workdays-grid">
-          <div *ngFor="let day of weekdays" 
-               class="day-checkbox" 
-               [class.selected]="isDaySelected(day.id)"
-               (click)="toggleDay(day.id)">
-            {{ day.name }}
+      <!-- Выбор периода (для всех) -->
+      <div class="period-selection" [ngClass]="{'full-width': userRole === 'Doctor' || userRole === 'ChiefDoctor'}">
+        <h3>Выберите период</h3>
+        <div class="date-range">
+          <div class="date-input">
+            <label for="startDate">С:</label>
+            <input 
+              type="date" 
+              id="startDate" 
+              [(ngModel)]="startDate" 
+              [ngModelOptions]="{standalone: true}"
+              (change)="onPeriodChange()"
+              [min]="startDate"
+            >
+          </div>
+          <div class="date-input">
+            <label for="endDate">По:</label>
+            <input 
+              type="date" 
+              id="endDate" 
+              [(ngModel)]="endDate" 
+              [ngModelOptions]="{standalone: true}"
+              (change)="onPeriodChange()"
+              [min]="startDate"
+              [max]="maxEndDate"
+            >
+            <div class="date-hint">Не более 3 месяцев от текущей даты</div>
           </div>
         </div>
       </div>
-
-      <!-- Блок автоматической генерации (только для администраторов и главврачей) -->
-      <div class="auto-generate-section" *ngIf="userRole === 'Administrator' || userRole === 'ChiefDoctor'">
-        <h3 class="section-title" (click)="toggleAutoGenerationPanel()">
-          <span class="section-icon">{{isAutoGenerationPanelOpen ? '▼' : '►'}}</span> 
-          Автоматическая генерация
-          <span class="generation-status" [class.active]="autoGenerationActive">
-            Статус: {{autoGenerationActive ? 'Активна' : 'Не активна'}}
-          </span>
-          <span class="info-icon" *ngIf="autoGenerationActive" (click)="showAutoGenerationInfo($event)">ⓘ</span>
-        </h3>
-
-        <!-- Раскрывающийся блок с настройками автогенерации -->
-        <div class="auto-generate-panel" *ngIf="isAutoGenerationPanelOpen">
-          <div class="auto-generate-switch">
-            <label class="switch">
-              <input type="checkbox" [(ngModel)]="autoGenerateEnabled" [ngModelOptions]="{standalone: true}">
-              <span class="slider round"></span>
-            </label>
-            <span class="switch-label">Генерировать автоматически</span>
-          </div>
-
-          <!-- Блок настроек автоматической генерации -->
-          <div class="auto-generate-settings" *ngIf="autoGenerateEnabled">
-            <!-- Область применения -->
-            <div class="auto-generate-scope">
-              <label>Область применения:</label>
-              <div class="scope-options">
-                <!-- Опция "Для всех больниц" только для администраторов -->
-                <label class="scope-option" *ngIf="userRole === 'Administrator'">
-                  <input type="radio" [(ngModel)]="autoGenerateScope" value="allHospitals" [ngModelOptions]="{standalone: true}" name="scope">
-                  <span>Для всех больниц</span>
-                </label>
-                <label class="scope-option">
-                  <input type="radio" [(ngModel)]="autoGenerateScope" value="selectedHospital" [ngModelOptions]="{standalone: true}" [disabled]="!selectedHospitalId" name="scope">
-                  <span>Для выбранной больницы</span>
-                </label>
-                <label class="scope-option">
-                  <input type="radio" [(ngModel)]="autoGenerateScope" value="selectedSpeciality" [ngModelOptions]="{standalone: true}" [disabled]="!selectedHospitalId || !selectedSpecialityId" name="scope">
-                  <span>Для выбранной специальности</span>
-                </label>
-                <label class="scope-option">
-                  <input type="radio" [(ngModel)]="autoGenerateScope" value="selectedDoctor" [ngModelOptions]="{standalone: true}" [disabled]="!selectedDoctorId" name="scope">
-                  <span>Для выбранного врача</span>
-                </label>
-              </div>
-            </div>
-
-            <!-- Период генерации -->
-            <div class="auto-generate-period">
-              <label>Период генерации:</label>
-              <div class="period-options">
-                <label class="period-option">
-                  <input type="radio" [(ngModel)]="autoGeneratePeriod" value="week" [ngModelOptions]="{standalone: true}" (change)="onPeriodTypeChange()" name="period">
-                  <span>1 неделя</span>
-                </label>
-                <label class="period-option">
-                  <input type="radio" [(ngModel)]="autoGeneratePeriod" value="month" [ngModelOptions]="{standalone: true}" (change)="onPeriodTypeChange()" name="period">
-                  <span>1 месяц</span>
-                </label>
-                <label class="period-option">
-                  <input type="radio" [(ngModel)]="autoGeneratePeriod" value="year" [ngModelOptions]="{standalone: true}" (change)="onPeriodTypeChange()" name="period">
-                  <span>1 год</span>
-                </label>
-              </div>
-            </div>
-
-            <!-- Дата начала генерации -->
-            <div class="auto-generate-date">
-              <label>Дата начала генерации:</label>
-              <input 
-                type="date" 
-                [(ngModel)]="autoGenerateStartDate" 
-                [ngModelOptions]="{standalone: true}"
-                (change)="onStartDateChange()" 
-                class="form-control"
-                [min]="startDate">
-              <div class="date-info" *ngIf="autoGenerateEndDate">
-                <small>Конец периода: {{ autoGenerateEndDate }}</small>
-              </div>
-            </div>
-
-            <!-- Результат автогенерации -->
-            <div class="auto-generate-result" *ngIf="autoGenerateResult" [class.success]="autoGenerateSuccess" [class.error]="!autoGenerateSuccess">
-              {{ autoGenerateResult }}
-              
-              <!-- Детали созданных расписаний, которые появляются при успешной генерации -->
-              <div class="generation-details" *ngIf="autoGenerateSuccess && generatedDoctorNames && generatedDoctorNames.length > 0">
-                <div class="details-header">
-                  Расписания созданы для следующих врачей:
-                </div>
-                <div class="doctors-list">
-                  <ul>
-                    <li *ngFor="let doctorName of generatedDoctorNames.slice(0, 10)">{{ doctorName }}</li>
-                    <li *ngIf="generatedDoctorNames.length > 10" class="more-doctors">
-                      ...и ещё {{ generatedDoctorNames.length - 10 }} врач(ей)
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <!-- Кнопки управления автогенерацией -->
-            <div class="auto-generate-actions">
-              <button type="button" class="btn btn-primary" (click)="saveAutoGenerationSettings()" [disabled]="!canStartAutoGeneration()">
-                Сохранить настройки
-              </button>
-              <button type="button" class="btn btn-success" (click)="startAutoGenerate()" [disabled]="!canStartAutoGeneration()">
-                <span *ngIf="autoGenerationActive">Создать новую (старая будет отменена)</span>
-                <span *ngIf="!autoGenerationActive">Создать расписание</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="action-buttons">
-        <button type="submit" class="btn btn-primary" [disabled]="isLoading">
-          <i class="icon-save"></i> Сохранить настройки
-        </button>
-        <button type="button" class="btn btn-accent" (click)="generateSchedule()" [disabled]="isLoading">
-          <i class="icon-calendar"></i> Сгенерировать расписание
-        </button>
-        <button type="button" class="btn btn-danger" (click)="deleteSchedule()" [disabled]="isLoading || !currentSchedule">
-          <i class="icon-delete"></i> Удалить расписание
-        </button>
-        <button type="button" class="btn btn-primary" (click)="updateSchedule()" [disabled]="isLoading">
-          <i class="icon-update"></i> Изменить расписание
-        </button>
-        <button type="button" class="btn btn-secondary" (click)="resetSelections()" title="Сбросить все выбранные значения" [disabled]="isLoading">
-          <i class="icon-reset"></i> Сбросить выбор
-        </button>
-      </div>
-    </form>
-  </div>
-
-  <!-- Отображение текущего расписания в виде календаря -->
-  <div class="schedule-display">
-    <div class="schedule-header">
-      <h3 *ngIf="currentSchedule">Расписание: {{ currentSchedule.doctorName }} ({{ currentSchedule.specialization }})</h3>
-      <h3 *ngIf="!currentSchedule && !isLoading">Календарь</h3>
-      <h3 *ngIf="!currentSchedule && isLoading">Загрузка расписания...</h3>
     </div>
 
-    <div class="calendar-wrapper">
-      <!-- Показываем календарь, только если данные загружены или это пустой календарь -->
-      <div *ngIf="currentSchedule || !isLoading">
-        <div class="calendar-header">
-          <button class="month-nav" (click)="prevMonth()" [disabled]="!canGoToPrevMonth()">&lt;</button>
-          <h3>{{ getMonthName(currentMonth) }} {{ currentMonth.getFullYear() }}</h3>
-          <button class="month-nav" (click)="nextMonth()" [disabled]="!canGoToNextMonth()">&gt;</button>
-        </div>
-
-        <div class="calendar">
-          <div class="weekdays">
-            <div class="weekday" *ngFor="let day of calendarWeekDays">{{ day }}</div>
-          </div>
-          
-          <div class="calendar-grid">
-            <div class="week" *ngFor="let week of calendarDays">
-              <div class="day" *ngFor="let day of week" 
-                  [class.weekend]="day.isWeekend"
-                  [class.disabled]="day.isDisabled"
-                  [class.today]="day.isToday"
-                  [class.selected]="selectedCalendarDate && day.date === selectedCalendarDate.getDate() && 
-                                  day.month === selectedCalendarDate.getMonth() && 
-                                  day.year === selectedCalendarDate.getFullYear()"
-                  (click)="selectCalendarDate(day)">
-                <div class="day-content">
-                  <span class="date">{{ day.date || '' }}</span>
-                  <span class="slots" *ngIf="day.date && !day.isDisabled && day.availableSlots > 0">
-                    {{ day.availableSlots }}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div class="time-slots-row" *ngIf="selectedCalendarDate && selectedDaySlots.length > 0">
-              <div class="selected-date">
-                {{ formatSelectedDate(selectedCalendarDate) }}, {{ getDayOfWeekForDate(selectedCalendarDate) }}
-              </div>
-              
-              <div class="slot-status-legend">
-                <div class="status-item available">Доступно</div>
-                <div class="status-item unavailable">Занято</div>
-              </div>
-              
-              <div class="time-slots">
-                <div *ngFor="let slot of selectedDaySlots" 
-                    class="time-slot" 
-                    [class.available]="slot.isAvailable"
-                    [class.unavailable]="!slot.isAvailable"
-                    (click)="updateSlotAvailability(slot, !slot.isAvailable)">
-                  {{ slot.time }}
-                </div>
-              </div>
+    <!-- Настройки расписания -->
+    <div class="settings-section">
+      <h3>Настройки расписания</h3>
+      <form [formGroup]="settingsForm" (ngSubmit)="saveSettings()">
+        <div class="settings-grid">
+          <div class="form-group">
+            <label for="workdayStart">Начало рабочего дня:</label>
+            <input 
+              type="time" 
+              id="workdayStart" 
+              formControlName="workdayStart"
+            >
+            <div *ngIf="settingsForm.controls['workdayStart'].invalid && settingsForm.controls['workdayStart'].touched" class="error">
+              Укажите корректное время
             </div>
           </div>
+
+          <div class="form-group">
+            <label for="workdayEnd">Конец рабочего дня:</label>
+            <input 
+              type="time" 
+              id="workdayEnd" 
+              formControlName="workdayEnd"
+            >
+            <div *ngIf="settingsForm.controls['workdayEnd'].invalid && settingsForm.controls['workdayEnd'].touched" class="error">
+              Укажите корректное время
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="slotDuration">Длительность приема (мин):</label>
+            <input 
+              type="number" 
+              id="slotDuration" 
+              formControlName="slotDuration"
+              min="5" 
+              max="60"
+            >
+            <div *ngIf="settingsForm.controls['slotDuration'].invalid && settingsForm.controls['slotDuration'].touched" class="error">
+              Длительность должна быть от 5 до 60 минут
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="breakDuration">Перерыв между приемами (мин):</label>
+            <select 
+              id="breakDuration" 
+              formControlName="breakDuration"
+            >
+              <option *ngFor="let duration of breakOptions" [value]="duration">{{ duration }}</option>
+            </select>
+            <div *ngIf="settingsForm.controls['breakDuration'].invalid && settingsForm.controls['breakDuration'].touched" class="error">
+              Выберите значение из списка
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="lunchStart">Начало обеденного перерыва:</label>
+            <input 
+              type="time" 
+              id="lunchStart" 
+              formControlName="lunchStart"
+            >
+            <div *ngIf="settingsForm.controls['lunchStart'].invalid && settingsForm.controls['lunchStart'].touched" class="error">
+              Укажите корректное время
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="lunchEnd">Конец обеденного перерыва:</label>
+            <input 
+              type="time" 
+              id="lunchEnd" 
+              formControlName="lunchEnd"
+            >
+            <div *ngIf="settingsForm.controls['lunchEnd'].invalid && settingsForm.controls['lunchEnd'].touched" class="error">
+              Укажите корректное время
+            </div>
+          </div>
         </div>
+
+        <div class="workdays-section">
+          <label>Рабочие дни:</label>
+          <div class="workdays-grid">
+            <div *ngFor="let day of weekdays" 
+                 class="day-checkbox" 
+                 [class.selected]="isDaySelected(day.id)"
+                 (click)="toggleDay(day.id)">
+              {{ day.name }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Блок автоматической генерации (только для администраторов и главврачей) -->
+        <div class="auto-generate-section" *ngIf="userRole === 'Administrator' || userRole === 'ChiefDoctor'">
+          <h3 class="section-title" (click)="toggleAutoGenerationPanel()">
+            <span class="section-icon">{{isAutoGenerationPanelOpen ? '▼' : '►'}}</span> 
+            Автоматическая генерация
+            <span class="generation-status" [class.active]="autoGenerationActive">
+              Статус: {{autoGenerationActive ? 'Активна' : 'Не активна'}}
+            </span>
+            <span class="info-icon" *ngIf="autoGenerationActive" (click)="showAutoGenerationInfo($event)">ⓘ</span>
+          </h3>
+
+          <!-- Раскрывающийся блок с настройками автогенерации -->
+          <div class="auto-generate-panel" *ngIf="isAutoGenerationPanelOpen">
+            <div class="auto-generate-switch">
+              <label class="switch">
+                <input type="checkbox" [(ngModel)]="autoGenerateEnabled" [ngModelOptions]="{standalone: true}">
+                <span class="slider round"></span>
+              </label>
+              <span class="switch-label">Генерировать автоматически</span>
+            </div>
+
+            <!-- Блок настроек автоматической генерации -->
+            <div class="auto-generate-settings" *ngIf="autoGenerateEnabled">
+              <!-- Область применения -->
+              <div class="auto-generate-scope">
+                <label>Область применения:</label>
+                <div class="scope-options">
+                  <!-- Опция "Для всех больниц" только для администраторов -->
+                  <label class="scope-option" *ngIf="userRole === 'Administrator'">
+                    <input type="radio" [(ngModel)]="autoGenerateScope" value="allHospitals" [ngModelOptions]="{standalone: true}" name="scope">
+                    <span>Для всех больниц</span>
+                  </label>
+                  <label class="scope-option">
+                    <input type="radio" [(ngModel)]="autoGenerateScope" value="selectedHospital" [ngModelOptions]="{standalone: true}" [disabled]="!selectedHospitalId" name="scope">
+                    <span>Для выбранной больницы</span>
+                  </label>
+                  <label class="scope-option">
+                    <input type="radio" [(ngModel)]="autoGenerateScope" value="selectedSpeciality" [ngModelOptions]="{standalone: true}" [disabled]="!selectedHospitalId || !selectedSpecialityId" name="scope">
+                    <span>Для выбранной специальности</span>
+                  </label>
+                  <label class="scope-option">
+                    <input type="radio" [(ngModel)]="autoGenerateScope" value="selectedDoctor" [ngModelOptions]="{standalone: true}" [disabled]="!selectedDoctorId" name="scope">
+                    <span>Для выбранного врача</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Период генерации -->
+              <div class="auto-generate-period">
+                <label>Период генерации:</label>
+                <div class="period-options">
+                  <label class="period-option">
+                    <input type="radio" [(ngModel)]="autoGeneratePeriod" value="week" [ngModelOptions]="{standalone: true}" (change)="onPeriodTypeChange()" name="period">
+                    <span>1 неделя</span>
+                  </label>
+                  <label class="period-option">
+                    <input type="radio" [(ngModel)]="autoGeneratePeriod" value="month" [ngModelOptions]="{standalone: true}" (change)="onPeriodTypeChange()" name="period">
+                    <span>1 месяц</span>
+                  </label>
+                  <label class="period-option">
+                    <input type="radio" [(ngModel)]="autoGeneratePeriod" value="year" [ngModelOptions]="{standalone: true}" (change)="onPeriodTypeChange()" name="period">
+                    <span>1 год</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Дата начала генерации -->
+              <div class="auto-generate-date">
+                <label>Дата начала генерации:</label>
+                <input 
+                  type="date" 
+                  [(ngModel)]="autoGenerateStartDate" 
+                  [ngModelOptions]="{standalone: true}"
+                  (change)="onStartDateChange()" 
+                  class="form-control"
+                  [min]="startDate">
+                <div class="date-info" *ngIf="autoGenerateEndDate">
+                  <small>Конец периода: {{ autoGenerateEndDate }}</small>
+                </div>
+              </div>
+
+              <!-- Результат автогенерации -->
+              <div class="auto-generate-result" *ngIf="autoGenerateResult" [class.success]="autoGenerateSuccess" [class.error]="!autoGenerateSuccess">
+                {{ autoGenerateResult }}
+                
+                <!-- Детали созданных расписаний, которые появляются при успешной генерации -->
+                <div class="generation-details" *ngIf="autoGenerateSuccess && generatedDoctorNames && generatedDoctorNames.length > 0">
+                  <div class="details-header">
+                    Расписания созданы для следующих врачей:
+                  </div>
+                  <div class="doctors-list">
+                    <ul>
+                      <li *ngFor="let doctorName of generatedDoctorNames.slice(0, 10)">{{ doctorName }}</li>
+                      <li *ngIf="generatedDoctorNames.length > 10" class="more-doctors">
+                        ...и ещё {{ generatedDoctorNames.length - 10 }} врач(ей)
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Кнопки для управления автогенерацией -->
+              <div class="auto-generation-actions">
+                <button class="btn btn-analyze-optimize" (click)="loadScheduleOptimization()" [disabled]="!(selectedDoctorId || selectedHospitalId || selectedSpecialityId)">
+                  <i class="icon-analyze"></i> Анализ и оптимизация
+                </button>
+                <button type="button" class="btn btn-primary" (click)="saveAutoGenerationSettings()" [disabled]="!canStartAutoGeneration()">
+                  Сохранить настройки
+                </button>
+                <button type="button" class="btn btn-success" (click)="startAutoGenerate()" [disabled]="!canStartAutoGeneration()">
+                  <span *ngIf="autoGenerationActive">Создать новую (старая будет отменена)</span>
+                  <span *ngIf="!autoGenerationActive">Создать расписание</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="action-buttons">
+          <button type="submit" class="btn btn-primary" [disabled]="isLoading">
+            <i class="icon-save"></i> Сохранить настройки
+          </button>
+          <button type="button" class="btn btn-accent" (click)="generateSchedule()" [disabled]="isLoading">
+            <i class="icon-calendar"></i> Сгенерировать расписание
+          </button>
+          <button type="button" class="btn btn-danger" (click)="deleteSchedule()" [disabled]="isLoading || !currentSchedule">
+            <i class="icon-delete"></i> Удалить расписание
+          </button>
+          <button type="button" class="btn btn-primary" (click)="updateSchedule()" [disabled]="isLoading">
+            <i class="icon-update"></i> Изменить расписание
+          </button>
+          <button type="button" class="btn btn-secondary" (click)="resetSelections()" title="Сбросить все выбранные значения" [disabled]="isLoading">
+            <i class="icon-reset"></i> Сбросить выбор
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Отображение текущего расписания в виде календаря -->
+    <div class="schedule-display">
+      <div class="schedule-header">
+        <h3 *ngIf="currentSchedule">Расписание: {{ currentSchedule.doctorName }} ({{ currentSchedule.specialization }})</h3>
+        <h3 *ngIf="!currentSchedule && !isLoading">Календарь</h3>
+        <h3 *ngIf="!currentSchedule && isLoading">Загрузка расписания...</h3>
       </div>
 
-      <!-- Индикатор загрузки для календаря -->
-      <div *ngIf="isLoading" class="calendar-loading">
-        <div class="spinner"></div>
-        <p>Загрузка и построение расписания...</p>
+      <div class="calendar-wrapper">
+        <!-- Показываем календарь, только если данные загружены или это пустой календарь -->
+        <div *ngIf="currentSchedule || !isLoading">
+          <div class="calendar-header">
+            <button class="month-nav" (click)="prevMonth()" [disabled]="!canGoToPrevMonth()">&lt;</button>
+            <h3>{{ getMonthName(currentMonth) }} {{ currentMonth.getFullYear() }}</h3>
+            <button class="month-nav" (click)="nextMonth()" [disabled]="!canGoToNextMonth()">&gt;</button>
+          </div>
+
+          <div class="calendar">
+            <div class="weekdays">
+              <div class="weekday" *ngFor="let day of calendarWeekDays">{{ day }}</div>
+            </div>
+            
+            <div class="calendar-grid">
+              <div class="week" *ngFor="let week of calendarDays">
+                <div class="day" *ngFor="let day of week" 
+                    [class.weekend]="day.isWeekend"
+                    [class.disabled]="day.isDisabled"
+                    [class.today]="day.isToday"
+                    [class.selected]="selectedCalendarDate && day.date === selectedCalendarDate.getDate() && 
+                                    day.month === selectedCalendarDate.getMonth() && 
+                                    day.year === selectedCalendarDate.getFullYear()"
+                    (click)="selectCalendarDate(day)">
+                  <div class="day-content">
+                    <span class="date">{{ day.date || '' }}</span>
+                    <span class="slots" *ngIf="day.date && !day.isDisabled && day.availableSlots > 0">
+                      {{ day.availableSlots }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="time-slots-row" *ngIf="selectedCalendarDate && selectedDaySlots.length > 0">
+                <div class="selected-date">
+                  {{ formatSelectedDate(selectedCalendarDate) }}, {{ getDayOfWeekForDate(selectedCalendarDate) }}
+                </div>
+                
+                <div class="slot-status-legend">
+                  <div class="status-item available">Доступно</div>
+                  <div class="status-item unavailable">Занято</div>
+                </div>
+                
+                <div class="time-slots">
+                  <div *ngFor="let slot of selectedDaySlots" 
+                      class="time-slot" 
+                      [class.available]="slot.isAvailable"
+                      [class.unavailable]="!slot.isAvailable"
+                      (click)="updateSlotAvailability(slot, !slot.isAvailable)">
+                    {{ slot.time }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Индикатор загрузки для календаря -->
+        <div *ngIf="isLoading" class="calendar-loading">
+          <div class="spinner"></div>
+          <p>Загрузка и построение расписания...</p>
+        </div>
       </div>
     </div>
   </div>

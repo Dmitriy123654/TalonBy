@@ -8,7 +8,7 @@ import { Hospital as OrderHospital } from '../../../shared/interfaces/order.inte
 import { DoctorDetails } from '../../../shared/interfaces/order.interface';
 import { take, switchMap } from 'rxjs/operators';
 import { StatisticsService } from '../../../core/services/statistics.service';
-import { ScheduleStatistics, StatisticsPeriod, StatisticsScope } from '../../../shared/interfaces/statistics.interface';
+import { ScheduleStatistics, StatisticsPeriod, StatisticsScope, AppointmentStatusFilter, ScheduleOptimization, OptimizationType } from '../../../shared/interfaces/statistics.interface';
 
 @Component({
   selector: 'app-schedule-management',
@@ -16,6 +16,9 @@ import { ScheduleStatistics, StatisticsPeriod, StatisticsScope } from '../../../
   styleUrls: ['./schedule-management.component.scss']
 })
 export class ScheduleManagementComponent implements OnInit {
+  // Make Math available to templates
+  Math = Math;
+
   // Настройки расписания
   settingsForm: FormGroup;
   // Выбранный доктор
@@ -118,6 +121,72 @@ export class ScheduleManagementComponent implements OnInit {
   customStartHour: number = 8;
   customEndHour: number = 18;
   hourOptions = Array.from({length: 24}, (_, i) => i); // Массив часов [0,1,2,...,23]
+  
+  /**
+   * Текущий диапазон дат статистики в формате дд.мм.гггг-дд.мм.гггг
+   */
+  statisticsDateRange: string = '';
+
+  /**
+   * Текущий фильтр статусов для графика
+   */
+  selectedStatusFilter: AppointmentStatusFilter = AppointmentStatusFilter.All;
+
+  /**
+   * Флаг начинать период с сегодняшнего дня
+   */
+  startFromToday: boolean = false;
+
+  // Сделаем enum доступным в шаблоне
+  AppointmentStatusFilter = AppointmentStatusFilter;
+
+  /**
+   * Флаг для отображения детальной таблицы по часам
+   */
+  showHourlyTable: boolean = false;
+
+  /**
+   * Флаг для отображения детальной таблицы по дням недели
+   */
+  showWeekdayTable: boolean = false;
+
+  /**
+   * Рекомендации по оптимизации расписания
+   */
+  scheduleOptimization: ScheduleOptimization | null = null;
+
+  /**
+   * Флаг загрузки рекомендаций
+   */
+  isLoadingOptimization: boolean = false;
+
+  /**
+   * Флаг для отображения панели рекомендаций
+   */
+  showOptimizationPanel: boolean = false;
+
+  /**
+   * Флаг для отображения уведомления об оптимизации
+   */
+  showOptimizationNotification: boolean = false;
+
+  /**
+   * Таймер для проверки необходимости оптимизации
+   */
+  optimizationCheckInterval: any;
+
+  /**
+   * Оптимизация применена
+   */
+  optimizationApplied: boolean = false;
+
+  /**
+   * Перечисление типов оптимизации для использования в шаблоне
+   */
+  OptimizationType = OptimizationType;
+
+  // Информация о трендах оптимизации
+  optimizationTrendInfo: any = null;
 
   constructor(
     private fb: FormBuilder,
@@ -185,6 +254,9 @@ export class ScheduleManagementComponent implements OnInit {
     setTimeout(() => {
       this.restoreSelectedValuesFromLocalStorage();
     }, 1000);
+
+    // Запускаем проверку необходимости оптимизации
+    this.startOptimizationCheck();
   }
 
   // Валидация: обеденный перерыв не должен превышать 2 часа
@@ -2549,7 +2621,8 @@ export class ScheduleManagementComponent implements OnInit {
     // Формируем запрос на получение статистики
     const request: any = {
       scope: this.statisticsScope as StatisticsScope,
-      period: this.statisticsPeriod as StatisticsPeriod
+      period: this.statisticsPeriod as StatisticsPeriod,
+      startFromToday: this.startFromToday
     };
     
     // Добавляем дополнительные параметры в зависимости от выбранной области
@@ -2568,6 +2641,9 @@ export class ScheduleManagementComponent implements OnInit {
         next: (data) => {
           this.statistics = data;
           this.isLoadingStatistics = false;
+          
+          // Устанавливаем текущий диапазон дат
+          this.calculateStatisticsDateRange(this.statisticsPeriod);
         },
         error: (error) => {
           console.error('Ошибка при загрузке статистики:', error);
@@ -2575,6 +2651,103 @@ export class ScheduleManagementComponent implements OnInit {
           this.errorMessage = 'Не удалось загрузить статистику. Пожалуйста, попробуйте позже.';
         }
       });
+  }
+
+  /**
+   * Обработчик изменения флага "начинать с сегодняшнего дня"
+   */
+  onStartFromTodayChange(): void {
+    this.loadStatistics();
+  }
+
+  /**
+   * Расчет диапазона дат для выбранного периода
+   */
+  calculateStatisticsDateRange(period: any): void {
+    const today = new Date();
+    let fromDate: Date, toDate: Date;
+    
+    switch (period) {
+      case StatisticsPeriod.Day:
+        fromDate = today;
+        toDate = today;
+        break;
+      
+      case StatisticsPeriod.Week:
+        // Если установлен флаг "начинать с сегодняшнего дня"
+        if (this.startFromToday) {
+          fromDate = today;
+          toDate = new Date(today);
+          toDate.setDate(today.getDate() + 6); // Неделя вперед
+        } else {
+          // Получаем начало недели (понедельник)
+          const dayOfWeek = today.getDay() || 7; // 0 - воскресенье, 1-6 - пн-сб
+          const daysFromMonday = dayOfWeek - 1;
+          fromDate = new Date(today);
+          fromDate.setDate(today.getDate() - daysFromMonday);
+          
+          // Конец недели (воскресенье)
+          toDate = new Date(fromDate);
+          toDate.setDate(fromDate.getDate() + 6);
+        }
+        break;
+      
+      case StatisticsPeriod.Month:
+        // Если установлен флаг "начинать с сегодняшнего дня"
+        if (this.startFromToday) {
+          fromDate = today;
+          toDate = new Date(today);
+          toDate.setMonth(today.getMonth() + 1);
+          toDate.setDate(toDate.getDate() - 1); // Последний день следующего месяца
+        } else {
+          // Начало месяца
+          fromDate = new Date(today.getFullYear(), today.getMonth(), 1);
+          // Конец месяца
+          toDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        }
+        break;
+      
+      case StatisticsPeriod.ThreeMonths:
+        // Если установлен флаг "начинать с сегодняшнего дня"
+        if (this.startFromToday) {
+          fromDate = today;
+          toDate = new Date(today);
+          toDate.setMonth(today.getMonth() + 3);
+          toDate.setDate(toDate.getDate() - 1);
+        } else {
+          // Начало 3-месячного периода (2 месяца назад)
+          fromDate = new Date(today.getFullYear(), today.getMonth() - 2, 1);
+          // Конец текущего месяца
+          toDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        }
+        break;
+      
+      case StatisticsPeriod.Year:
+        // Если установлен флаг "начинать с сегодняшнего дня"
+        if (this.startFromToday) {
+          fromDate = today;
+          toDate = new Date(today);
+          toDate.setFullYear(today.getFullYear() + 1);
+          toDate.setDate(toDate.getDate() - 1);
+        } else {
+          // Начало года
+          fromDate = new Date(today.getFullYear(), 0, 1);
+          // Конец года
+          toDate = new Date(today.getFullYear(), 11, 31);
+        }
+        break;
+        
+      default:
+        fromDate = today;
+        toDate = today;
+    }
+    
+    // Форматируем даты в строку
+    const formatDate = (date: Date) => {
+      return `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}.${date.getFullYear()}`;
+    };
+    
+    this.statisticsDateRange = `${formatDate(fromDate)}-${formatDate(toDate)}`;
   }
 
   /**
@@ -2599,6 +2772,10 @@ export class ScheduleManagementComponent implements OnInit {
    * Обработчик изменения периода статистики
    */
   onStatisticsPeriodChange(): void {
+    // Обновляем диапазон дат для выбранного периода
+    this.calculateStatisticsDateRange(this.statisticsPeriod);
+    
+    // Загружаем статистику с новыми параметрами
     this.loadStatistics();
   }
   
@@ -2661,6 +2838,12 @@ export class ScheduleManagementComponent implements OnInit {
     }
     // Сохраняем настройки в localStorage
     this.saveStatisticsTimeSettings();
+    
+    // Вызываем обновление графика
+    if (this.statistics && this.statistics.hourlyDistribution) {
+      // Создаем shallow копию объекта статистики для вызова обновления представления
+      this.statistics = {...this.statistics};
+    }
   }
 
   /**
@@ -2671,6 +2854,12 @@ export class ScheduleManagementComponent implements OnInit {
       this.statisticsStartHour = this.customStartHour;
       this.statisticsEndHour = this.customEndHour;
       this.saveStatisticsTimeSettings();
+      
+      // Вызываем обновление графика
+      if (this.statistics && this.statistics.hourlyDistribution) {
+        // Создаем shallow копию объекта статистики для вызова обновления представления
+        this.statistics = {...this.statistics};
+      }
     }
   }
 
@@ -2730,10 +2919,12 @@ export class ScheduleManagementComponent implements OnInit {
       return [];
     }
 
-    return this.statistics.hourlyDistribution.filter(hourData => {
-      const hour = parseInt(hourData.hour.split('-')[0]);
-      return hour >= this.statisticsStartHour && hour <= this.statisticsEndHour;
-    });
+    // Фильтрация по часам
+    return this.statistics.hourlyDistribution
+      .filter(hourData => {
+        const hour = parseInt(hourData.hour.split('-')[0]);
+        return hour >= this.statisticsStartHour && hour <= this.statisticsEndHour;
+      });
   }
 
   /**
@@ -2743,5 +2934,576 @@ export class ScheduleManagementComponent implements OnInit {
    */
   formatPercentage(value: number): string {
     return value.toFixed(2);
+  }
+
+  /**
+   * Изменение фильтра статусов
+   */
+  changeStatusFilter(filter: AppointmentStatusFilter): void {
+    this.selectedStatusFilter = filter;
+    // Вызываем обновление графика
+    if (this.statistics && this.statistics.hourlyDistribution) {
+      // Создаем shallow копию объекта статистики для вызова обновления представления
+      this.statistics = {...this.statistics};
+    }
+  }
+
+  /**
+   * Получение количества записей для выбранного часа и статуса
+   */
+  getFilteredAppointmentsCount(hourData: any): number {
+    switch (this.selectedStatusFilter) {
+      case AppointmentStatusFilter.Completed:
+        return hourData.completedAppointments;
+      case AppointmentStatusFilter.Waiting:
+        return hourData.waitingAppointments;
+      case AppointmentStatusFilter.Cancelled:
+        return hourData.cancelledAppointments;
+      case AppointmentStatusFilter.All:
+      default:
+        return hourData.totalAppointments;
+    }
+  }
+
+  /**
+   * Получение высоты столбца для графика в зависимости от статуса
+   * Высота вычисляется как процент от максимальной высоты графика,
+   * где максимальное значение на шкале соответствует 100% высоты
+   */
+  getBarHeight(hourData: any, status: AppointmentStatusFilter): number {
+    // Находим максимальное значение для масштабирования (наибольшая метка на шкале)
+    const maxValue = Math.max(...this.getYAxisMarks());
+    if (maxValue === 0) return 0;
+    
+    // Возвращаем абсолютную высоту в процентах от максимального значения
+    switch (status) {
+      case AppointmentStatusFilter.Completed:
+        return (hourData.completedAppointments / maxValue) * 100;
+      case AppointmentStatusFilter.Waiting:
+        return (hourData.waitingAppointments / maxValue) * 100;
+      case AppointmentStatusFilter.Cancelled:
+        return (hourData.cancelledAppointments / maxValue) * 100;
+      default:
+        return 0;
+    }
+  }
+
+  /**
+   * Получение меток для оси Y (шкалы значений)
+   */
+  getYAxisMarks(): number[] {
+    // Определяем максимальное значение
+    const maxValue = this.getMaxAppointmentValue();
+    
+    if (maxValue === 0) {
+      return [10, 8, 6, 4, 2, 0]; // Дефолтные значения в обратном порядке
+    }
+    
+    // Создаем 6 равномерных делений для шкалы (начиная с максимума и заканчивая нулем)
+    const marks = [];
+    const step = Math.ceil(maxValue / 5);
+    
+    // Добавляем метки от максимума до 0
+    for (let i = 5; i >= 0; i--) {
+      marks.push(i * step);
+    }
+    
+    return marks;
+  }
+  
+  /**
+   * Получение высоты столбца для дня недели в зависимости от статуса
+   * Высота вычисляется как процент от максимальной высоты графика,
+   * где максимальное значение на шкале соответствует 100% высоты
+   */
+  getBarHeightForWeekday(day: any, status: AppointmentStatusFilter): number {
+    // Используем максимальное значение шкалы Y
+    const maxValue = Math.max(...this.getYAxisMarks());
+    if (maxValue === 0) return 0;
+    
+    // Возвращаем абсолютную высоту в процентах от максимального значения
+    switch (status) {
+      case AppointmentStatusFilter.Completed:
+        return (day.completedAppointments / maxValue) * 100;
+      case AppointmentStatusFilter.Waiting:
+        return (day.waitingAppointments / maxValue) * 100;
+      case AppointmentStatusFilter.Cancelled:
+        return (day.cancelledAppointments / maxValue) * 100;
+      default:
+        return 0;
+    }
+  }
+  
+  /**
+   * Вычисление загруженности для дня недели
+   * Загруженность = количество записей / общее количество доступных слотов * 100%
+   */
+  getWeekdayOccupancyRate(day: any): number {
+    if (!day || !this.statistics || this.statistics.totalSlots === 0) {
+      return 0;
+    }
+    
+    // Для примера - рассчитываем загруженность как отношение всех записей к общему числу слотов
+    // Предполагаем равномерное распределение слотов по 7 дням недели
+    const slotsPerDay = this.statistics.totalSlots / 7;
+    if (slotsPerDay === 0) return 0;
+    
+    return (day.totalAppointments / slotsPerDay) * 100;
+  }
+  
+  /**
+   * Вычисление средней загруженности для почасовой статистики
+   * Использует значение rate для каждого часа, предоставленное бэкендом
+   */
+  getHourlyAverageRate(): number {
+    if (!this.statistics || !this.statistics.hourlyDistribution) {
+      return 0;
+    }
+    
+    // Фильтруем часы по выбранному временному диапазону
+    const filteredHours = this.getFilteredHourlyDistribution();
+    
+    if (filteredHours.length === 0) {
+      return 0;
+    }
+    
+    // Вычисляем среднее значение загруженности из данных, полученных с сервера
+    const totalRate = filteredHours.reduce((sum, hour) => sum + (hour.rate || 0), 0);
+    return totalRate / filteredHours.length;
+  }
+  
+  /**
+   * Вычисление средней загруженности для статистики по дням недели
+   */
+  getWeekdayAverageRate(): number {
+    if (!this.statistics || !this.statistics.weekdayDistribution || !this.statistics.totalSlots) {
+      return 0;
+    }
+    
+    if (this.statistics.totalSlots === 0) {
+      return 0;
+    }
+    
+    // Суммируем все записи по дням и делим на общее количество слотов
+    const totalAppointments = this.getWeekdayTotal('totalAppointments');
+    return (totalAppointments / this.statistics.totalSlots) * 100;
+  }
+  
+  /**
+   * Вычисление суммы для выбранного поля в почасовом распределении
+   */
+  getHourlyTotal(field: string): number {
+    if (!this.statistics || !this.statistics.hourlyDistribution) {
+      return 0;
+    }
+    
+    // Фильтруем часы по выбранному временному диапазону
+    const filteredHours = this.getFilteredHourlyDistribution();
+    
+    // Суммируем значения выбранного поля
+    return filteredHours.reduce((sum, hour) => sum + (hour[field] || 0), 0);
+  }
+  
+  /**
+   * Вычисление суммы для выбранного поля в распределении по дням недели
+   */
+  getWeekdayTotal(field: string): number {
+    if (!this.statistics || !this.statistics.weekdayDistribution) {
+      return 0;
+    }
+    
+    const weekdays = this.getWeekdayDistribution();
+    
+    // Суммируем значения выбранного поля
+    return weekdays.reduce((sum, day) => sum + (day[field] || 0), 0);
+  }
+
+  /**
+   * Получение данных распределения по дням недели
+   */
+  getWeekdayDistribution(): any[] {
+    if (!this.statistics) {
+      return [];
+    }
+    
+    // Если с сервера пришли реальные данные, используем их
+    if (this.statistics.weekdayDistribution && this.statistics.weekdayDistribution.length > 0) {
+      return this.statistics.weekdayDistribution;
+    }
+    
+    // Если данных нет, создаем заглушку для тестирования интерфейса
+    const weekdays = [
+      { dayOfWeek: 1, name: 'ПН', totalAppointments: 0, completedAppointments: 0, waitingAppointments: 0, cancelledAppointments: 0, rate: 0 },
+      { dayOfWeek: 2, name: 'ВТ', totalAppointments: 0, completedAppointments: 0, waitingAppointments: 0, cancelledAppointments: 0, rate: 0 },
+      { dayOfWeek: 3, name: 'СР', totalAppointments: 0, completedAppointments: 0, waitingAppointments: 0, cancelledAppointments: 0, rate: 0 },
+      { dayOfWeek: 4, name: 'ЧТ', totalAppointments: 0, completedAppointments: 0, waitingAppointments: 0, cancelledAppointments: 0, rate: 0 },
+      { dayOfWeek: 5, name: 'ПТ', totalAppointments: 0, completedAppointments: 0, waitingAppointments: 0, cancelledAppointments: 0, rate: 0 },
+      { dayOfWeek: 6, name: 'СБ', totalAppointments: 0, completedAppointments: 0, waitingAppointments: 0, cancelledAppointments: 0, rate: 0 },
+      { dayOfWeek: 7, name: 'ВС', totalAppointments: 0, completedAppointments: 0, waitingAppointments: 0, cancelledAppointments: 0, rate: 0 }
+    ];
+    
+    return weekdays;
+  }
+  
+  /**
+   * Получение количества записей для выбранного дня недели и статуса
+   */
+  getFilteredAppointmentsCountForWeekday(day: any): number {
+    switch (this.selectedStatusFilter) {
+      case AppointmentStatusFilter.Completed:
+        return day.completedAppointments;
+      case AppointmentStatusFilter.Waiting:
+        return day.waitingAppointments;
+      case AppointmentStatusFilter.Cancelled:
+        return day.cancelledAppointments;
+      case AppointmentStatusFilter.All:
+      default:
+        return day.totalAppointments;
+    }
+  }
+
+  /**
+   * Переключение видимости таблицы с детальными данными по часам
+   */
+  toggleHourlyTable(): void {
+    this.showHourlyTable = !this.showHourlyTable;
+  }
+
+  /**
+   * Переключение видимости таблицы с детальными данными по дням недели
+   */
+  toggleWeekdayTable(): void {
+    this.showWeekdayTable = !this.showWeekdayTable;
+  }
+
+  /**
+   * Получение названия дня недели по его ID
+   */
+  getWeekdayName(dayId: number): string {
+    const weekday = this.weekdays.find(d => d.id === dayId);
+    return weekday ? weekday.name : `День ${dayId}`;
+  }
+
+  /**
+   * Определение максимального количества записей для масштабирования графиков
+   */
+  getMaxAppointmentValue(): number {
+    if (!this.statistics) return 0;
+    
+    let maxValue = 0;
+    
+    // Проверяем данные по часам
+    if (this.statistics.hourlyDistribution && this.statistics.hourlyDistribution.length > 0) {
+      const hourlyMax = Math.max(...this.statistics.hourlyDistribution.map(h => {
+        if (this.selectedStatusFilter === AppointmentStatusFilter.All) {
+          return h.totalAppointments;
+        } else if (this.selectedStatusFilter === AppointmentStatusFilter.Completed) {
+          return h.completedAppointments;
+        } else if (this.selectedStatusFilter === AppointmentStatusFilter.Waiting) {
+          return h.waitingAppointments;
+        } else if (this.selectedStatusFilter === AppointmentStatusFilter.Cancelled) {
+          return h.cancelledAppointments;
+        }
+        return 0;
+      }));
+      maxValue = Math.max(maxValue, hourlyMax);
+    }
+    
+    // Проверяем данные по дням недели
+    if (this.statistics.weekdayDistribution && this.statistics.weekdayDistribution.length > 0) {
+      const weekdayMax = Math.max(...this.statistics.weekdayDistribution.map(d => {
+        if (this.selectedStatusFilter === AppointmentStatusFilter.All) {
+          return d.totalAppointments;
+        } else if (this.selectedStatusFilter === AppointmentStatusFilter.Completed) {
+          return d.completedAppointments;
+        } else if (this.selectedStatusFilter === AppointmentStatusFilter.Waiting) {
+          return d.waitingAppointments;
+        } else if (this.selectedStatusFilter === AppointmentStatusFilter.Cancelled) {
+          return d.cancelledAppointments;
+        }
+        return 0;
+      }));
+      maxValue = Math.max(maxValue, weekdayMax);
+    }
+    
+    // Округляем до ближайшего большего целого числа
+    return Math.ceil(maxValue);
+  }
+
+  /**
+   * Получает максимальное значение меток оси Y
+   */
+  getMaxYAxisValue(): number {
+    return Math.max(...this.getYAxisMarks());
+  }
+  
+  /**
+   * Вычисляет процент высоты столбца для часовых данных
+   * Используется в шаблоне для избежания оператора spread
+   */
+  getBarHeightPercentage(hour: any, status: AppointmentStatusFilter): number {
+    const maxValue = this.getMaxYAxisValue();
+    if (maxValue === 0) return 0;
+    
+    switch (status) {
+      case AppointmentStatusFilter.Completed:
+        return (hour.completedAppointments / maxValue) * 100;
+      case AppointmentStatusFilter.Waiting:
+        return (hour.waitingAppointments / maxValue) * 100;
+      case AppointmentStatusFilter.Cancelled:
+        return (hour.cancelledAppointments / maxValue) * 100;
+      case AppointmentStatusFilter.All:
+        return (this.getFilteredAppointmentsCount(hour) / maxValue) * 100;
+      default:
+        return 0;
+    }
+  }
+  
+  /**
+   * Вычисляет процент высоты столбца для данных по дням недели
+   * Используется в шаблоне для избежания оператора spread
+   */
+  getBarHeightPercentageForWeekday(day: any, status: AppointmentStatusFilter): number {
+    const maxValue = this.getMaxYAxisValue();
+    if (maxValue === 0) return 0;
+    
+    switch (status) {
+      case AppointmentStatusFilter.Completed:
+        return (day.completedAppointments / maxValue) * 100;
+      case AppointmentStatusFilter.Waiting:
+        return (day.waitingAppointments / maxValue) * 100;
+      case AppointmentStatusFilter.Cancelled:
+        return (day.cancelledAppointments / maxValue) * 100;
+      case AppointmentStatusFilter.All:
+        return (this.getFilteredAppointmentsCountForWeekday(day) / maxValue) * 100;
+      default:
+        return 0;
+    }
+  }
+
+  /**
+   * Загрузка рекомендаций по оптимизации расписания
+   */
+  loadScheduleOptimization(): void {
+    if (!this.selectedDoctorId && !this.selectedHospitalId && !this.selectedSpecialityId) {
+      return;
+    }
+
+    this.isLoadingOptimization = true;
+
+    // Формируем запрос на получение оптимизаций
+    const request: any = {
+      scope: this.statisticsScope as StatisticsScope,
+      period: this.statisticsPeriod as StatisticsPeriod,
+      startFromToday: this.startFromToday
+    };
+
+    // Добавляем дополнительные параметры в зависимости от выбранной области
+    if (this.selectedDoctorId > 0) {
+      request.scope = StatisticsScope.SelectedDoctor;
+      request.doctorId = this.selectedDoctorId;
+    } else if (this.selectedSpecialityId > 0) {
+      request.scope = StatisticsScope.SelectedSpecialty;
+      request.specialtyId = this.selectedSpecialityId;
+      request.hospitalId = this.selectedHospitalId;
+    } else if (this.selectedHospitalId > 0) {
+      request.scope = StatisticsScope.SelectedHospital;
+      request.hospitalId = this.selectedHospitalId;
+    }
+
+    // Запрашиваем оптимизации
+    this.statisticsService.getScheduleOptimization(request)
+      .subscribe({
+        next: (data) => {
+          this.scheduleOptimization = data;
+          this.isLoadingOptimization = false;
+
+          // Показываем уведомление, если есть необходимость в оптимизации
+          if (data.slotDurationOptimization.optimizationRequired) {
+            this.showOptimizationNotification = true;
+            // Автоматически скрываем уведомление через 10 секунд
+            setTimeout(() => {
+              this.showOptimizationNotification = false;
+            }, 10000);
+          }
+        },
+        error: (error) => {
+          console.error('Ошибка при загрузке рекомендаций по оптимизации:', error);
+          this.isLoadingOptimization = false;
+          this.errorMessage = 'Не удалось загрузить рекомендации по оптимизации. Пожалуйста, попробуйте позже.';
+        }
+      });
+  }
+
+  /**
+   * Переключение отображения панели оптимизации
+   */
+  toggleOptimizationPanel(): void {
+    this.showOptimizationPanel = !this.showOptimizationPanel;
+
+    // Если панель открыли, загружаем рекомендации
+    if (this.showOptimizationPanel) {
+      this.loadScheduleOptimization();
+    }
+  }
+
+  /**
+   * Начинает периодическую проверку необходимости оптимизации расписания
+   */
+  startOptimizationCheck(): void {
+    // Проверяем оптимизацию при загрузке компонента
+    setTimeout(() => {
+      this.checkOptimizationNeeded();
+    }, 5000);
+
+    // Запускаем периодическую проверку каждый час
+    this.optimizationCheckInterval = setInterval(() => {
+      this.checkOptimizationNeeded();
+    }, 3600000); // 1 час
+  }
+
+  /**
+   * Проверка необходимости оптимизации расписания
+   */
+  checkOptimizationNeeded(): void {
+    // Проверка выполняется только если выбран врач, больница или специальность
+    if (!(this.selectedDoctorId || this.selectedHospitalId || this.selectedSpecialityId)) {
+      return;
+    }
+
+    // Получаем дату последней проверки из localStorage
+    const lastCheckDateStr = localStorage.getItem('lastOptimizationCheckDate');
+    const today = new Date();
+    let shouldCheck = false;
+
+    if (!lastCheckDateStr) {
+      // Если никогда не проверялось, выполняем проверку
+      shouldCheck = true;
+    } else {
+      const lastCheckDate = new Date(lastCheckDateStr);
+      const diffTime = Math.abs(today.getTime() - lastCheckDate.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      // Проверяем каждые 7 дней
+      shouldCheck = diffDays >= 7;
+    }
+
+    // Также проверяем дату следующей автоматической генерации
+    if (this.autoGenerationInfo && this.autoGenerationInfo.nextGenerationDate) {
+      const nextGenDate = new Date(this.autoGenerationInfo.nextGenerationDate);
+      
+      // Если дата следующей генерации - в течение ближайших 3 дней
+      const timeDiff = nextGenDate.getTime() - today.getTime();
+      const daysDiff = timeDiff / (1000 * 3600 * 24);
+      
+      if (daysDiff <= 3 && daysDiff >= 0) {
+        shouldCheck = true;
+      }
+    }
+
+    // Если нужна проверка, загружаем рекомендации
+    if (shouldCheck) {
+      this.loadScheduleOptimization();
+      
+      // Сохраняем дату проверки
+      localStorage.setItem('lastOptimizationCheckDate', today.toString());
+    }
+  }
+
+  /**
+   * Применение рекомендованной оптимизации
+   */
+  applyOptimization(): void {
+    if (!this.scheduleOptimization || !this.scheduleOptimization.slotDurationOptimization.optimizationRequired) {
+      return;
+    }
+
+    const recommendedDuration = this.scheduleOptimization.recommendedSlotDuration;
+    
+    // Обновляем значение длительности приема в форме
+    this.settingsForm.patchValue({
+      slotDuration: recommendedDuration
+    });
+
+    // Сохраняем настройки
+    this.saveSettings();
+
+    // Обновляем флаг, что оптимизация применена
+    this.optimizationApplied = true;
+    
+    // Скрываем уведомление
+    this.showOptimizationNotification = false;
+
+    // Обновляем статус оптимизации
+    setTimeout(() => {
+      this.loadScheduleOptimization();
+    }, 1000);
+  }
+
+  /**
+   * Анализ тенденций загруженности для более точных рекомендаций
+   * Метод анализирует исторические данные для определения трендов
+   * и выдачи более точных рекомендаций по оптимизации
+   */
+  analyzeTrends(): void {
+    if (!this.scheduleOptimization) {
+      return;
+    }
+
+    this.isLoadingOptimization = true;
+    
+    // Параметры запроса для анализа трендов
+    const request: any = {
+      scope: this.statisticsScope as StatisticsScope,
+      period: this.statisticsPeriod as StatisticsPeriod,
+      startFromToday: this.startFromToday
+    };
+    
+    // Добавляем идентификаторы в зависимости от области
+    if (this.selectedDoctorId > 0) {
+      request.doctorId = this.selectedDoctorId;
+    } else if (this.selectedSpecialityId > 0) {
+      request.specialtyId = this.selectedSpecialityId;
+      request.hospitalId = this.selectedHospitalId;
+    } else if (this.selectedHospitalId > 0) {
+      request.hospitalId = this.selectedHospitalId;
+    }
+    
+    // Получаем анализ трендов от API
+    this.statisticsService.getScheduleTrends(request)
+      .subscribe({
+        next: (trends) => {
+          // Сохраняем информацию о трендах для отображения
+          this.optimizationTrendInfo = {
+            description: trends.description,
+            trends: trends
+          };
+          
+          this.isLoadingOptimization = false;
+        },
+        error: (error) => {
+          console.error('Ошибка при анализе тенденций:', error);
+          this.isLoadingOptimization = false;
+        }
+      });
+  }
+  
+
+
+  /**
+   * Закрытие уведомления об оптимизации
+   */
+  closeOptimizationNotification(): void {
+    this.showOptimizationNotification = false;
+  }
+
+  /**
+   * Уничтожение компонента
+   */
+  ngOnDestroy(): void {
+    // Очищаем интервал проверки оптимизации
+    if (this.optimizationCheckInterval) {
+      clearInterval(this.optimizationCheckInterval);
+    }
   }
 } 

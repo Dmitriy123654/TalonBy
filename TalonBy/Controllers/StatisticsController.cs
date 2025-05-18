@@ -125,5 +125,89 @@ namespace TalonBy.Controllers
                 return StatusCode(500, $"Внутренняя ошибка сервера: {ex.Message}");
             }
         }
+
+        /// <summary>
+        /// Анализ загруженности и получение рекомендаций по оптимизации расписания
+        /// </summary>
+        /// <param name="scope">Область статистики</param>
+        /// <param name="period">Период статистики</param>
+        /// <param name="hospitalId">Идентификатор больницы (если применимо)</param>
+        /// <param name="specialtyId">Идентификатор специальности (если применимо)</param>
+        /// <param name="doctorId">Идентификатор врача (если применимо)</param>
+        /// <param name="startFromToday">Начинать период с сегодняшнего дня</param>
+        /// <returns>Рекомендации по оптимизации расписания</returns>
+        [HttpGet("schedule/optimization")]
+        [Authorize(Roles = "Administrator,ChiefDoctor,Doctor")]
+        public async Task<ActionResult<ScheduleOptimizationViewModel>> GetScheduleOptimization(
+            [FromQuery] StatisticsScopeEnum scope,
+            [FromQuery] StatisticsPeriodEnum period,
+            [FromQuery] int? hospitalId = null,
+            [FromQuery] int? specialtyId = null,
+            [FromQuery] int? doctorId = null,
+            [FromQuery] bool startFromToday = false)
+        {
+            try
+            {
+                var request = new StatisticsRequestViewModel
+                {
+                    Scope = scope,
+                    Period = period,
+                    HospitalId = hospitalId,
+                    SpecialtyId = specialtyId,
+                    DoctorId = doctorId,
+                    StartFromToday = startFromToday
+                };
+                
+                var result = await _statisticsService.AnalyzeScheduleOptimizationAsync(request);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при анализе оптимизации расписания");
+                return StatusCode(500, "Ошибка при анализе оптимизации расписания");
+            }
+        }
+        
+        /// <summary>
+        /// Анализ трендов загруженности для более точных рекомендаций
+        /// </summary>
+        /// <param name="scope">Область статистики</param>
+        /// <param name="period">Период статистики</param>
+        /// <param name="hospitalId">Идентификатор больницы (если применимо)</param>
+        /// <param name="specialtyId">Идентификатор специальности (если применимо)</param>
+        /// <param name="doctorId">Идентификатор врача (если применимо)</param>
+        /// <param name="startFromToday">Начинать период с сегодняшнего дня</param>
+        /// <returns>Информация о трендах загруженности</returns>
+        [HttpGet("schedule/trends")]
+        [Authorize(Roles = "Administrator,ChiefDoctor,Doctor")]
+        public async Task<ActionResult<OptimizationTrendsViewModel>> GetScheduleTrends(
+            [FromQuery] StatisticsScopeEnum scope,
+            [FromQuery] StatisticsPeriodEnum period,
+            [FromQuery] int? hospitalId = null,
+            [FromQuery] int? specialtyId = null,
+            [FromQuery] int? doctorId = null,
+            [FromQuery] bool startFromToday = false)
+        {
+            try
+            {
+                var request = new StatisticsRequestViewModel
+                {
+                    Scope = scope,
+                    Period = period,
+                    HospitalId = hospitalId,
+                    SpecialtyId = specialtyId,
+                    DoctorId = doctorId,
+                    StartFromToday = startFromToday
+                };
+                
+                var result = await _statisticsService.AnalyzeTrendsAsync(request);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при анализе трендов загруженности");
+                return StatusCode(500, "Ошибка при анализе трендов загруженности");
+            }
+        }
     }
 } 

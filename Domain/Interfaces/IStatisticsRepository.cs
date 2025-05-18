@@ -22,7 +22,7 @@ namespace Domain.Interfaces
         /// <param name="doctorId">Идентификатор врача</param>
         /// <param name="fromDate">Начальная дата</param>
         /// <param name="toDate">Конечная дата</param>
-        /// <returns>Статистика по доступности временных слотов</returns>
+        /// <returns>Статистика по доступности слотов</returns>
         Task<ScheduleStatisticsViewModel> GetSlotAvailabilityStatisticsAsync(int doctorId, DateTime fromDate, DateTime toDate);
         
         /// <summary>
@@ -32,5 +32,20 @@ namespace Domain.Interfaces
         /// <param name="period">Период статистики</param>
         /// <returns>Статистика по загруженности больницы</returns>
         Task<ScheduleStatisticsViewModel> GetHospitalOccupancyStatisticsAsync(int hospitalId, StatisticsPeriodEnum period);
+
+        /// <summary>
+        /// Анализ загруженности и формирование рекомендаций по оптимизации расписания
+        /// </summary>
+        /// <param name="request">Параметры для анализа</param>
+        /// <returns>Рекомендации по оптимизации расписания</returns>
+        Task<ScheduleOptimizationViewModel> AnalyzeScheduleOptimizationAsync(StatisticsRequestViewModel request);
+        
+        /// <summary>
+        /// Анализ трендов загруженности для более точных рекомендаций
+        /// </summary>
+        /// <param name="request">Параметры для анализа текущего периода</param>
+        /// <param name="historicalRequest">Параметры для анализа исторического периода</param>
+        /// <returns>Информация о трендах загруженности</returns>
+        Task<OptimizationTrendsViewModel> AnalyzeTrendsAsync(StatisticsRequestViewModel request, StatisticsRequestViewModel historicalRequest);
     }
 } 
