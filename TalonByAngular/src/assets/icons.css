@@ -1,0 +1,39 @@
+/* Иконки для административной панели и статистики */
+@font-face {
+  font-family: 'AdminIcons';
+  src: url('fonts/admin-icons.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+[class^="icon-"], [class*=" icon-"] {
+  font-family: 'AdminIcons' !important;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+}
+
+/* Основные иконки */
+.icon-calendar:before { content: '\e800'; }
+.icon-user:before { content: '\e801'; }
+.icon-users:before { content: '\e802'; }
+.icon-doctor:before { content: '\e803'; }
+.icon-hospital:before { content: '\e804'; }
+.icon-save:before { content: '\e805'; }
+.icon-edit:before { content: '\e806'; }
+.icon-delete:before { content: '\e807'; }
+.icon-add:before { content: '\e808'; }
+.icon-search:before { content: '\e809'; }
+.icon-reset:before { content: '\e810'; }
+.icon-update:before { content: '\e811'; }
+
+/* Иконки для статистики */
+.icon-chart:before { content: '\e820'; }
+.icon-list:before { content: '\e821'; }
+.icon-check:before { content: '\e822'; }
+.icon-time:before { content: '\e823'; }
+.icon-cancel:before { content: '\e824'; }
+.icon-error:before { content: '\e830'; }
+.icon-success:before { content: '\e831'; } 

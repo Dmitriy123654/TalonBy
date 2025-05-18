@@ -12,6 +12,236 @@
     </div>
   </div>
 
+  <!-- Заголовок и кнопка статистики -->
+  <div class="header-with-actions">
+    <div class="spacer"></div>
+    <button class="btn btn-statistics" (click)="toggleStatisticsPanel()">
+      <i class="icon-chart"></i> {{ isStatisticsPanelOpen ? 'Скрыть статистику' : 'Статистика' }}
+    </button>
+  </div>
+
+  <!-- Блок статистики -->
+  <div class="statistics-section" *ngIf="isStatisticsPanelOpen">
+    <h3>Статистика расписания</h3>
+    
+    <!-- Фильтры статистики -->
+    <div class="statistics-filters">
+      <!-- Область статистики -->
+      <div class="filter-group">
+        <h4>Область статистики:</h4>
+        <div class="radio-group">
+          <label class="radio-option" *ngIf="userRole === 'Administrator'">
+            <input type="radio" [(ngModel)]="statisticsScope" value="allHospitals" (change)="onStatisticsScopeChange()">
+            <span>Для всех больниц</span>
+          </label>
+          <label class="radio-option" *ngIf="selectedHospitalId > 0">
+            <input type="radio" [(ngModel)]="statisticsScope" value="selectedHospital" (change)="onStatisticsScopeChange()">
+            <span>Для выбранной больницы</span>
+          </label>
+          <label class="radio-option" *ngIf="selectedSpecialityId > 0">
+            <input type="radio" [(ngModel)]="statisticsScope" value="selectedSpecialty" (change)="onStatisticsScopeChange()">
+            <span>Для выбранной специальности</span>
+          </label>
+          <label class="radio-option" *ngIf="selectedDoctorId > 0">
+            <input type="radio" [(ngModel)]="statisticsScope" value="selectedDoctor" (change)="onStatisticsScopeChange()">
+            <span>Для выбранного врача</span>
+          </label>
+        </div>
+      </div>
+      <!-- Период статистики -->
+      <div class="filter-group">
+        <h4>Период:</h4>
+        <div class="radio-group">
+          <label class="radio-option">
+            <input type="radio" [(ngModel)]="statisticsPeriod" value="day" (change)="onStatisticsPeriodChange()">
+            <span>День</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" [(ngModel)]="statisticsPeriod" value="week" (change)="onStatisticsPeriodChange()">
+            <span>Неделя</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" [(ngModel)]="statisticsPeriod" value="month" (change)="onStatisticsPeriodChange()">
+            <span>Месяц</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" [(ngModel)]="statisticsPeriod" value="threeMonths" (change)="onStatisticsPeriodChange()">
+            <span>3 месяца</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" [(ngModel)]="statisticsPeriod" value="year" (change)="onStatisticsPeriodChange()">
+            <span>Год</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Данные статистики -->
+    <div class="statistics-data" *ngIf="!isLoadingStatistics && statistics">
+      <div class="statistics-title">
+        <h3>Статистика для {{ getSelectedScopeTitle() }} за {{ getSelectedPeriodTitle() }}</h3>
+      </div>
+      
+      <!-- Карточки с основными показателями -->
+      <div class="statistics-cards">
+        <div class="stat-card">
+          <div class="stat-icon total-slots">
+            <i class="icon-calendar"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value">{{ statistics.totalSlots }}</div>
+            <div class="stat-label">Доступные талоны</div>
+          </div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-icon total-appointments">
+            <i class="icon-list"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value">{{ statistics.totalAppointments }}</div>
+            <div class="stat-label">Всего записей</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon completed">
+            <i class="icon-check"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value">{{ statistics.completedAppointments }}</div>
+            <div class="stat-label">Выполненные</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon waiting">
+            <i class="icon-time"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value">{{ statistics.waitingAppointments }}</div>
+            <div class="stat-label">Ожидаются</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon cancelled">
+            <i class="icon-cancel"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value">{{ statistics.cancelledAppointments }}</div>
+            <div class="stat-label">Отмененные</div>
+          </div>
+        </div>
+        
+        <div class="stat-card">
+          <div class="stat-icon occupancy">
+            <i class="icon-chart"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value">{{ formatPercentage(statistics.occupancyRate) }}%</div>
+            <div class="stat-label">Загруженность</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Выбор временного периода для графиков -->
+      <div class="time-period-selector">
+        <h4>Отображаемые часы:</h4>
+        <div class="time-period-options">
+          <div class="radio-group">
+            <label class="radio-option">
+              <input type="radio" [(ngModel)]="statisticsTimePeriod" value="default" (change)="onStatisticsTimePeriodChange()" name="timePeriod">
+              <span>Стандартный (8:00-18:00)</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" [(ngModel)]="statisticsTimePeriod" value="24hour" (change)="onStatisticsTimePeriodChange()" name="timePeriod">
+              <span>24 часа (0:00-23:00)</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" [(ngModel)]="statisticsTimePeriod" value="custom" (change)="onStatisticsTimePeriodChange()" name="timePeriod">
+              <span>Произвольный</span>
+            </label>
+          </div>
+          
+          <!-- Пользовательский выбор диапазона часов -->
+          <div class="custom-hours-selector" *ngIf="statisticsTimePeriod === 'custom'">
+            <div class="hour-selector">
+              <label>С: 
+                <select [(ngModel)]="customStartHour" (change)="onCustomHoursChange()">
+                  <option *ngFor="let hour of hourOptions" [value]="hour">{{ hour }}:00</option>
+                </select>
+              </label>
+            </div>
+            <div class="hour-selector">
+              <label>До: 
+                <select [(ngModel)]="customEndHour" (change)="onCustomHoursChange()">
+                  <option *ngFor="let hour of hourOptions" [value]="hour">{{ hour }}:00</option>
+                </select>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- График загруженности по часам -->
+      <div class="statistics-charts">
+        <div class="chart-container">
+          <h4>Распределение записей по часам</h4>
+          <div class="chart-scroll-container">
+            <div class="hourly-chart" [style.width.px]="getFilteredHourlyDistribution().length * 80">
+              <div class="chart-bars">
+                <div class="bar-container" *ngFor="let hour of getFilteredHourlyDistribution()">
+                  <div class="bar-label">{{ hour.hour }}</div>
+                  <div class="bar-wrapper">
+                    <div class="bar" [style.height.%]="hour.rate">
+                      <div class="bar-value">{{ hour.totalAppointments }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Таблица с данными -->
+      <div class="statistics-table-container">
+        <h4>Детальные данные по часам</h4>
+        <div class="table-scroll-container">
+          <table class="statistics-table">
+            <thead>
+              <tr>
+                <th>Часы</th>
+                <th>Количество записей</th>
+                <th>Загруженность (%)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let hour of getFilteredHourlyDistribution()">
+                <td>{{ hour.hour }}</td>
+                <td>{{ hour.totalAppointments }}</td>
+                <td>{{ formatPercentage(hour.rate) }}%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Индикатор загрузки статистики -->
+    <div class="statistics-loading" *ngIf="isLoadingStatistics">
+      <div class="spinner"></div>
+      <p>Загрузка статистики...</p>
+    </div>
+
+    <!-- Сообщение при отсутствии данных -->
+    <div class="statistics-no-data" *ngIf="!isLoadingStatistics && !statistics">
+      <p>Нет доступных данных для отображения.</p>
+      <p>Пожалуйста, выберите другую область или период.</p>
+    </div>
+  </div>
+
   <!-- Выбор больницы (только для администраторов) -->
   <div class="selection-row" *ngIf="userRole === 'Administrator'">
     <div class="hospital-selection">

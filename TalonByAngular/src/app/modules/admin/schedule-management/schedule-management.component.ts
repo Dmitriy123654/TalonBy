@@ -7,6 +7,8 @@ import { DoctorScheduleView, ScheduleSettings, TimeSlot, AutoGenerationSettings 
 import { Hospital as OrderHospital } from '../../../shared/interfaces/order.interface';
 import { DoctorDetails } from '../../../shared/interfaces/order.interface';
 import { take, switchMap } from 'rxjs/operators';
+import { StatisticsService } from '../../../core/services/statistics.service';
+import { ScheduleStatistics, StatisticsPeriod, StatisticsScope } from '../../../shared/interfaces/statistics.interface';
 
 @Component({
   selector: 'app-schedule-management',
@@ -102,11 +104,27 @@ export class ScheduleManagementComponent implements OnInit {
   autoGenerationActive: boolean = false;
   autoGenerationInfo: any = null;
 
+  // Переменные для работы со статистикой
+  isStatisticsPanelOpen: boolean = false;
+  statisticsScope: string = StatisticsScope.SelectedDoctor;
+  statisticsPeriod: string = StatisticsPeriod.Month;
+  statistics: ScheduleStatistics | null = null;
+  isLoadingStatistics: boolean = false;
+  
+  // Переменные для настройки отображения временного периода в статистике
+  statisticsTimePeriod: string = 'default'; // 'default', '24hour', 'custom'
+  statisticsStartHour: number = 8; // По умолчанию с 8 утра
+  statisticsEndHour: number = 18; // По умолчанию до 18 вечера
+  customStartHour: number = 8;
+  customEndHour: number = 18;
+  hourOptions = Array.from({length: 24}, (_, i) => i); // Массив часов [0,1,2,...,23]
+
   constructor(
     private fb: FormBuilder,
     private scheduleService: ScheduleService,
     private authService: AuthService,
-    private orderService: OrderService
+    private orderService: OrderService,
+    private statisticsService: StatisticsService
   ) {
     // Инициализируем форму с дефолтными значениями для решения ошибки линтера
     this.settingsForm = this.fb.group({
@@ -135,6 +153,9 @@ export class ScheduleManagementComponent implements OnInit {
     
     // Получение роли пользователя
     this.getUserRole();
+    
+    // Загружаем сохраненные настройки временного периода из localStorage
+    this.loadStatisticsTimeSettings();
   }
 
   ngOnInit(): void {
@@ -2503,5 +2524,224 @@ export class ScheduleManagementComponent implements OnInit {
     this.endDate = endDate.toISOString().split('T')[0];
     
     console.log('Установлены дефолтные даты периода:', this.startDate, '-', this.endDate);
+  }
+
+  // Методы для работы со статистикой
+
+  /**
+   * Переключение видимости панели статистики
+   */
+  toggleStatisticsPanel(): void {
+    this.isStatisticsPanelOpen = !this.isStatisticsPanelOpen;
+    
+    // Если панель открыли, загружаем статистику
+    if (this.isStatisticsPanelOpen) {
+      this.loadStatistics();
+    }
+  }
+
+  /**
+   * Загрузка статистики
+   */
+  loadStatistics(): void {
+    this.isLoadingStatistics = true;
+    
+    // Формируем запрос на получение статистики
+    const request: any = {
+      scope: this.statisticsScope as StatisticsScope,
+      period: this.statisticsPeriod as StatisticsPeriod
+    };
+    
+    // Добавляем дополнительные параметры в зависимости от выбранной области
+    if (this.statisticsScope === StatisticsScope.SelectedHospital && this.selectedHospitalId > 0) {
+      request.hospitalId = this.selectedHospitalId;
+    } else if (this.statisticsScope === StatisticsScope.SelectedSpecialty && this.selectedSpecialityId > 0) {
+      request.hospitalId = this.selectedHospitalId;
+      request.specialtyId = this.selectedSpecialityId;
+    } else if (this.statisticsScope === StatisticsScope.SelectedDoctor && this.selectedDoctorId > 0) {
+      request.doctorId = this.selectedDoctorId;
+    }
+    
+    // Запрашиваем статистику
+    this.statisticsService.getScheduleStatistics(request)
+      .subscribe({
+        next: (data) => {
+          this.statistics = data;
+          this.isLoadingStatistics = false;
+        },
+        error: (error) => {
+          console.error('Ошибка при загрузке статистики:', error);
+          this.isLoadingStatistics = false;
+          this.errorMessage = 'Не удалось загрузить статистику. Пожалуйста, попробуйте позже.';
+        }
+      });
+  }
+
+  /**
+   * Обработчик изменения области статистики
+   */
+  onStatisticsScopeChange(): void {
+    // Проверяем, доступна ли выбранная область
+    if (this.statisticsScope === StatisticsScope.SelectedHospital && this.selectedHospitalId === 0) {
+      this.statisticsScope = StatisticsScope.AllHospitals;
+    } else if (this.statisticsScope === StatisticsScope.SelectedSpecialty && 
+              (this.selectedHospitalId === 0 || this.selectedSpecialityId === 0)) {
+      this.statisticsScope = StatisticsScope.AllHospitals;
+    } else if (this.statisticsScope === StatisticsScope.SelectedDoctor && this.selectedDoctorId === 0) {
+      this.statisticsScope = StatisticsScope.AllHospitals;
+    }
+    
+    // Загружаем статистику с новыми параметрами
+    this.loadStatistics();
+  }
+
+  /**
+   * Обработчик изменения периода статистики
+   */
+  onStatisticsPeriodChange(): void {
+    this.loadStatistics();
+  }
+  
+  /**
+   * Получение названия выбранного объекта для отображения в статистике
+   */
+  getSelectedScopeTitle(): string {
+    switch (this.statisticsScope) {
+      case StatisticsScope.AllHospitals:
+        return 'всех больниц';
+      case StatisticsScope.SelectedHospital:
+        return `больницы "${this.findHospitalName(this.selectedHospitalId)}"`;
+      case StatisticsScope.SelectedSpecialty:
+        const speciality = this.specialities.find(s => s.doctorsSpecialityId === this.selectedSpecialityId);
+        return `специальности "${speciality ? speciality.name : 'Выбранная специальность'}"`;
+      case StatisticsScope.SelectedDoctor:
+        return `врача "${this.findDoctorName(this.selectedDoctorId)}"`;
+      default:
+        return 'выбранной области';
+    }
+  }
+  
+  /**
+   * Получение названия выбранного периода для отображения в статистике
+   */
+  getSelectedPeriodTitle(): string {
+    switch (this.statisticsPeriod) {
+      case StatisticsPeriod.Day:
+        return 'день';
+      case StatisticsPeriod.Week:
+        return 'неделю';
+      case StatisticsPeriod.Month:
+        return 'месяц';
+      case StatisticsPeriod.ThreeMonths:
+        return '3 месяца';
+      case StatisticsPeriod.Year:
+        return 'год';
+      default:
+        return 'выбранный период';
+    }
+  }
+
+  /**
+   * Обработчик изменения типа временного периода для статистики
+   */
+  onStatisticsTimePeriodChange(): void {
+    switch (this.statisticsTimePeriod) {
+      case 'default':
+        this.statisticsStartHour = 8;
+        this.statisticsEndHour = 18;
+        break;
+      case '24hour':
+        this.statisticsStartHour = 0;
+        this.statisticsEndHour = 23;
+        break;
+      case 'custom':
+        this.statisticsStartHour = this.customStartHour;
+        this.statisticsEndHour = this.customEndHour;
+        break;
+    }
+    // Сохраняем настройки в localStorage
+    this.saveStatisticsTimeSettings();
+  }
+
+  /**
+   * Обработчик изменения пользовательских часов начала и окончания
+   */
+  onCustomHoursChange(): void {
+    if (this.statisticsTimePeriod === 'custom') {
+      this.statisticsStartHour = this.customStartHour;
+      this.statisticsEndHour = this.customEndHour;
+      this.saveStatisticsTimeSettings();
+    }
+  }
+
+  /**
+   * Сохранение настроек отображения временного периода в localStorage
+   */
+  saveStatisticsTimeSettings(): void {
+    const settings = {
+      timePeriod: this.statisticsTimePeriod,
+      startHour: this.statisticsStartHour,
+      endHour: this.statisticsEndHour,
+      customStartHour: this.customStartHour,
+      customEndHour: this.customEndHour
+    };
+    localStorage.setItem('scheduleManagement_statisticsTimeSettings', JSON.stringify(settings));
+  }
+
+  /**
+   * Загрузка настроек отображения временного периода из localStorage
+   */
+  loadStatisticsTimeSettings(): void {
+    const savedSettings = localStorage.getItem('scheduleManagement_statisticsTimeSettings');
+    if (savedSettings) {
+      try {
+        const settings = JSON.parse(savedSettings);
+        this.statisticsTimePeriod = settings.timePeriod || 'default';
+        this.statisticsStartHour = settings.startHour || 8;
+        this.statisticsEndHour = settings.endHour || 18;
+        this.customStartHour = settings.customStartHour || 8;
+        this.customEndHour = settings.customEndHour || 18;
+      } catch (error) {
+        console.error('Ошибка при загрузке настроек временного периода:', error);
+        this.resetStatisticsTimeSettings();
+      }
+    } else {
+      this.resetStatisticsTimeSettings();
+    }
+  }
+
+  /**
+   * Сброс настроек отображения временного периода к значениям по умолчанию
+   */
+  resetStatisticsTimeSettings(): void {
+    this.statisticsTimePeriod = 'default';
+    this.statisticsStartHour = 8;
+    this.statisticsEndHour = 18;
+    this.customStartHour = 8;
+    this.customEndHour = 18;
+  }
+
+  /**
+   * Фильтрация почасовой статистики по выбранному временному периоду
+   * @returns Отфильтрованный массив почасовой статистики
+   */
+  getFilteredHourlyDistribution(): any[] {
+    if (!this.statistics || !this.statistics.hourlyDistribution) {
+      return [];
+    }
+
+    return this.statistics.hourlyDistribution.filter(hourData => {
+      const hour = parseInt(hourData.hour.split('-')[0]);
+      return hour >= this.statisticsStartHour && hour <= this.statisticsEndHour;
+    });
+  }
+
+  /**
+   * Форматирование процентного значения с округлением до 2 знаков
+   * @param value Значение в процентах
+   * @returns Отформатированное значение с 2 знаками после запятой
+   */
+  formatPercentage(value: number): string {
+    return value.toFixed(2);
   }
 } 
