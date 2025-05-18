@@ -7,11 +7,13 @@ export interface MedicalAppointmentDTO {
   receptionStatus: string;
   date: string;
   time: string;
+  patientCardId?: number;
+  patientId?: number;
 }
 
 export enum AppointmentStatus {
   All = 0,
+  Completed = 2,
   Waiting = 4,
-  Completed = 1,
-  Cancelled = 3
+  Cancelled = 5
 } 
