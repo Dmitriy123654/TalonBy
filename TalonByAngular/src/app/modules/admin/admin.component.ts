@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { UserService } from '../../core/services/user.service';
 import { AuthService, UserInfo } from '../../core/services/auth.service';
 import { User, RoleOfUser } from '../../shared/interfaces/user.interface';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-admin',
@@ -19,10 +19,28 @@ export class AdminComponent implements OnInit {
   constructor(
     private userService: UserService,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute
   ) { }
 
+  // Добавляем публичные геттеры для доступа к query параметрам из шаблона
+  get patientIdParam(): string | null {
+    return this.route.snapshot.queryParams['patientId'] || null;
+  }
+  
+  get returnUrlParam(): string | null {
+    return this.route.snapshot.queryParams['returnUrl'] || null;
+  }
+
   ngOnInit(): void {
+    // Получаем activeTab из query параметров
+    this.route.queryParams.subscribe(params => {
+      const activeTabParam = params['activeTab'];
+      if (activeTabParam) {
+        this.activeTab = activeTabParam;
+      }
+    });
+    
     // Обновляем информацию о пользователе с сервера
     this.authService.getCurrentUser().subscribe({
       next: () => {

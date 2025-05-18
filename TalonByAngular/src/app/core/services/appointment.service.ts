@@ -38,10 +38,13 @@ export class AppointmentService {
    * @param appointmentId - ID of appointment to cancel
    */
   cancelAppointment(appointmentId: number): Observable<any> {
-    // Обновляем статус талона на "Отменен" (3)
-    return this.http.put(`${this.apiUrl}/MedicalAppointment/Update/${appointmentId}`, {
-      receptionStatusId: 3
-    });
+    // Обновляем статус талона на "Отменен" используя новый эндпоинт
+    const statusData = {
+      appointmentId: appointmentId,
+      receptionStatusId: 5, // ID в базе данных для статуса "Отменен"
+      fileResultLink: null
+    };
+    return this.http.put(`${this.apiUrl}/MedicalAppointment/UpdateStatus`, statusData);
   }
 
   /**
@@ -49,9 +52,37 @@ export class AppointmentService {
    * @param appointmentId - ID of appointment to mark as completed
    */
   completeAppointment(appointmentId: number): Observable<any> {
-    // Обновляем статус талона на "Выполнен" (1)
-    return this.http.put(`${this.apiUrl}/MedicalAppointment/Update/${appointmentId}`, {
-      receptionStatusId: 1
-    });
+    // Обновляем статус талона на "Выполнен" используя новый эндпоинт
+    const statusData = {
+      appointmentId: appointmentId,
+      receptionStatusId: 2, // ID в базе данных для статуса "Выполнен"
+      fileResultLink: null
+    };
+    return this.http.put(`${this.apiUrl}/MedicalAppointment/UpdateStatus`, statusData);
+  }
+
+  /**
+   * Update appointment with full data
+   * @param appointmentId - ID of appointment to update
+   * @param appointmentData - Full appointment data with updated fields
+   */
+  updateAppointment(appointmentId: number, appointmentData: any): Observable<any> {
+    return this.http.put(`${this.apiUrl}/MedicalAppointment/Update/${appointmentId}`, appointmentData);
+  }
+
+  /**
+   * Update appointment status
+   * @param appointmentId - ID of appointment to update
+   * @param statusId - New status ID
+   */
+  updateAppointmentStatus(appointmentId: number, statusId: number): Observable<any> {
+    // Используем новый эндпоинт для обновления только статуса
+    const statusData = {
+      appointmentId: appointmentId,
+      receptionStatusId: statusId,
+      fileResultLink: null // Отправляем null вместо пустой строки
+    };
+    
+    return this.http.put(`${this.apiUrl}/MedicalAppointment/UpdateStatus`, statusData);
   }
 } 

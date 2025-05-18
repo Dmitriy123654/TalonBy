@@ -192,6 +192,7 @@
     .appointments-table {
       width: 100%;
       border-collapse: collapse;
+      min-width: 900px;
       
       th, td {
         padding: 12px 15px;
@@ -238,31 +239,26 @@
         text-align: center;
         
         .btn {
-          margin: 0 3px;
-          width: 30px;
-          height: 30px;
-          padding: 0;
-          line-height: 30px;
-          text-align: center;
-          border-radius: 15px;
+          padding: 6px 12px;
+          border-radius: 4px;
           font-size: 14px;
-          font-weight: bold;
+          font-weight: normal;
           
-          &.btn-success {
-            background-color: #28A745;
+          &.btn-primary {
+            background-color: var(--primary-color);
             color: white;
             
             &:hover {
-              background-color: #218838;
+              background-color: var(--primary-hover);
             }
           }
           
-          &.btn-danger {
-            background-color: #DC3545;
+          &.btn-info {
+            background-color: var(--info-color, #17a2b8);
             color: white;
             
             &:hover {
-              background-color: #C82333;
+              background-color: var(--info-hover, #138496);
             }
           }
         }

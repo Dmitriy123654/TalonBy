@@ -171,19 +171,22 @@
             </span>
           </td>
           <td class="actions-cell">
+            <!-- Кнопка редактирования для сегодняшних талонов в статусе "Ожидается" или для админа, главврача и доктора -->
             <button 
-              *ngIf="appointment.receptionStatus.toLowerCase() === 'waiting'"
-              class="btn btn-sm btn-success" 
-              (click)="completeAppointment(appointment.id)"
-              title="Отметить как выполненный">
-              ✓
+              *ngIf="(isTodayAppointment(appointment.date) && appointment.receptionStatus.toLowerCase() === 'waiting') || userRole === 'Administrator' || userRole === 'ChiefDoctor' || userRole === 'Doctor'"
+              class="btn btn-sm btn-primary" 
+              (click)="editAppointment(appointment.id)"
+              title="Редактировать талон">
+              Редактировать
             </button>
+            
+            <!-- Кнопка просмотра для остальных случаев -->
             <button 
-              *ngIf="appointment.receptionStatus.toLowerCase() === 'waiting'"
-              class="btn btn-sm btn-danger" 
-              (click)="cancelAppointment(appointment.id)"
-              title="Отменить">
-              ✕
+              *ngIf="((!isTodayAppointment(appointment.date) || appointment.receptionStatus.toLowerCase() !== 'waiting') && userRole !== 'Administrator' && userRole !== 'ChiefDoctor' && userRole !== 'Doctor')"
+              class="btn btn-sm btn-info" 
+              (click)="viewAppointment(appointment.id)"
+              title="Просмотр талона">
+              Просмотр
             </button>
           </td>
         </tr>

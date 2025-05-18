@@ -8,6 +8,7 @@ import { RoleOfUser } from '../../../shared/interfaces/user.interface';
 import { Hospital, Speciality, DoctorDetails } from '../../../shared/interfaces/order.interface';
 import { Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { Router } from '@angular/router';
 
 // Enum для статусов талонов
 export enum AppointmentStatus {
@@ -68,13 +69,17 @@ export class AppointmentsManagementComponent implements OnInit, OnDestroy {
   
   // Подписки
   private subscriptions = new Subscription();
+  
+  // Добавляем константу для имени в localStorage
+  private readonly FILTER_STORAGE_KEY = 'appointmentsFilters';
 
   constructor(
     private formBuilder: FormBuilder,
     private orderService: OrderService,
     private authService: AuthService,
     private scheduleService: ScheduleService,
-    private appointmentService: AppointmentService
+    private appointmentService: AppointmentService,
+    private router: Router
   ) {
     // Get today's date in YYYY-MM-DD format using our helper
     this.today = this.getTodayDateString();
@@ -116,6 +121,9 @@ export class AppointmentsManagementComponent implements OnInit, OnDestroy {
     // Explicitly set form values in case they weren't set properly in constructor
     this.filterForm.get('dateFrom')?.setValue(today);
     this.filterForm.get('dateTo')?.setValue(today);
+    
+    // Загрузка сохраненных фильтров
+    this.loadSavedFilters();
     
     // Загрузка данных, в зависимости от роли
     if (this.userRole === 'Administrator') {
@@ -553,6 +561,72 @@ export class AppointmentsManagementComponent implements OnInit, OnDestroy {
     if (dateToSub) this.subscriptions.add(dateToSub);
   }
 
+  // Загрузить сохраненные фильтры из localStorage
+  loadSavedFilters(): void {
+    try {
+      const savedFilters = localStorage.getItem(this.FILTER_STORAGE_KEY);
+      if (savedFilters) {
+        const parsedFilters = JSON.parse(savedFilters);
+        // Проверяем актуальность сохраненных дат
+        const now = new Date();
+        const savedFromDate = new Date(parsedFilters.dateFrom);
+        const savedToDate = new Date(parsedFilters.dateTo);
+        
+        // Если сохраненные даты в прошлом, используем текущую дату
+        if (savedFromDate < now && savedFromDate.toDateString() !== now.toDateString()) {
+          parsedFilters.dateFrom = this.today;
+          parsedFilters.dateTo = this.today;
+        }
+        
+        this.selectedFilters = parsedFilters;
+        
+        // Обновляем форму сохраненными значениями
+        this.filterForm.patchValue({
+          hospitalId: parsedFilters.hospitalId || 0,
+          specialtyId: parsedFilters.specialtyId || 0,
+          doctorId: parsedFilters.doctorId || 0,
+          dateFrom: parsedFilters.dateFrom || this.today,
+          dateTo: parsedFilters.dateTo || this.today
+        });
+        
+        // Если есть сохраненные значения для больницы и специальности,
+        // загружаем соответствующие данные
+        if (parsedFilters.hospitalId) {
+          this.loadSpecialties(parsedFilters.hospitalId);
+          
+          if (parsedFilters.specialtyId) {
+            this.loadDoctors(parsedFilters.hospitalId, parsedFilters.specialtyId);
+          }
+        }
+        
+        // Убедимся, что для администратора поля всегда доступны
+        setTimeout(() => {
+          if (this.userRole === 'Administrator') {
+            this.filterForm.get('hospitalId')?.enable();
+            this.filterForm.get('specialtyId')?.enable();
+            this.filterForm.get('doctorId')?.enable();
+          } else if (this.userRole === 'ChiefDoctor') {
+            this.filterForm.get('hospitalId')?.disable(); // Для главврача всегда отключено
+            this.filterForm.get('specialtyId')?.enable();
+            this.filterForm.get('doctorId')?.enable();
+          }
+        }, 100);
+      }
+    } catch (error) {
+      console.error('Error loading saved filters:', error);
+      // В случае ошибки просто игнорируем сохраненные фильтры
+    }
+  }
+  
+  // Сохранить текущие фильтры в localStorage
+  saveFilters(): void {
+    try {
+      localStorage.setItem(this.FILTER_STORAGE_KEY, JSON.stringify(this.selectedFilters));
+    } catch (error) {
+      console.error('Error saving filters:', error);
+    }
+  }
+  
   // Применение фильтров и загрузка талонов
   applyFilters(): void {
     // Обновление выбранных фильтров из формы
@@ -564,6 +638,16 @@ export class AppointmentsManagementComponent implements OnInit, OnDestroy {
       dateFrom: formValues.dateFrom,
       dateTo: formValues.dateTo
     };
+    
+    // Сохраняем фильтры
+    this.saveFilters();
+    
+    // Убедимся, что для администратора поля всегда доступны
+    if (this.userRole === 'Administrator') {
+      this.filterForm.get('hospitalId')?.enable();
+      this.filterForm.get('specialtyId')?.enable();
+      this.filterForm.get('doctorId')?.enable();
+    }
     
     // Загрузка талонов с обновленными фильтрами
     this.loadAppointments();
@@ -690,5 +774,38 @@ export class AppointmentsManagementComponent implements OnInit, OnDestroy {
     // Устанавливаем значения
     this.filterForm.get('hospitalId')?.setValue(this.hospitalId);
     this.filterForm.get('doctorId')?.setValue(this.doctorId);
+  }
+
+  // Проверяет, является ли талон сегодняшним
+  isTodayAppointment(appointmentDate: string): boolean {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Сбрасываем время до 00:00:00
+    
+    const appDate = new Date(appointmentDate);
+    appDate.setHours(0, 0, 0, 0); // Сбрасываем время до 00:00:00
+    
+    return today.getTime() === appDate.getTime();
+  }
+  
+  // Переход к редактированию талона
+  editAppointment(appointmentId: number): void {
+    // Предотвращаем всплытие события для таблицы
+    event?.stopPropagation();
+    
+    if (appointmentId) {
+      // Перенаправление на страницу редактирования талона
+      this.router.navigate(['/admin/appointments/edit', appointmentId]);
+    }
+  }
+  
+  // Переход к просмотру талона
+  viewAppointment(appointmentId: number): void {
+    // Предотвращаем всплытие события для таблицы
+    event?.stopPropagation();
+    
+    if (appointmentId) {
+      // Перенаправление на страницу просмотра талона
+      this.router.navigate(['/admin/appointments/view', appointmentId]);
+    }
   }
 } 

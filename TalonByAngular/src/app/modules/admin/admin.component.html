@@ -44,7 +44,7 @@
       <!-- Patients tab content -->
       <div class="patients-section" *ngIf="activeTab === 'patients'">
         <h2>Управление пациентами</h2>
-        <app-patient-management *ngIf="!isLoading"></app-patient-management>
+        <app-patient-management *ngIf="!isLoading" [patientIdParam]="patientIdParam" [returnUrlParam]="returnUrlParam"></app-patient-management>
       </div>
       
       <!-- Doctors tab content -->

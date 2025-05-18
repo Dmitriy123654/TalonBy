@@ -1,0 +1,284 @@
+<div class="admin-page">
+  <div class="container">
+    <div class="admin-header">
+      <h1>Административная панель</h1>
+      <p class="user-email" *ngIf="currentUser">{{ currentUser.email }}</p>
+    </div>
+
+    <div class="admin-tabs">
+      <ul class="tabs">
+        <li class="tab active" (click)="goBackToList()">
+          Талоны
+        </li>
+        <li class="tab" (click)="navigateToSchedule()">
+          Управление расписанием
+        </li>
+        <li class="tab" (click)="navigateToPatients()">
+          Пациенты
+        </li>
+        <li class="tab" (click)="navigateToDoctors()">
+          Врачи
+        </li>
+        <li class="tab" *ngIf="userRole === 'Administrator'" (click)="navigateToHospitals()">
+          Медицинские учреждения
+        </li>
+        <li class="tab" *ngIf="userRole === 'Administrator'" (click)="navigateToUsers()">
+          Пользователи
+        </li>
+      </ul>
+    </div>
+
+    <div class="admin-content">
+      <h2>Редактирование талона #{{ appointmentId }}</h2>
+      
+      <div class="appointment-details-container">
+        <!-- Загрузка и сообщения -->
+        <div *ngIf="loading.appointment || loading.medicalDetails" class="loading-overlay">
+          <div class="spinner-container">
+            <div class="spinner"></div>
+            <p>Загрузка данных...</p>
+          </div>
+        </div>
+
+        <div *ngIf="error" class="alert alert-danger">
+          {{ error }}
+        </div>
+
+        <div *ngIf="success" class="alert alert-success">
+          {{ success }}
+        </div>
+
+        <!-- Навигация и заголовок -->
+        <div class="details-header">
+          <button class="btn btn-secondary" (click)="goBackToList()">
+            <i class="fas fa-arrow-left"></i> Назад к списку
+          </button>
+          <span *ngIf="viewMode" class="view-mode-badge">Режим просмотра</span>
+        </div>
+
+        <div class="details-content" *ngIf="appointment">
+          <!-- Информация о талоне -->
+          <div class="appointment-info card">
+            <div class="card-header">
+              <h3>Информация о записи</h3>
+            </div>
+            <div class="card-body">
+              <div class="appointment-info-grid">
+                <div class="info-row">
+                  <div class="info-label">Дата:</div>
+                  <div class="info-value">{{ formatDate(appointment.date) }}</div>
+                </div>
+                <div class="info-row">
+                  <div class="info-label">Время:</div>
+                  <div class="info-value">{{ appointment.time }}</div>
+                </div>
+                <div class="info-row">
+                  <div class="info-label">Больница:</div>
+                  <div class="info-value">{{ appointment.hospitalName }}</div>
+                </div>
+                <div class="info-row">
+                  <div class="info-label">Врач:</div>
+                  <div class="info-value">{{ appointment.doctorName }} ({{ appointment.doctorSpecialty }})</div>
+                </div>
+                <div class="info-row">
+                  <div class="info-label">Пациент:</div>
+                  <div class="info-value">
+                    {{ appointment.patientName }}
+                    <button class="btn btn-sm btn-outline-primary ml-2" (click)="openPatientCard()">
+                      Карточка пациента
+                    </button>
+                  </div>
+                </div>
+                <div class="info-row">
+                  <div class="info-label">Статус:</div>
+                  <div class="info-value">
+                    <span class="status-badge" [ngClass]="{'status-waiting': appointment.receptionStatus.toLowerCase() === 'waiting', 
+                                                        'status-completed': appointment.receptionStatus.toLowerCase() === 'completed', 
+                                                        'status-cancelled': appointment.receptionStatus.toLowerCase() === 'cancelled'}">
+                      {{ getStatusText(appointment.receptionStatus) }}
+                    </span>
+                    <button *ngIf="!viewMode" class="btn-edit-status" (click)="toggleStatusDropdown($event)">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <div class="status-dropdown" *ngIf="showStatusDropdown">
+                      <ul>
+                        <li [class.active]="appointment.receptionStatus.toLowerCase() === 'waiting'" (click)="updateStatus('waiting')">
+                          <span class="status-badge status-waiting">Ожидается</span>
+                        </li>
+                        <li [class.active]="appointment.receptionStatus.toLowerCase() === 'completed'" (click)="updateStatus('completed')">
+                          <span class="status-badge status-completed">Выполнен</span>
+                        </li>
+                        <li [class.active]="appointment.receptionStatus.toLowerCase() === 'cancelled'" (click)="updateStatus('cancelled')">
+                          <span class="status-badge status-cancelled">Отменен</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Форма с медицинскими деталями -->
+          <div class="medical-details card">
+            <div class="card-header">
+              <h3>Медицинские детали</h3>
+              <div class="card-header-actions" *ngIf="!viewMode">
+                <button class="btn btn-outline-primary" (click)="autoFillDetails()">
+                  Заполнить автоматически
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <form [formGroup]="detailsForm" (ngSubmit)="saveDetails()" *ngIf="!loading.appointment && !loading.medicalDetails">
+                <div class="form-group">
+                  <label for="diagnosis">Диагноз *</label>
+                  <input 
+                    type="text" 
+                    id="diagnosis" 
+                    formControlName="diagnosis" 
+                    class="form-control" 
+                    [class.is-invalid]="detailsForm.get('diagnosis')?.invalid && detailsForm.get('diagnosis')?.touched">
+                  <div class="invalid-feedback" *ngIf="detailsForm.get('diagnosis')?.errors?.['required'] && detailsForm.get('diagnosis')?.touched">
+                    Поле "Диагноз" обязательно для заполнения
+                  </div>
+                  <div class="invalid-feedback" *ngIf="detailsForm.get('diagnosis')?.errors?.['maxlength'] && detailsForm.get('diagnosis')?.touched">
+                    Максимальная длина поля "Диагноз" - 300 символов
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="treatment">Назначенное лечение *</label>
+                  <textarea 
+                    id="treatment" 
+                    formControlName="treatment" 
+                    class="form-control" 
+                    rows="4"
+                    [class.is-invalid]="detailsForm.get('treatment')?.invalid && detailsForm.get('treatment')?.touched"></textarea>
+                  <div class="invalid-feedback" *ngIf="detailsForm.get('treatment')?.errors?.['required'] && detailsForm.get('treatment')?.touched">
+                    Поле "Назначенное лечение" обязательно для заполнения
+                  </div>
+                  <div class="invalid-feedback" *ngIf="detailsForm.get('treatment')?.errors?.['maxlength'] && detailsForm.get('treatment')?.touched">
+                    Максимальная длина поля "Назначенное лечение" - 3000 символов
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="prescriptions">Рецепты *</label>
+                  <textarea 
+                    id="prescriptions" 
+                    formControlName="prescriptions" 
+                    class="form-control" 
+                    rows="2"
+                    [class.is-invalid]="detailsForm.get('prescriptions')?.invalid && detailsForm.get('prescriptions')?.touched"></textarea>
+                  <div class="invalid-feedback" *ngIf="detailsForm.get('prescriptions')?.errors?.['required'] && detailsForm.get('prescriptions')?.touched">
+                    Поле "Рецепты" обязательно для заполнения
+                  </div>
+                  <div class="invalid-feedback" *ngIf="detailsForm.get('prescriptions')?.errors?.['maxlength'] && detailsForm.get('prescriptions')?.touched">
+                    Максимальная длина поля "Рецепты" - 500 символов
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="labResults">Результаты анализов</label>
+                  <textarea 
+                    id="labResults" 
+                    formControlName="labResults" 
+                    class="form-control" 
+                    rows="3"
+                    [class.is-invalid]="detailsForm.get('labResults')?.invalid && detailsForm.get('labResults')?.touched"></textarea>
+                  <div class="invalid-feedback" *ngIf="detailsForm.get('labResults')?.errors?.['maxlength'] && detailsForm.get('labResults')?.touched">
+                    Максимальная длина поля "Результаты анализов" - 3000 символов
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="medicalHistory">История болезни</label>
+                  <textarea 
+                    id="medicalHistory" 
+                    formControlName="medicalHistory" 
+                    class="form-control" 
+                    rows="3"
+                    [class.is-invalid]="detailsForm.get('medicalHistory')?.invalid && detailsForm.get('medicalHistory')?.touched"></textarea>
+                  <div class="invalid-feedback" *ngIf="detailsForm.get('medicalHistory')?.errors?.['maxlength'] && detailsForm.get('medicalHistory')?.touched">
+                    Максимальная длина поля "История болезни" - 3000 символов
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="allergies">Аллергии</label>
+                  <textarea 
+                    id="allergies" 
+                    formControlName="allergies" 
+                    class="form-control" 
+                    rows="2"
+                    [class.is-invalid]="detailsForm.get('allergies')?.invalid && detailsForm.get('allergies')?.touched"></textarea>
+                  <div class="invalid-feedback" *ngIf="detailsForm.get('allergies')?.errors?.['maxlength'] && detailsForm.get('allergies')?.touched">
+                    Максимальная длина поля "Аллергии" - 500 символов
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="vitalSigns">Жизненные показатели</label>
+                  <textarea 
+                    id="vitalSigns" 
+                    formControlName="vitalSigns" 
+                    class="form-control" 
+                    rows="2"
+                    [class.is-invalid]="detailsForm.get('vitalSigns')?.invalid && detailsForm.get('vitalSigns')?.touched"></textarea>
+                  <div class="invalid-feedback" *ngIf="detailsForm.get('vitalSigns')?.errors?.['maxlength'] && detailsForm.get('vitalSigns')?.touched">
+                    Максимальная длина поля "Жизненные показатели" - 1000 символов
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="nextAppointmentDate">Дата следующего приёма</label>
+                  <input 
+                    type="date" 
+                    id="nextAppointmentDate" 
+                    formControlName="nextAppointmentDate" 
+                    class="form-control">
+                </div>
+
+                <!-- Кнопки действий внизу формы -->
+                <div class="form-actions">
+                  <!-- Если нет медицинских деталей, показываем кнопку создания -->
+                  <button 
+                    type="button" 
+                    class="btn btn-success" 
+                    *ngIf="!medicalDetails && !viewMode"
+                    (click)="createNewDetails()"
+                    [disabled]="detailsForm.invalid || loading.saving">
+                    <span *ngIf="loading.saving" class="spinner-border spinner-border-sm mr-2"></span>
+                    Создать медицинские данные
+                  </button>
+                  
+                  <!-- Если есть медицинские детали, показываем кнопку обновления -->
+                  <button 
+                    type="submit" 
+                    class="btn btn-primary" 
+                    *ngIf="medicalDetails && !viewMode"
+                    [disabled]="detailsForm.invalid || loading.saving">
+                    <span *ngIf="loading.saving" class="spinner-border spinner-border-sm mr-2"></span>
+                    Обновить
+                  </button>
+
+                  <!-- Кнопка обновления карточки пациента (доступна только когда есть медицинские детали) -->
+                  <button 
+                    type="button" 
+                    class="btn btn-info" 
+                    *ngIf="medicalDetails"
+                    (click)="updatePatientCard()"
+                    [disabled]="viewMode || loading.patientCard">
+                    <span *ngIf="loading.patientCard" class="spinner-border spinner-border-sm mr-2"></span>
+                    Внести изменения в карточку пациента
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div> 

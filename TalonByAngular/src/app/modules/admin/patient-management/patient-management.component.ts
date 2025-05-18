@@ -1,15 +1,19 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { PatientService } from '../../../core/services/patient.service';
 import { PatientCardService } from '../../../core/services/patient-card.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { ActivatedRoute, Router } from '@angular/router';
 
 @Component({
   selector: 'app-patient-management',
   templateUrl: './patient-management.component.html',
   styleUrls: ['./patient-management.component.scss']
 })
-export class PatientManagementComponent implements OnInit {
+export class PatientManagementComponent implements OnInit, OnChanges {
+  @Input() patientIdParam: string | null = null;
+  @Input() returnUrlParam: string | null = null;
+  
   patients: any[] = [];
   filteredPatients: any[] = [];
   selectedPatient: any = null;
@@ -52,11 +56,16 @@ export class PatientManagementComponent implements OnInit {
   isPatientFormSubmitted: boolean = false;
   showPatientEditModal: boolean = false;
   
+  // Для возврата на предыдущую страницу
+  returnUrl: string | null = null;
+  
   constructor(
     private patientService: PatientService,
     private patientCardService: PatientCardService,
     private authService: AuthService,
-    private fb: FormBuilder
+    private fb: FormBuilder,
+    private route: ActivatedRoute,
+    private router: Router
   ) {
     this.searchForm = this.fb.group({
       searchText: [''],
@@ -114,6 +123,25 @@ export class PatientManagementComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadPatients();
+    
+    // Проверяем параметры запроса для прямого перехода к карточке пациента
+    this.route.queryParams.subscribe(params => {
+      const patientId = params['patientId'];
+      this.returnUrl = params['returnUrl'];
+      
+      if (patientId) {
+        // Если указан ID пациента, загружаем его данные
+        this.loadPatientById(parseInt(patientId, 10));
+      }
+    });
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    // Реагируем на изменения входных параметров
+    if (changes['patientIdParam'] && this.patientIdParam) {
+      this.loadPatientById(parseInt(this.patientIdParam, 10));
+      this.returnUrl = this.returnUrlParam;
+    }
   }
 
   loadPatients(): void {
@@ -785,6 +813,33 @@ export class PatientManagementComponent implements OnInit {
   }
   
   backToPatientList(): void {
+    // Если есть URL для возврата, переходим по нему
+    if (this.returnUrl) {
+      console.log('Возврат по URL:', this.returnUrl);
+      
+      // Проверяем, содержит ли URL путь к редактированию талона
+      if (this.returnUrl.includes('/admin/appointments/')) {
+        // Используем router.navigate вместо navigateByUrl для сохранения состояния
+        const urlParts = this.returnUrl.split('/');
+        const appointmentId = urlParts[urlParts.length - 1];
+        
+        if (this.returnUrl.includes('/edit/')) {
+          this.router.navigateByUrl(this.returnUrl);
+        } else if (this.returnUrl.includes('/view/')) {
+          this.router.navigateByUrl(this.returnUrl);
+        } else if (this.returnUrl.includes('/details/')) {
+          this.router.navigateByUrl(this.returnUrl);
+        } else {
+          this.router.navigate(['/admin/appointments/details', appointmentId]);
+        }
+      } else {
+        // Если это не путь к редактированию талона, используем navigateByUrl
+        this.router.navigateByUrl(this.returnUrl);
+      }
+      return;
+    }
+    
+    // Иначе возвращаемся к стандартному списку пациентов
     this.showPatientList = true;
     this.showPatientDetails = false;
     this.selectedPatient = null;
@@ -889,5 +944,65 @@ export class PatientManagementComponent implements OnInit {
   get patientAddressInvalid(): boolean {
     const control = this.patientEditForm.get('address');
     return control?.invalid && (control?.touched || this.isPatientFormSubmitted) ? true : false;
+  }
+
+  // Новый метод для загрузки пациента по ID
+  loadPatientById(patientId: number): void {
+    if (!patientId) return;
+    
+    this.isLoading = true;
+    console.log(`Загрузка карточки пациента с ID ${patientId}`);
+    
+    // Сразу загружаем карточку пациента по ID пациента
+    this.patientCardService.getPatientCardByPatientId(patientId).subscribe({
+      next: (patientCard) => {
+        console.log('Успешно загружена карточка пациента:', patientCard);
+        this.selectedPatientCard = patientCard;
+        
+        // Затем загружаем данные самого пациента
+        this.patientService.getPatientById(patientId).subscribe({
+          next: (patient) => {
+            console.log('Успешно загружен пациент:', patient);
+            this.selectedPatient = patient;
+            this.showPatientList = false;
+            this.showPatientDetails = true;
+            this.isLoading = false;
+          },
+          error: (error) => {
+            console.error('Ошибка при загрузке пациента:', error);
+            this.errorMessage = `Ошибка при загрузке пациента: ${error.status} ${error.statusText}`;
+            this.isLoading = false;
+          }
+        });
+      },
+      error: (error) => {
+        console.error('Ошибка при загрузке карточки пациента:', error);
+        this.errorMessage = `Ошибка при загрузке карточки пациента: ${error.status} ${error.statusText}`;
+        
+        // Если карточка не найдена, можно предложить создать новую
+        if (error.status === 404) {
+          console.log('Карточка не найдена, загружаем данные пациента');
+          // Загружаем хотя бы данные пациента
+          this.patientService.getPatientById(patientId).subscribe({
+            next: (patient) => {
+              console.log('Успешно загружен пациент:', patient);
+              this.selectedPatient = patient;
+              this.showPatientList = false;
+              this.showPatientDetails = true;
+              this.isLoading = false;
+              // Предложить создать карточку
+              this.openPatientCardModal();
+            },
+            error: (err) => {
+              console.error('Ошибка при загрузке пациента:', err);
+              this.errorMessage = `Ошибка при загрузке пациента: ${err.status} ${err.statusText}`;
+              this.isLoading = false;
+            }
+          });
+        } else {
+          this.isLoading = false;
+        }
+      }
+    });
   }
 } 
