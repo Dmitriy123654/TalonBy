@@ -130,6 +130,7 @@ namespace TalonBy
             builder.Services.AddScoped<IEmailService, EmailService>();
             builder.Services.AddScoped<IScheduleService,ScheduleService>();
             builder.Services.AddTransient<IAppointmentMedicalDetailsService, AppointmentMedicalDetailsService>();
+            builder.Services.AddScoped<IStatisticsService, StatisticsService>();
 
             //dal
             builder.Services.AddTransient<IUserRepository, UserRepository>();
@@ -145,6 +146,7 @@ namespace TalonBy
             builder.Services.AddScoped<IDoctorScheduleSettingsRepository, DoctorScheduleSettingsRepository>();
             builder.Services.AddTransient<IAppointmentMedicalDetailsRepository, AppointmentMedicalDetailsRepository>();
             builder.Services.AddScoped<IAutoGenerationSettingsRepository, AutoGenerationSettingsRepository>();
+            builder.Services.AddScoped<IStatisticsRepository, StatisticsRepository>();
 
             // Register PatientCard repositories and services
             builder.Services.AddScoped<IPatientCardRepository, PatientCardRepository>();
