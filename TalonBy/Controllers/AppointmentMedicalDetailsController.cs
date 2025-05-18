@@ -19,7 +19,7 @@ namespace TalonBy.Controllers
         }
 
         [HttpGet("{id}")]
-        [Authorize(Roles = "Doctor,Admin")]
+        [Authorize(Roles = "Doctor,ChiefDoctor,Administrator")]
         public async Task<IActionResult> GetById(int id)
         {
             var details = await _detailsService.GetByIdAsync(id);
@@ -30,7 +30,7 @@ namespace TalonBy.Controllers
         }
 
         [HttpGet("appointment/{appointmentId}")]
-        [Authorize(Roles = "Doctor,Admin")]
+        [Authorize(Roles = "Doctor,ChiefDoctor,Administrator")]
         public async Task<IActionResult> GetByAppointmentId(int appointmentId)
         {
             var details = await _detailsService.GetByAppointmentIdAsync(appointmentId);
@@ -41,7 +41,7 @@ namespace TalonBy.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Doctor")]
+        [Authorize(Roles = "Doctor,ChiefDoctor,Administrator")]
         public async Task<IActionResult> Create([FromBody] AppointmentMedicalDetailsModel model)
         {
             try
@@ -56,7 +56,7 @@ namespace TalonBy.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "Doctor")]
+        [Authorize(Roles = "Doctor,ChiefDoctor,Administrator")]
         public async Task<IActionResult> Update(int id, [FromBody] AppointmentMedicalDetailsModel model)
         {
             try
@@ -71,7 +71,7 @@ namespace TalonBy.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Doctor,Admin")]
+        [Authorize(Roles = "Doctor,ChiefDoctor,Administrator")]
         public async Task<IActionResult> Delete(int id)
         {
             var success = await _detailsService.DeleteAsync(id);
