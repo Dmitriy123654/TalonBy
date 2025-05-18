@@ -113,5 +113,24 @@ namespace TalonBy.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+        
+        [HttpPut("UpdateStatus")]
+        public async Task<IActionResult> UpdateAppointmentStatus([FromBody] StatusUpdateModel model)
+        {
+            try 
+            {
+                if (model == null || model.AppointmentId <= 0 || model.ReceptionStatusId <= 0)
+                {
+                    return BadRequest(new { message = "Invalid or missing required parameters." });
+                }
+            
+                await _medicalAppointmentService.UpdateAppointmentStatusAsync(model);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }

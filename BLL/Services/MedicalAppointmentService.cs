@@ -20,6 +20,7 @@ namespace BLL.Services
         Task<IEnumerable<MedicalAppointment>> GetMedicalAppointmentsByPatientIdAsync(int patientId);
         Task<IEnumerable<MedicalAppointment>> GetMedicalAppointmentsByPatientCardIdAsync(int patientCardId);
         Task UpdateAppointmentPatientCardAsync(int appointmentId, int patientCardId);
+        Task UpdateAppointmentStatusAsync(StatusUpdateModel model);
     }
 
     public class MedicalAppointmentService : IMedicalAppointmentService
@@ -150,6 +151,31 @@ namespace BLL.Services
         public async Task UpdateAppointmentPatientCardAsync(int appointmentId, int patientCardId)
         {
             await _medicalAppointmentRepository.UpdatePatientCardAsync(appointmentId, patientCardId);
+        }
+
+        public async Task UpdateAppointmentStatusAsync(StatusUpdateModel model)
+        {
+            try
+            {
+                var appointment = await _medicalAppointmentRepository.GetByIdAsync(model.AppointmentId);
+                if (appointment == null)
+                    throw new Exception($"MedicalAppointment с ID {model.AppointmentId} не найден.");
+
+                await _medicalAppointmentRepository.UpdateStatusAsync(
+                    model.AppointmentId, 
+                    model.ReceptionStatusId, 
+                    model.FileResultLink);
+            }
+            catch (Exception ex)
+            {
+                // Логируем ошибку и перебрасываем её выше
+                Console.WriteLine($"Ошибка при обновлении статуса: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"Внутренняя ошибка: {ex.InnerException.Message}");
+                }
+                throw; // Пробрасываем исключение дальше
+            }
         }
     }
 }

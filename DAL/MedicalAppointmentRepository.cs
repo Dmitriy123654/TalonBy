@@ -59,6 +59,9 @@ namespace DAL
                 .Include(a => a.PatientCard)
                 .AsQueryable();
 
+            if (parameters.AppointmentId.HasValue)
+                query = query.Where(a => a.MedicalAppointmentId == parameters.AppointmentId.Value);
+
             if (parameters.HospitalId.HasValue)
                 query = query.Where(a => a.HospitalId == parameters.HospitalId.Value);
 
@@ -93,7 +96,8 @@ namespace DAL
                 ReceptionStatus = a.ReceptionStatus.Status.ToString(),
                 Date = a.Date,
                 Time = a.Time,
-                PatientCardId = a.PatientCardId
+                PatientCardId = a.PatientCardId,
+                PatientId = a.PatientId
             }).ToListAsync();
 
             return result;
@@ -130,6 +134,40 @@ namespace DAL
             {
                 appointment.PatientCardId = patientCardId;
                 await _dbContext.SaveChangesAsync();
+            }
+        }
+
+        public async Task UpdateStatusAsync(int appointmentId, int receptionStatusId, string fileResultLink)
+        {
+            try
+            {
+                var appointment = await _dbContext.MedicalAppointments
+                    .FirstOrDefaultAsync(a => a.MedicalAppointmentId == appointmentId);
+                
+                if (appointment != null)
+                {
+                    var statusExists = await _dbContext.ReceptionStatuses.AnyAsync(s => s.ReceptionStatusId == receptionStatusId);
+                    if (!statusExists)
+                    {
+                        throw new Exception($"Статус с ID {receptionStatusId} не существует в базе данных");
+                    }
+                    
+                    appointment.ReceptionStatusId = receptionStatusId;
+                    await _dbContext.SaveChangesAsync();
+                }
+                else
+                {
+                    throw new Exception($"Запись о приеме с ID {appointmentId} не найдена");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка при обновлении статуса: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"Внутренняя ошибка: {ex.InnerException.Message}");
+                }
+                throw; // Пробрасываем исключение дальше
             }
         }
     }

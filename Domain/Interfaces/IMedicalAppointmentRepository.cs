@@ -18,5 +18,6 @@ namespace Domain.Interfaces
         Task<IEnumerable<MedicalAppointment>> GetByPatientIdAsync(int patientId);
         Task<IEnumerable<MedicalAppointment>> GetByPatientCardIdAsync(int patientCardId);
         Task UpdatePatientCardAsync(int appointmentId, int patientCardId);
+        Task UpdateStatusAsync(int appointmentId, int receptionStatusId, string fileResultLink);
     }
 }
