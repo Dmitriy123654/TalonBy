@@ -16,5 +16,6 @@ namespace Domain.ViewModels
         public DateTime? DateTo { get; set; }
         public TimeSpan? TimeFrom { get; set; }
         public TimeSpan? TimeTo { get; set; }
+        public int? AppointmentId { get; set; }
     }
 }

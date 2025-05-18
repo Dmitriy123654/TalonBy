@@ -17,5 +17,6 @@ namespace Domain.ViewModels
         public DateTime Date { get; set; }
         public TimeSpan Time { get; set; }
         public int? PatientCardId { get; set; }
+        public int PatientId { get; set; }
     }
 }
